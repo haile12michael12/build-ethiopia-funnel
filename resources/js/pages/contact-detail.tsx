@@ -1,4 +1,8 @@
 import AppLayout from '@/layouts/app-layout';
+import { BusinessAuditSummary } from '@/components/crm/BusinessAuditSummary';
+import { LeadScoreBadge } from '@/components/crm/LeadScoreBadge';
+import { LeadScoreBreakdown } from '@/components/crm/LeadScoreBreakdown';
+import { type BusinessAuditData } from '@/types/business-audit';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, BriefcaseBusiness, Clock, Mail, MessageSquare, Phone, Plus, Send, UserRound, Workflow } from 'lucide-react';
@@ -27,6 +31,9 @@ interface ContactDetailProps {
         phone: string | null;
         status: string;
         source: string;
+        lead_score: number;
+        lead_score_breakdown: Record<string, number>;
+        business_audit: BusinessAuditData | null;
         tags: string[];
         metadata: Record<string, unknown>;
         notes: Array<{
@@ -118,17 +125,20 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                             <p className="text-muted-foreground">Captured from {contact.funnel?.name || contact.source}</p>
                         </div>
                     </div>
-                    <select
-                        value={contact.status}
-                        onChange={(event) => updateStatus(event.target.value)}
-                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-                    >
-                        {statusOptions.map((status) => (
-                            <option key={status} value={status}>
-                                {status}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="flex items-center gap-3">
+                        {contact.business_audit && <LeadScoreBadge score={contact.lead_score} />}
+                        <select
+                            value={contact.status}
+                            onChange={(event) => updateStatus(event.target.value)}
+                            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+                        >
+                            {statusOptions.map((status) => (
+                                <option key={status} value={status}>
+                                    {status}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="flex justify-end">
@@ -173,6 +183,14 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                 </div>
                             </div>
                         </div>
+
+                        <BusinessAuditSummary audit={contact.business_audit} score={contact.lead_score} />
+                        {contact.business_audit && (
+                            <div className="rounded-xl border border-border bg-card p-5">
+                                <h2 className="mb-4 font-semibold text-foreground">Lead score breakdown</h2>
+                                <LeadScoreBreakdown breakdown={contact.lead_score_breakdown} />
+                            </div>
+                        )}
 
                         <div className="rounded-xl border border-border bg-card p-5">
                             <h2 className="flex items-center gap-2 font-semibold">

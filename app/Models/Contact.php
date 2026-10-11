@@ -22,12 +22,18 @@ class Contact extends Model
         'ip_address',
         'user_agent',
         'last_submitted_at',
+        'business_audit',
+        'lead_score',
+        'lead_score_breakdown',
     ];
 
     protected $casts = [
         'tags' => 'array',
         'metadata' => 'array',
         'last_submitted_at' => 'datetime',
+        'business_audit' => 'array',
+        'lead_score' => 'integer',
+        'lead_score_breakdown' => 'array',
     ];
 
     protected static function booted(): void

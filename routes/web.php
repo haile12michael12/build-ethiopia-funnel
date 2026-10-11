@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\AutomationRunController;
+use App\Http\Controllers\AuditFunnelController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\DemoController;
@@ -38,6 +39,13 @@ Route::domain($appDomain)->group(function () {
         return Inertia::render('welcome');
     })->name('home');
     Route::get('/demo', DemoController::class)->middleware('throttle:20,1')->name('demo');
+    Route::get('/business-growth-audit', [AuditFunnelController::class, 'show'])->name('business-audit.show');
+    Route::post('/business-growth-audit', [AuditFunnelController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('business-audit.store');
+    Route::get('/business-growth-audit/thank-you/{contact}', [AuditFunnelController::class, 'thankYou'])
+        ->middleware('signed')
+        ->name('business-audit.thank-you');
 
     // Public funnel view — accessible without authentication.
     // Published funnels are open to all; unpublished funnels require ownership (enforced in controller).
