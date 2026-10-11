@@ -1,0 +1,123 @@
+# OpenFunnels Roadmap
+
+This roadmap is a planning aid for agents and contributors. It should guide prioritization, but the user's current request always takes precedence.
+
+## Current Foundation
+
+- Laravel 13 + Inertia.js application shell.
+- Authentication and settings from the Laravel React starter kit.
+- Funnel model, policy, migrations, and CRUD controller.
+- Funnel dashboard/listing with aggregate stats.
+- Enhanced React funnel editor surface.
+- New-funnel starter layout chooser with common premade layouts.
+- Categorized starter template browser with visual thumbnails.
+- Zustand + Immer editor store with undo/redo history.
+- Public funnel preview route at `/f/{slug}`.
+- Custom domain mapping at the Laravel/React application layer.
+- CRM-lite contacts table, contacts page, contact detail page, notes, statuses, and submission timeline.
+- Contact search, status/funnel/date filters, and filtered CSV export.
+- Funnel-linked opportunity pipelines with configurable stages, deal values, forecasts, outcomes, activity history, and opt-in lead automation.
+- Funnel form submissions that capture leads and increment conversion counters.
+- Durable Automation Studio workflows with immutable published versions, event outbox enrollment, waits, branches, CRM actions, consent-aware email, signed webhooks, and observable run history.
+- Configurable form fields for contact details, custom answers, dropdowns, checkboxes, and hidden values.
+- Queue-backed email notification and optional webhook for new lead submissions.
+- Exporter modules for multiple output targets.
+- Resilient autosave with local recovery and optimistic concurrency.
+- Portable, versioned community template import and export.
+- Multi-step conditional forms with UTM attribution and success actions.
+- Privacy-conscious raw events, performance trends, and source reporting.
+- Native snapshot experiments with stable traffic assignment.
+- Optional provider-neutral AI funnel generation.
+- Isolated expiring guest sandbox and Docker evaluation stack.
+
+## Near-Term Priorities
+
+- Harden funnel CRUD behavior with focused feature tests.
+- Expand conditional operators and add reusable form-step presets.
+- Move starter layout definitions out of the editor page once the template library grows.
+- Add CSV contact import and duplicate management.
+- Add configurable lead notification settings in the UI.
+- Improve autosave/manual save flows in the editor.
+- Expand editor block coverage and block-level property editing.
+- Improve preview fidelity across desktop, tablet, and mobile.
+- Add stronger validation around funnel content JSON.
+- Make publish/unpublish states clearer in the dashboard and editor.
+
+## Feature Tracks
+
+### Funnel Builder
+
+- Section and column layout controls.
+- Block library expansion.
+- Form block field builder for name, email, phone, custom fields, hidden UTM fields, and success actions.
+- Nested container behavior.
+- Selection, duplication, deletion, and reordering polish.
+- Undo/redo reliability.
+- Reusable templates and saved sections.
+- Template library with categories, thumbnails, preview mode, and one-click install.
+
+### Publishing
+
+- Published funnel public rendering.
+- Preview mode that does not increment analytics.
+- Slug management and collision handling.
+- Custom domain mapping; read `docs/prds/domain-mapping.md` and `docs/ai-instructions/domain-mapping-agent-rules.md` first.
+
+### CRM And Lead Capture
+
+- CSV contact import and duplicate management.
+- Custom fields attached to contacts.
+- Lead source and UTM capture from published funnels.
+- Opportunity list view, advanced filters, tasks, and lost-reason reporting.
+- Team assignment and task follow-up.
+
+### Automation
+
+- Automation Studio product specification: `docs/prds/automation-studio.md`.
+- Automation templates bundled with funnel templates.
+- More communication actions, including SMS through a separate provider integration.
+- Reusable workflow fragments and richer condition groups.
+- Team assignment, task creation, and appointment actions as those CRM modules become available.
+
+### Messaging And Appointments
+
+- Email campaign infrastructure with unsubscribe handling.
+- SMS provider integration, opt-in/opt-out compliance, and phone number management.
+- Calendar availability, booking pages, reminders, reschedules, and no-show follow-up.
+- Conversation inbox for email/SMS replies.
+
+### Agency And SaaS
+
+- Workspaces/sub-accounts for agency-client separation.
+- Team roles and permissions.
+- White-label branding and custom app domains.
+- Client billing/rebilling and usage limits.
+- Snapshot installer: funnel + forms + contacts fields + automations + messages.
+
+### Payments And Checkout
+
+- Stripe checkout blocks.
+- One-time payments, subscriptions, order bumps, and coupons.
+- Abandoned checkout capture and follow-up triggers.
+- Revenue attribution per funnel.
+
+### Analytics
+
+- Separate raw events from aggregate counters.
+- Track views and conversions without polluting previews.
+- Add dashboard trends and per-funnel performance views.
+- Keep conversion-rate calculations consistent and test-covered.
+- Add cohort retention, revenue attribution, and statistical guidance for experiments.
+
+### Exporting
+
+- Keep exporter interfaces consistent across HTML, Laravel, React, Vue, WordPress, Shopify, and WooCommerce targets.
+- Add tests or sample fixtures for generated output where practical.
+- Avoid coupling editor-only state to export formats.
+
+## Quality Targets
+
+- Add Pest tests for backend behavior that touches persistence, policies, routing, validation, or public access.
+- Run `pnpm run types` for TypeScript changes.
+- Run `pnpm run build` when changing Vite entrypoints, Tailwind tokens, or app-wide frontend behavior.
+- Keep documentation updated when feature architecture or commands change.

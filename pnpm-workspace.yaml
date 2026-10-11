@@ -1,0 +1,9 @@
+packages:
+  - .
+
+overrides:
+  rollup: 4.62.3
+
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild

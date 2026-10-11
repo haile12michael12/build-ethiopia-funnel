@@ -1,0 +1,208 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AutomationEvent;
+use App\Models\AutomationRun;
+use App\Models\User;
+use App\Services\Automation\WorkflowPublisher;
+use App\Services\Automation\WorkflowRecipes;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+
+class DemoController extends Controller
+{
+    public function __invoke(
+        Request $request,
+        WorkflowRecipes $workflowRecipes,
+        WorkflowPublisher $workflowPublisher,
+    ): RedirectResponse {
+        abort_unless(config('demo.enabled'), 404);
+
+        if ($request->user() && ! $request->user()->is_demo) {
+            return redirect()->route('dashboard');
+        }
+        if ($request->user()?->is_demo && $request->user()->demo_expires_at?->isFuture()) {
+            return redirect()->route('funnel-editor.edit', $request->user()->funnels()->firstOrFail());
+        }
+
+        $user = User::create([
+            'name' => 'Guest Creator',
+            'email' => 'demo+'.Str::uuid().'@openfunnels.local',
+            'password' => Str::random(48),
+            'email_verified_at' => now(),
+            'is_demo' => true,
+            'demo_expires_at' => now()->addHours((int) config('demo.lifetime_hours')),
+        ]);
+        $funnel = $user->funnels()->create([
+            'name' => 'SaaS Growth Audit',
+            'slug' => 'demo-growth-audit-'.Str::lower(Str::random(10)),
+            'description' => 'An editable demo funnel with a practical lead form.',
+            'content' => $this->content(),
+            'settings' => ['backgroundColor' => '#09090b', 'maxWidth' => '1200px', 'fontFamily' => 'Inter, sans-serif'],
+        ]);
+        $contact = $user->contacts()->create([
+            'funnel_id' => $funnel->id,
+            'email' => 'alex@example.com',
+            'name' => 'Alex Morgan',
+            'source' => 'funnel_form',
+            'status' => 'qualified',
+            'metadata' => ['submission_count' => 1, 'last_attribution' => ['utm_source' => 'community']],
+            'last_submitted_at' => now()->subHour(),
+        ]);
+        $submission = $contact->submissions()->create([
+            'funnel_id' => $funnel->id,
+            'form_id' => 'audit-form',
+            'fields' => ['email' => 'alex@example.com', 'company' => 'Acme Labs'],
+            'attribution' => ['utm_source' => 'community'],
+            'source' => 'funnel_form',
+        ]);
+        $pipeline = $user->pipelines()->create([
+            'name' => 'Growth Sales',
+            'currency' => 'USD',
+        ]);
+        $pipeline->stages()->createMany([
+            ['name' => 'New Lead', 'position' => 0, 'probability' => 10],
+            ['name' => 'Contacted', 'position' => 1, 'probability' => 25],
+            ['name' => 'Qualified', 'position' => 2, 'probability' => 50],
+            ['name' => 'Proposal', 'position' => 3, 'probability' => 75],
+        ]);
+        $opportunity = $user->opportunities()->create([
+            'pipeline_id' => $pipeline->id,
+            'pipeline_stage_id' => $pipeline->stages()->where('name', 'Qualified')->value('id'),
+            'contact_id' => $contact->id,
+            'funnel_id' => $funnel->id,
+            'title' => 'Acme Labs growth audit',
+            'value_cents' => 350000,
+            'status' => 'open',
+            'source' => 'funnel_form',
+            'expected_close_date' => now()->addDays(14)->toDateString(),
+            'stage_changed_at' => now()->subHour(),
+        ]);
+        $opportunity->recordActivity('created', [
+            'source' => 'demo_seed',
+            'stage_name' => 'Qualified',
+        ], $user->id);
+        $recipe = $workflowRecipes->get('new-lead-welcome');
+        $workflow = $user->automationWorkflows()->create([
+            'name' => $recipe['name'],
+            'description' => $recipe['description'],
+            'status' => 'draft',
+            'enrollment_policy' => 'every_event',
+            'draft_definition' => $recipe['definition'],
+            'revision' => 1,
+        ]);
+        $version = $workflowPublisher->publish($workflow);
+        $event = AutomationEvent::create([
+            'user_id' => $user->id,
+            'event_type' => 'funnel.form_submitted',
+            'contact_id' => $contact->id,
+            'funnel_id' => $funnel->id,
+            'submission_id' => $submission->id,
+            'payload' => ['is_new_contact' => true],
+            'status' => 'processed',
+            'available_at' => now()->subHour(),
+            'processed_at' => now()->subHour(),
+        ]);
+        $context = [
+            'event' => ['id' => $event->id, 'type' => $event->event_type, 'occurred_at' => $event->created_at?->toISOString(), 'payload' => $event->payload],
+            'contact' => ['id' => $contact->id, 'name' => $contact->name, 'email' => $contact->email, 'status' => $contact->status],
+            'funnel' => ['id' => $funnel->id, 'name' => $funnel->name, 'slug' => $funnel->slug],
+            'submission' => ['id' => $submission->id, 'form_id' => $submission->form_id, 'fields' => $submission->fields],
+            'opportunity' => null,
+            'pipeline' => null,
+            'stage' => null,
+        ];
+        $run = AutomationRun::create([
+            'user_id' => $user->id,
+            'workflow_id' => $workflow->id,
+            'workflow_version_id' => $version->id,
+            'automation_event_id' => $event->id,
+            'contact_id' => $contact->id,
+            'funnel_id' => $funnel->id,
+            'submission_id' => $submission->id,
+            'status' => 'completed',
+            'context' => $context,
+            'started_at' => now()->subHour(),
+            'finished_at' => now()->subMinutes(59),
+        ]);
+        $emailNode = collect($version->definition['nodes'])->firstWhere('type', 'send_email');
+        $waitNode = collect($version->definition['nodes'])->firstWhere('type', 'wait');
+        $notifyNode = collect($version->definition['nodes'])->firstWhere('type', 'notify_owner');
+        $endNode = collect($version->definition['nodes'])->firstWhere('type', 'end');
+        $run->steps()->create([
+            'node_id' => $emailNode['id'],
+            'node_type' => 'send_email',
+            'status' => 'suppressed',
+            'attempt' => 1,
+            'started_at' => now()->subHour(),
+            'finished_at' => now()->subHour()->addSecond(),
+            'output_summary' => ['reason' => 'Demo delivery suppressed', 'next_node_id' => $emailNode['next_node_id']],
+            'idempotency_key' => hash('sha256', $run->id.':'.$emailNode['id']),
+        ]);
+        $run->steps()->create([
+            'node_id' => $waitNode['id'],
+            'node_type' => 'wait',
+            'status' => 'completed',
+            'attempt' => 1,
+            'scheduled_for' => now()->subMinutes(59),
+            'started_at' => now()->subHour()->addSeconds(2),
+            'finished_at' => now()->subMinutes(59),
+            'output_summary' => ['wait_completed' => true, 'next_node_id' => $waitNode['next_node_id']],
+            'idempotency_key' => hash('sha256', $run->id.':'.$waitNode['id']),
+        ]);
+        $run->steps()->create([
+            'node_id' => $notifyNode['id'],
+            'node_type' => 'notify_owner',
+            'status' => 'suppressed',
+            'attempt' => 1,
+            'started_at' => now()->subMinutes(59),
+            'finished_at' => now()->subMinutes(59),
+            'output_summary' => ['reason' => 'Demo delivery suppressed', 'next_node_id' => $notifyNode['next_node_id']],
+            'idempotency_key' => hash('sha256', $run->id.':'.$notifyNode['id']),
+        ]);
+        $run->steps()->create([
+            'node_id' => $endNode['id'],
+            'node_type' => 'end',
+            'status' => 'completed',
+            'attempt' => 1,
+            'started_at' => now()->subMinutes(59),
+            'finished_at' => now()->subMinutes(59),
+            'output_summary' => ['ended' => true, 'terminal' => true],
+            'idempotency_key' => hash('sha256', $run->id.':'.$endNode['id']),
+        ]);
+        foreach (range(6, 0) as $daysAgo) {
+            $funnel->events()->create([
+                'event_type' => 'view',
+                'session_id' => hash('sha256', 'demo-'.$daysAgo),
+                'occurred_at' => now()->subDays($daysAgo),
+            ]);
+        }
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('funnel-editor.edit', $funnel);
+    }
+
+    private function content(): array
+    {
+        return ['sections' => [[
+            'id' => 'demo-hero', 'type' => 'section', 'layout' => 'single',
+            'settings' => ['backgroundColor' => '#111827', 'padding' => '80px 24px', 'margin' => '0', 'minHeight' => 'auto', 'fullWidth' => true],
+            'columns' => [[
+                'id' => 'demo-column', 'type' => 'column', 'width' => 100,
+                'settings' => ['padding' => '16px', 'backgroundColor' => 'transparent', 'verticalAlign' => 'top'],
+                'blocks' => [
+                    ['id' => 'demo-title', 'type' => 'text', 'content' => ['text' => 'Find the leaks in your SaaS funnel', 'fontSize' => '48px', 'color' => '#ffffff', 'textAlign' => 'center', 'fontWeight' => '700'], 'settings' => ['padding' => '8px', 'margin' => '0', 'backgroundColor' => 'transparent', 'borderRadius' => '0']],
+                    ['id' => 'audit-form', 'type' => 'form', 'content' => ['title' => 'Get your free growth audit', 'buttonText' => 'Request my audit', 'fields' => [
+                        ['id' => 'name', 'name' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => false],
+                        ['id' => 'email', 'name' => 'email', 'label' => 'Work email', 'type' => 'email', 'required' => true],
+                    ]], 'settings' => ['padding' => '24px', 'margin' => '32px auto 0', 'backgroundColor' => '#ffffff', 'borderRadius' => '12px']],
+                ],
+            ]],
+        ]]];
+    }
+}
