@@ -5,6 +5,7 @@ namespace App\Actions\Leads;
 use App\Models\Contact;
 use App\Models\ContactSubmission;
 use App\Models\User;
+use App\Services\Automation\AutomationEventRecorder;
 use App\Services\EthiopianPhoneNormalizer;
 use App\Services\LeadScoringService;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class CaptureLead
         private LeadScoringService $scoring,
         private UpdateLeadScore $updateLeadScore,
         private QualifyLead $qualifyLead,
+        private AutomationEventRecorder $automationEvents,
     ) {}
 
     /**
@@ -25,11 +27,9 @@ class CaptureLead
      */
     public function handle(User $owner, array $validated, Request $request): array
     {
-        return DB::transaction(function () use (
-            $owner,
-            $validated,
-            $request,
-        ): array {
+        $dispatchAutomationImmediately = config('queue.default') !== 'sync';
+
+        return DB::transaction(function () use ($owner, $validated, $request, $dispatchAutomationImmediately): array {
             $email = strtolower($validated['email']);
             $contact = Contact::firstOrNew(['user_id' => $owner->id, 'email' => $email]);
             $isNewContact = ! $contact->exists;
@@ -46,7 +46,9 @@ class CaptureLead
             $contact->fill([
                 'email' => $email,
                 'name' => $validated['name'],
-                'phone' => $this->phoneNormalizer->normalize($validated['phone'] ?? null),
+                'phone' => filled($validated['phone'] ?? null)
+                    ? $this->phoneNormalizer->normalize($validated['phone'])
+                    : $contact->phone,
                 'source' => $isNewContact ? 'business_audit' : $contact->source,
                 'status' => $contact->status ?: 'new',
                 'business_audit' => $audit,
@@ -72,6 +74,16 @@ class CaptureLead
                 'ip_address' => $request->ip(),
                 'user_agent' => (string) $request->userAgent(),
             ]);
+
+            if ($isNewContact) {
+                $this->automationEvents->record(
+                    $owner,
+                    'contact.created',
+                    contact: $contact,
+                    payload: ['source' => 'business_audit'],
+                    dispatch: $dispatchAutomationImmediately,
+                );
+            }
 
             return ['contact' => $contact, 'submission' => $submission];
         });

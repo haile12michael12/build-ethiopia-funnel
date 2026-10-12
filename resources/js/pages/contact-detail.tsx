@@ -122,7 +122,9 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                         </Link>
                         <div>
                             <h1 className="text-2xl font-bold text-foreground">{contact.name || contact.email}</h1>
-                            <p className="text-muted-foreground">Captured from {contact.funnel?.name || contact.source}</p>
+                            <p className="text-muted-foreground">
+                                Captured from {contact.funnel?.name || (contact.source === 'business_audit' ? 'Business growth audit' : contact.source)}
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -313,7 +315,9 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                 <div key={submission.id} className="p-5">
                                     <div className="mb-3 flex items-start justify-between gap-4">
                                         <div>
-                                            <div className="font-medium text-foreground">{submission.funnel?.name || 'Unknown funnel'}</div>
+                                            <div className="font-medium text-foreground">
+                                                {submission.funnel?.name || (submission.source === 'business_audit' ? 'Business growth audit' : 'Unknown funnel')}
+                                            </div>
                                             <div className="text-sm text-muted-foreground">
                                                 {submission.source} {submission.form_id ? `| ${submission.form_id}` : ''}
                                             </div>
