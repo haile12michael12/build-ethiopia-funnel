@@ -18,6 +18,8 @@ use App\Http\Controllers\LeadCaptureController;
 use App\Http\Controllers\OpportunityController;
 use App\Http\Controllers\PipelineController;
 use App\Http\Controllers\PipelineStageController;
+use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\ProjectController;
 use App\Models\Domain;
 use App\Models\FunnelEvent;
 use App\Services\FunnelPublicUrlResolver;
@@ -56,6 +58,10 @@ Route::domain($appDomain)->group(function () {
     Route::post('email/unsubscribe/{preference}', [EmailPreferenceController::class, 'update'])
         ->middleware('signed')
         ->name('email.unsubscribe.update');
+
+    // Public Portfolio routes
+    Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
+    Route::get('/portfolio/{project:slug}', [PortfolioController::class, 'show'])->name('portfolio.show');
 
     Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('dashboard', function () {
@@ -162,6 +168,13 @@ Route::domain($appDomain)->group(function () {
         Route::post('funnels/{funnel}/domains', [DomainController::class, 'store'])->name('domains.store');
         Route::post('funnels/{funnel}/domains/{domain}/verify', [DomainController::class, 'verify'])->name('domains.verify');
         Route::delete('domains/{domain}', [DomainController::class, 'destroy'])->name('domains.destroy');
+
+        // Project Management routes
+        Route::resource('projects', ProjectController::class)->except(['show']);
+        Route::post('projects/{project}/publish', [ProjectController::class, 'publish'])->name('projects.publish');
+        Route::post('projects/{project}/unpublish', [ProjectController::class, 'unpublish'])->name('projects.unpublish');
+        Route::post('projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
+        Route::get('projects/{project}/preview', [ProjectController::class, 'preview'])->name('projects.preview');
     });
 
     require __DIR__.'/settings.php';

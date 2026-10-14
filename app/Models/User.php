@@ -95,4 +95,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(ContactEmailPreference::class);
     }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
 }
