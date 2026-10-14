@@ -1,6 +1,6 @@
 # Changelog
 
-OpenFunnels follows a rolling development model. Notable user-facing changes are recorded here before tagged releases.
+Hailab follows a rolling development model. Notable user-facing changes are recorded here before tagged releases.
 
 ## Unreleased
 

@@ -1,6 +1,6 @@
 # AI Agent Coding Guidelines: Custom Domain Mapping
 
-You are an AI programming assistant tasked with implementing the Custom Domain Mapping feature for OpenFunnels (a Laravel + Inertia.js SaaS application).
+You are an AI programming assistant tasked with implementing the Custom Domain Mapping feature for Hailab (a Laravel + Inertia.js SaaS application).
 
 ## STRICT INSTRUCTIONS
 When working on the Domain Mapping feature, you MUST strictly adhere to the following rules and architecture. Do not deviate from these constraints without explicit permission from the user.

@@ -6,12 +6,12 @@ Implemented on July 27, 2026. This document defines the delivered first producti
 
 ## Product Summary
 
-Automation Studio connects OpenFunnels' existing funnels, contacts, email, webhooks, and opportunities into durable workflows.
+Automation Studio connects Hailab's existing funnels, contacts, email, webhooks, and opportunities into durable workflows.
 
 The primary product loop is:
 
 1. A visitor submits a funnel form.
-2. OpenFunnels records the contact and submission immediately.
+2. Hailab records the contact and submission immediately.
 3. A matching workflow enrolls the contact.
 4. Queue-backed steps send follow-up, wait, branch, update CRM records, or call an external service.
 5. The owner can inspect every run and retry or cancel failed work.
@@ -20,7 +20,7 @@ The first release targets self-hosted solo operators, coaches, consultants, serv
 
 ## Why This Feature Is Next
 
-OpenFunnels already owns the key records required for useful automation:
+Hailab already owns the key records required for useful automation:
 
 - Funnel submissions and attribution.
 - Contacts and lifecycle status.
@@ -31,7 +31,7 @@ OpenFunnels already owns the key records required for useful automation:
 
 These capabilities previously operated separately, and some lead notifications executed synchronously during public form submission. Automation Studio now makes them configurable while moving non-critical work away from the visitor-facing request.
 
-OpenFunnels should implement a smaller, observable, self-hosted core rather than matching every competitor action in the first release.
+Hailab should implement a smaller, observable, self-hosted core rather than matching every competitor action in the first release.
 
 ## User Outcomes
 

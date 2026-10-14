@@ -1,4 +1,4 @@
-# Contributing to OpenFunnels
+# Contributing to Hailab
 
 Thanks for helping build an excellent self-hosted funnel platform. Focused fixes, tests, documentation, integrations, and template contributions are all welcome.
 

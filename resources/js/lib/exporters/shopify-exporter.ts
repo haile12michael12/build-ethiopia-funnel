@@ -12,9 +12,9 @@ ${countdownScript}
 
 {% schema %}
 {
-  "name": ${JSON.stringify(funnel.name.slice(0, 25) || 'OpenFunnels page')},
+  "name": ${JSON.stringify(funnel.name.slice(0, 25) || 'Hailab page')},
   "settings": [],
-  "presets": [{ "name": ${JSON.stringify(funnel.name.slice(0, 25) || 'OpenFunnels page')} }]
+  "presets": [{ "name": ${JSON.stringify(funnel.name.slice(0, 25) || 'Hailab page')} }]
 }
 {% endschema %}`;
     }

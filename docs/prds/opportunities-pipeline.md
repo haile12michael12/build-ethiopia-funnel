@@ -2,9 +2,9 @@
 
 ## Overview
 
-OpenFunnels Opportunities turns captured contacts into trackable sales deals. It adds the operational layer between lead capture and revenue without requiring a separate CRM.
+Hailab Opportunities turns captured contacts into trackable sales deals. It adds the operational layer between lead capture and revenue without requiring a separate CRM.
 
-The feature follows the common opportunity model used by funnel-oriented CRM products while preserving OpenFunnels' self-hosted, single-owner architecture.
+The feature follows the common opportunity model used by funnel-oriented CRM products while preserving Hailab's self-hosted, single-owner architecture.
 
 ## User Outcomes
 
@@ -45,7 +45,7 @@ Users can:
 
 ## Current Boundaries
 
-- OpenFunnels currently has one application user per account, so opportunity assignment and team permissions are deferred.
+- Hailab currently has one application user per account, so opportunity assignment and team permissions are deferred.
 - Tasks, conversations, appointments, workflow builders, custom opportunity fields, and list view are future CRM increments.
 - Existing contacts are not automatically promoted during migration.
 

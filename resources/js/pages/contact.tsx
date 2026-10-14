@@ -32,7 +32,7 @@ export default function Contact() {
 
     return (
         <PublicLayout>
-            <Head title="Contact Our Agency - OpenFunnels" />
+            <Head title="Contact Our Agency - Hailab" />
 
             {/* Hero */}
             <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-card/80 to-background py-16">
@@ -177,4 +177,3 @@ export default function Contact() {
         </PublicLayout>
     );
 }
-

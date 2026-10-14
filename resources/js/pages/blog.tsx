@@ -37,7 +37,7 @@ export default function Blog() {
 
     return (
         <PublicLayout>
-            <Head title="Engineering Blog & Insights - OpenFunnels" />
+            <Head title="Engineering Blog & Insights - Hailab" />
 
             {/* Hero */}
             <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-card/80 to-background py-16">
@@ -100,4 +100,3 @@ export default function Blog() {
         </PublicLayout>
     );
 }
-

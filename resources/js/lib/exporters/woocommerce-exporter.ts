@@ -7,7 +7,7 @@ export class WooCommerceExporter implements Exporter {
         const templateName = escapeMarkup(funnel.name).replace(/\*\//g, '* /');
         return `<?php
 /**
- * OpenFunnels page template for a WooCommerce-compatible WordPress theme.
+ * Hailab page template for a WooCommerce-compatible WordPress theme.
  * Copy to your child theme and select it as the page template.
  *
  * Template Name: ${templateName}

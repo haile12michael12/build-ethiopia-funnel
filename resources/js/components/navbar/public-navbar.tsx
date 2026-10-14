@@ -146,7 +146,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-extrabold text-sm shadow-sm">
                                 OF
                             </span>
-                            <span className="hidden sm:inline-block">OpenFunnels</span>
+                            <span className="hidden sm:inline-block">Hailab</span>
                         </Link>
 
                         {/* Desktop Navigation Links */}
@@ -545,7 +545,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
                                                     OF
                                                 </span>
-                                                <span>OpenFunnels</span>
+                                                <span>Hailab</span>
                                             </SheetTitle>
                                         </SheetHeader>
 
@@ -843,4 +843,3 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
         </>
     );
 }
-

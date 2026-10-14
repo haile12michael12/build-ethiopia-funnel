@@ -1,7 +1,7 @@
 # Product Requirements Document (PRD): Custom Domain Mapping Wizard
 
 ## 1. Overview
-The Domain Mapping feature allows SaaS users to attach their own custom domains (e.g., `promo.brand.com` or `brand.com`) to their funnels built within OpenFunnels. This document outlines the backend architecture, the frontend UX/UI requirements (a multi-step wizard), and strict implementation details.
+The Domain Mapping feature allows SaaS users to attach their own custom domains (e.g., `promo.brand.com` or `brand.com`) to their funnels built within Hailab. This document outlines the backend architecture, the frontend UX/UI requirements (a multi-step wizard), and strict implementation details.
 
 ## 2. UI/UX: The Domain Mapping Wizard
 The frontend must be built in React (via Inertia.js) and implement a sleek, user-friendly multi-step wizard. Users setting up domains often lack technical knowledge, so the UX must be extremely clear.

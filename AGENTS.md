@@ -1,10 +1,10 @@
-# OpenFunnels Agent Guide
+# Hailab Agent Guide
 
-This is the working guide for AI agents contributing to OpenFunnels. Read this before changing code, and read any linked feature instructions before implementing that feature.
+This is the working guide for AI agents contributing to Hailab. Read this before changing code, and read any linked feature instructions before implementing that feature.
 
 ## Project Snapshot
 
-OpenFunnels is a Laravel 13 + Inertia.js SaaS application for building and publishing drag-and-drop funnel pages.
+Hailab is a Laravel 13 + Inertia.js SaaS application for building and publishing drag-and-drop funnel pages.
 
 - Backend: Laravel 13, PHP 8.3+, Eloquent, policies, Pest.
 - Frontend: React 19, TypeScript, Inertia.js 2, Vite, Tailwind CSS 4.

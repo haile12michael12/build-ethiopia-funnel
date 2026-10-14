@@ -64,7 +64,7 @@ export function parseTemplateManifest(source: string): TemplateManifest {
     }
 
     if (!isRecord(value) || value.kind !== 'openfunnels-template' || value.schemaVersion !== 1) {
-        throw new Error('This is not a supported OpenFunnels template.');
+        throw new Error('This is not a supported Hailab template.');
     }
     if (!isRecord(value.metadata) || typeof value.metadata.name !== 'string' || typeof value.metadata.category !== 'string') {
         throw new Error('The template metadata is incomplete.');

@@ -19,7 +19,7 @@ import {
 export default function Services() {
     return (
         <PublicLayout>
-            <Head title="Software & AI Services - OpenFunnels" />
+            <Head title="Software & AI Services - Hailab" />
 
             {/* Hero */}
             <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-card/80 to-background py-16 sm:py-24">
@@ -279,4 +279,3 @@ export default function Services() {
         </PublicLayout>
     );
 }
-

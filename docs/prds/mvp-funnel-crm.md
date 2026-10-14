@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-OpenFunnels is currently positioned as an open-source funnel builder for launching lead-capture funnels quickly. The MVP is not a full GoHighLevel replacement; it focuses on the first usable growth loop:
+Hailab is currently positioned as an open-source funnel builder for launching lead-capture funnels quickly. The MVP is not a full GoHighLevel replacement; it focuses on the first usable growth loop:
 
 1. Build a funnel from scratch or a premade starter template.
 2. Publish or preview the funnel.

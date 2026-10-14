@@ -17,14 +17,14 @@ import {
 export default function About() {
     return (
         <PublicLayout>
-            <Head title="About Our Engineering Agency - OpenFunnels" />
+            <Head title="About Our Engineering Agency - Hailab" />
 
             {/* Hero */}
             <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-card/80 to-background py-16 sm:py-24">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
                     <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary mb-6">
                         <Sparkles className="h-3.5 w-3.5" />
-                        <span>About OpenFunnels Agency</span>
+                        <span>About Hailab</span>
                     </div>
 
                     <h1 className="mx-auto max-w-4xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
@@ -79,7 +79,7 @@ export default function About() {
                             Democratizing intelligent software and conversion engineering
                         </h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            OpenFunnels began with a singular focus: to equip creators, startups, and growing enterprises with world-class funnel building, customer relationship pipelines, and automated intelligence without the bloated costs and constraints of proprietary platforms.
+                            Hailab began with a singular focus: to equip creators, startups, and growing enterprises with world-class funnel building, customer relationship pipelines, and automated intelligence without the bloated costs and constraints of proprietary platforms.
                         </p>
                         <div className="pt-2">
                             <Button asChild>
@@ -92,4 +92,3 @@ export default function About() {
         </PublicLayout>
     );
 }
-

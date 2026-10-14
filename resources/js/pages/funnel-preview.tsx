@@ -105,7 +105,7 @@ export default function FunnelPreview({ funnel, previewMode = false }: FunnelPre
 
     return (
         <>
-            <Head title={`Preview: ${funnel.name} - OpenFunnels`} />
+            <Head title={`Preview: ${funnel.name} - Hailab`} />
 
             <div className={previewMode ? 'min-h-screen bg-gray-50' : 'min-h-screen bg-white'}>
                 {/* Preview controls are private editor UI, not part of the public funnel. */}

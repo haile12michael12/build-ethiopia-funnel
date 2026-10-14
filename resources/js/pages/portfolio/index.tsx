@@ -90,7 +90,7 @@ export default function PortfolioIndex({ projects, featured, categories, filters
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center space-x-6">
                         <Link href="/" className="text-xl font-bold tracking-tight text-foreground hover:opacity-90">
-                            OpenFunnels
+                            Hailab
                         </Link>
                         <nav className="hidden items-center space-x-4 text-sm font-medium md:flex">
                             <Link href={route('portfolio.index')} className="font-semibold text-primary">
@@ -505,7 +505,7 @@ export default function PortfolioIndex({ projects, featured, categories, filters
 
             {/* Footer */}
             <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
-                <p>&copy; {new Date().getFullYear()} OpenFunnels. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} Hailab. All rights reserved.</p>
             </footer>
         </div>
     );

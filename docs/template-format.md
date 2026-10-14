@@ -1,6 +1,6 @@
-# OpenFunnels Template Format
+# Hailab Template Format
 
-OpenFunnels templates are portable JSON files ending in `.openfunnels.json`. They contain editor content and presentation settings, but never funnel IDs, contacts, submissions, analytics, domains, or account data.
+Hailab templates are portable JSON files ending in `.openfunnels.json` for compatibility with previously exported templates. They contain editor content and presentation settings, but never funnel IDs, contacts, submissions, analytics, domains, or account data.
 
 ## Create and import templates
 

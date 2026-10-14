@@ -1,4 +1,4 @@
-# OpenFunnels Roadmap
+# Hailab Roadmap
 
 This roadmap is a planning aid for agents and contributors. It should guide prioritization, but the user's current request always takes precedence.
 

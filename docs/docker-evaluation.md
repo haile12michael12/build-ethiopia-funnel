@@ -1,6 +1,6 @@
 # Docker Evaluation Stack
 
-The included Compose stack is the fastest way to evaluate OpenFunnels locally. It is intentionally an application-only setup and does not provision TLS, a reverse proxy, or custom-domain infrastructure.
+The included Compose stack is the fastest way to evaluate Hailab locally. It is intentionally an application-only setup and does not provision TLS, a reverse proxy, or custom-domain infrastructure.
 
 ## Start
 

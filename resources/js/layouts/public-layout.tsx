@@ -27,9 +27,9 @@ export function PublicLayout({ children, className = '' }: PublicLayoutProps) {
                         <div className="space-y-3 md:col-span-1">
                             <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground">
                                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground font-extrabold text-xs">
-                                    OF
+                                    HL
                                 </span>
-                                <span>OpenFunnels</span>
+                                <span>Hailab</span>
                             </Link>
                             <p className="text-xs text-muted-foreground leading-relaxed">
                                 {isAmharic
@@ -119,7 +119,7 @@ export function PublicLayout({ children, className = '' }: PublicLayoutProps) {
                     </div>
 
                     <div className="mt-8 border-t border-border/60 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-4">
-                        <p>&copy; {new Date().getFullYear()} OpenFunnels Agency. All rights reserved.</p>
+                        <p>&copy; {new Date().getFullYear()} Hailab. All rights reserved.</p>
                         <p className="flex items-center gap-4">
                             <span>Addis Ababa, Ethiopia</span>
                             <span>•</span>
@@ -133,4 +133,3 @@ export function PublicLayout({ children, className = '' }: PublicLayoutProps) {
 }
 
 export default PublicLayout;
-

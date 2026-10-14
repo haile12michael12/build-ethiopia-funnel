@@ -1,7 +1,7 @@
 name: openfunnels
 
 x-openfunnels-environment: &openfunnels-environment
-  APP_NAME: OpenFunnels
+  APP_NAME: Hailab
   APP_ENV: local
   APP_KEY: base64:b29vb29vb29vb29vb29vb29vb29vb29vb29vb29vb28=
   APP_DEBUG: "false"

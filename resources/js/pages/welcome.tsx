@@ -73,7 +73,7 @@ export default function Welcome() {
 
     return (
         <>
-            <Head title="OpenFunnels - Build High-Converting Marketing Funnels">
+            <Head title="Hailab - Build High-Converting Marketing Funnels">
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
             </Head>
@@ -118,7 +118,7 @@ export default function Welcome() {
                                         <div className="h-3 w-3 rounded-full bg-red-500/50"></div>
                                         <div className="h-3 w-3 rounded-full bg-yellow-500/50"></div>
                                         <div className="h-3 w-3 rounded-full bg-green-500/50"></div>
-                                        <div className="flex-1 text-center text-sm text-muted-foreground">openfunnels.com/editor</div>
+                                        <div className="flex-1 text-center text-sm text-muted-foreground">hailab/editor</div>
                                     </div>
                                     <div className="p-8">
                                         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -194,7 +194,7 @@ export default function Welcome() {
                 {/* Demo Video Section */}
                 <section className="border-y border-border bg-card px-4 py-16 sm:px-6 lg:px-8">
                     <div className="mx-auto max-w-7xl text-center">
-                        <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">See OpenFunnels in Action</h2>
+                        <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">See Hailab in Action</h2>
                         <p className="mb-8 text-xl text-muted-foreground">
                             Watch how easy it is to build professional funnels with our drag-and-drop editor
                         </p>
@@ -313,7 +313,7 @@ export default function Welcome() {
                     <div className="mx-auto max-w-7xl">
                         <div className="mb-16 text-center">
                             <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">Loved by Marketing Teams</h2>
-                            <p className="text-xl text-muted-foreground">See what our users are saying about OpenFunnels</p>
+                            <p className="text-xl text-muted-foreground">See what our users are saying about Hailab</p>
                         </div>
                         <div className="testimonials-grid grid grid-cols-1 gap-8 md:grid-cols-3">
                             <div className="testimonial-card rounded-xl border border-border bg-secondary/30 p-6">
@@ -329,7 +329,7 @@ export default function Welcome() {
                                     </div>
                                 </div>
                                 <p className="text-muted-foreground italic">
-                                    "OpenFunnels transformed our lead generation. We saw a 300% increase in conversions within the first month."
+                                    "Hailab transformed our lead generation. We saw a 300% increase in conversions within the first month."
                                 </p>
                             </div>
 
@@ -375,7 +375,7 @@ export default function Welcome() {
                     <div className="mx-auto max-w-4xl text-center">
                         <h2 className="mb-4 text-3xl font-bold text-primary-foreground md:text-4xl">Ready to Build Your First Funnel?</h2>
                         <p className="mb-8 text-xl text-primary-foreground/90">
-                            Join thousands of marketers who are already using OpenFunnels to create high-converting funnels. Start building for free
+                            Join thousands of marketers who are already using Hailab to create high-converting funnels. Start building for free
                             today.
                         </p>
                         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -388,7 +388,7 @@ export default function Welcome() {
                                 </Link>
                             )}
                             <a
-                                href="https://github.com/openfunnels/openfunnels"
+                                href="https://github.com/haile12michael12/build-ethiopia-funnel"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="rounded-lg border-2 border-primary-foreground bg-transparent px-8 py-4 text-lg font-semibold text-primary-foreground transition-all hover:scale-105 hover:bg-primary-foreground hover:text-primary"
@@ -416,7 +416,7 @@ export default function Welcome() {
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
                             <div>
-                                <h3 className="mb-4 text-2xl font-bold">OpenFunnels</h3>
+                                <h3 className="mb-4 text-2xl font-bold">Hailab</h3>
                                 <p className="text-muted-foreground">
                                     The open-source funnel builder that helps you create high-converting marketing funnels without coding.
                                 </p>
@@ -498,7 +498,7 @@ export default function Welcome() {
                             </div>
                         </div>
                         <div className="mt-12 border-t border-border pt-8 text-center text-muted-foreground">
-                            <p>© 2025 OpenFunnels. All rights reserved. Built with ❤️ by the OpenFunnels community.</p>
+                            <p>© 2025 Hailab. All rights reserved.</p>
                         </div>
                     </div>
                 </footer>

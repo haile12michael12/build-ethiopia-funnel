@@ -1,6 +1,6 @@
-# Self-hosting OpenFunnels
+# Self-hosting Hailab
 
-OpenFunnels can run as a standalone Laravel application on a VPS. The application owns funnel editing, publishing, lead capture, contacts, DNS verification, and custom-domain routing. Your hosting platform remains responsible for PHP, the database, HTTPS certificates, the reverse proxy, backups, and process supervision.
+Hailab can run as a standalone Laravel application on a VPS. The application owns funnel editing, publishing, lead capture, contacts, DNS verification, and custom-domain routing. Your hosting platform remains responsible for PHP, the database, HTTPS certificates, the reverse proxy, backups, and process supervision.
 
 ## Production services
 
@@ -18,8 +18,8 @@ Laravel exposes `GET /up` for load-balancer and uptime checks.
 ## Installation
 
 ```bash
-git clone https://github.com/aialvi/openfunnels.git
-cd openfunnels
+git clone https://github.com/haile12michael12/build-ethiopia-funnel.git
+cd build-ethiopia-funnel
 composer install --no-dev --classmap-authoritative
 pnpm install --frozen-lockfile
 pnpm run build
@@ -56,7 +56,7 @@ FUNNEL_CUSTOM_DOMAIN_SCHEME=https
 
 Subdomains use a CNAME record and root domains use an A record. Laravel verifies DNS with `dns_get_record()` and serves only verified domains belonging to published funnels.
 
-Your reverse proxy or hosting platform must accept those hostnames and provision their certificates. OpenFunnels intentionally does not invoke Certbot, edit proxy configuration, or provision certificates from PHP.
+Your reverse proxy or hosting platform must accept those hostnames and provision their certificates. Hailab intentionally does not invoke Certbot, edit proxy configuration, or provision certificates from PHP.
 
 ## Long-running processes
 

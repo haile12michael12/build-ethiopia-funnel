@@ -1534,7 +1534,7 @@ export default function EnhancedFunnelEditor({
 
     return (
         <DndProvider backend={HTML5Backend}>
-            <Head title={`Edit: ${funnel.name} - OpenFunnels`} />
+            <Head title={`Edit: ${funnel.name} - Hailab`} />
 
             <div className="flex h-screen flex-col bg-background">
                 <DemoBanner />
