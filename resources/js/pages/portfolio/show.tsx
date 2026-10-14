@@ -1,28 +1,10 @@
-import { type CategoriesMap, type Project } from '@/types/project';
-import { type SharedData } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    ArrowRight,
-    Calendar,
-    ChevronLeft,
-    ChevronRight,
-    Code2,
-    ExternalLink,
-    Eye,
-    FolderKanban,
-    Github,
-    Globe,
-    Layers,
-    Share2,
-    Sparkles,
-    Star,
-    Video,
-    X,
-} from 'lucide-react';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { type SharedData } from '@/types';
+import { type CategoriesMap, type Project } from '@/types/project';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { ArrowLeft, ArrowRight, Calendar, Code2, ExternalLink, Eye, FolderKanban, Github, Star, Video, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface PortfolioShowProps {
     project: Project;
@@ -65,13 +47,10 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
           })
         : null;
 
-    const allScreenshots = [
-        ...(project.cover_image ? [project.cover_image] : []),
-        ...(project.gallery || []),
-    ];
+    const allScreenshots = [...(project.cover_image ? [project.cover_image] : []), ...(project.gallery || [])];
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col justify-between">
+        <div className="flex min-h-screen flex-col justify-between bg-background text-foreground">
             <Head>
                 <title>{`${getTitle(project)} - ${locale === 'am' ? 'ፖርትፎሊዮ' : 'Portfolio'}`}</title>
                 <meta name="description" content={getSummary(project)} />
@@ -83,10 +62,11 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                     <div className="flex items-center gap-2">
                         <Eye className="h-4 w-4" />
                         <span>
-                            <strong>Admin Preview Mode:</strong> This project is currently <strong>{project.status.toUpperCase()}</strong>. It is not publicly visible to visitors.
+                            <strong>Admin Preview Mode:</strong> This project is currently <strong>{project.status.toUpperCase()}</strong>. It is not
+                            publicly visible to visitors.
                         </span>
                     </div>
-                    <Button asChild size="sm" variant="outline" className="h-7 text-xs border-amber-500/50 hover:bg-amber-500/20">
+                    <Button asChild size="sm" variant="outline" className="h-7 border-amber-500/50 text-xs hover:bg-amber-500/20">
                         <Link href={route('projects.edit', project.id)}>Return to Editor</Link>
                     </Button>
                 </div>
@@ -99,11 +79,11 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                         <Link href="/" className="text-xl font-bold tracking-tight text-foreground hover:opacity-90">
                             OpenFunnels
                         </Link>
-                        <nav className="hidden md:flex items-center space-x-4 text-sm font-medium">
-                            <Link href={route('portfolio.index')} className="text-primary font-semibold">
+                        <nav className="hidden items-center space-x-4 text-sm font-medium md:flex">
+                            <Link href={route('portfolio.index')} className="font-semibold text-primary">
                                 {locale === 'am' ? '← ወደ ፖርትፎሊዮ ተመለስ' : '← Back to Portfolio'}
                             </Link>
-                            <Link href="/business-growth-audit" className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Link href="/business-growth-audit" className="text-muted-foreground transition-colors hover:text-foreground">
                                 {locale === 'am' ? 'የንግድ ኦዲት' : 'Growth Audit'}
                             </Link>
                         </nav>
@@ -134,15 +114,11 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
 
                         {auth.user ? (
                             <Button asChild size="sm">
-                                <Link href={route('dashboard')}>
-                                    {locale === 'am' ? 'ዳሽቦርድ' : 'Dashboard'}
-                                </Link>
+                                <Link href={route('dashboard')}>{locale === 'am' ? 'ዳሽቦርድ' : 'Dashboard'}</Link>
                             </Button>
                         ) : (
                             <Button asChild size="sm">
-                                <Link href={route('login')}>
-                                    {locale === 'am' ? 'ግባ' : 'Sign In'}
-                                </Link>
+                                <Link href={route('login')}>{locale === 'am' ? 'ግባ' : 'Sign In'}</Link>
                             </Button>
                         )}
                     </div>
@@ -156,7 +132,7 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                     <div className="mb-6">
                         <Link
                             href={route('portfolio.index')}
-                            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                         >
                             <ArrowLeft className="h-4 w-4" />
                             <span>{locale === 'am' ? 'ወደ ፖርትፎሊዮ ዝርዝር ተመለስ' : 'Back to all projects'}</span>
@@ -166,11 +142,11 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                     {/* Project Header Info */}
                     <div className="space-y-4">
                         <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className="text-xs font-medium px-3 py-1">
+                            <Badge variant="outline" className="px-3 py-1 text-xs font-medium">
                                 {getCategoryName(project.category)}
                             </Badge>
                             {project.is_featured && (
-                                <Badge className="bg-yellow-500 text-black font-semibold text-xs px-2.5 py-0.5">
+                                <Badge className="bg-yellow-500 px-2.5 py-0.5 text-xs font-semibold text-black">
                                     <Star className="mr-1 h-3 w-3 fill-current" />
                                     {locale === 'am' ? 'ተለይቶ የቀረበ' : 'Featured Project'}
                                 </Badge>
@@ -183,15 +159,9 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                             )}
                         </div>
 
-                        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl text-foreground">
-                            {getTitle(project)}
-                        </h1>
+                        <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl lg:text-5xl">{getTitle(project)}</h1>
 
-                        {getSummary(project) && (
-                            <p className="text-lg text-muted-foreground max-w-3xl leading-relaxed">
-                                {getSummary(project)}
-                            </p>
-                        )}
+                        {getSummary(project) && <p className="max-w-3xl text-lg leading-relaxed text-muted-foreground">{getSummary(project)}</p>}
 
                         {/* Quick Action Links Bar */}
                         <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -230,7 +200,7 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                             <img
                                 src={project.cover_image}
                                 alt={getTitle(project)}
-                                className="h-auto w-full max-h-[500px] object-cover cursor-pointer"
+                                className="h-auto max-h-[500px] w-full cursor-pointer object-cover"
                                 onClick={() => setActiveScreenshot(project.cover_image || null)}
                             />
                         </div>
@@ -239,9 +209,9 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                     {/* Technologies & Tech Stack Bar */}
                     {project.technologies && project.technologies.length > 0 && (
                         <div className="mt-8 rounded-xl border border-border bg-card p-5">
-                            <div className="flex items-center gap-2 mb-3">
+                            <div className="mb-3 flex items-center gap-2">
                                 <Code2 className="h-4 w-4 text-primary" />
-                                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                                     {locale === 'am' ? 'የተጠቀሙባቸው ቴክኖሎጂዎች' : 'Technologies & Architecture Stack'}
                                 </h3>
                             </div>
@@ -249,7 +219,7 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                                 {project.technologies.map((tech, idx) => (
                                     <span
                                         key={idx}
-                                        className="rounded-lg bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-medium text-primary"
+                                        className="rounded-lg border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
                                     >
                                         {tech}
                                     </span>
@@ -259,12 +229,12 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                     )}
 
                     {/* Detailed Content / Case Study */}
-                    <div className="mt-10 rounded-2xl border border-border bg-card p-6 sm:p-10 shadow-sm">
-                        <h2 className="text-xl font-bold text-foreground mb-6 pb-3 border-b border-border/60">
+                    <div className="mt-10 rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10">
+                        <h2 className="mb-6 border-b border-border/60 pb-3 text-xl font-bold text-foreground">
                             {locale === 'am' ? 'የፕሮጀክቱ ዝርዝር መግለጫ እና አፈፃፀም' : 'Project Overview & Technical Execution'}
                         </h2>
 
-                        <div className="prose dark:prose-invert max-w-none text-muted-foreground leading-relaxed whitespace-pre-line text-base">
+                        <div className="prose dark:prose-invert max-w-none text-base leading-relaxed whitespace-pre-line text-muted-foreground">
                             {getDescription(project)}
                         </div>
                     </div>
@@ -301,25 +271,19 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                     {/* Call to Action Box */}
                     <div className="mt-16 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-8 text-center sm:p-12">
                         <h3 className="text-2xl font-bold text-foreground sm:text-3xl">
-                            {locale === 'am'
-                                ? 'ተመሳሳይ ወይም ብጁ ሶፍትዌር ለድርጅትዎ ማሰራት ይፈልጋሉ?'
-                                : 'Need a custom solution similar to this?'}
+                            {locale === 'am' ? 'ተመሳሳይ ወይም ብጁ ሶፍትዌር ለድርጅትዎ ማሰራት ይፈልጋሉ?' : 'Need a custom solution similar to this?'}
                         </h3>
-                        <p className="mx-auto mt-3 max-w-xl text-muted-foreground text-sm sm:text-base">
+                        <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
                             {locale === 'am'
                                 ? 'ድርጅታችን የላቀ ጥራት ያለው የሶፍትዌር ግንባታ እና የቴክኖሎጂ ማማከር አገልግሎት ይሰጣል።'
                                 : 'Our engineering team specializes in scalable web systems, AI automations, and enterprise platforms tailored to your business needs.'}
                         </p>
                         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                             <Button asChild size="lg">
-                                <Link href="/business-growth-audit">
-                                    {locale === 'am' ? 'ነፃ ኦዲት ይጠይቁ' : 'Request Growth Audit'}
-                                </Link>
+                                <Link href="/business-growth-audit">{locale === 'am' ? 'ነፃ ኦዲት ይጠይቁ' : 'Request Growth Audit'}</Link>
                             </Button>
                             <Button asChild variant="outline" size="lg">
-                                <Link href="/demo">
-                                    {locale === 'am' ? 'የቀጥታ ማሳያ' : 'Explore Platform Demo'}
-                                </Link>
+                                <Link href="/demo">{locale === 'am' ? 'የቀጥታ ማሳያ' : 'Explore Platform Demo'}</Link>
                             </Button>
                         </div>
                     </div>
@@ -352,12 +316,10 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                                                 )}
                                             </div>
                                             <div className="p-4">
-                                                <h4 className="line-clamp-1 font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                <h4 className="line-clamp-1 font-semibold text-foreground transition-colors group-hover:text-primary">
                                                     {getTitle(rel)}
                                                 </h4>
-                                                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                                    {getSummary(rel)}
-                                                </p>
+                                                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{getSummary(rel)}</p>
                                             </div>
                                         </div>
 
@@ -387,7 +349,7 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
                     <button
                         type="button"
                         onClick={() => setActiveScreenshot(null)}
-                        className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+                        className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
                     >
                         <X className="h-6 w-6" />
                     </button>

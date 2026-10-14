@@ -150,18 +150,18 @@ test('user can publish, unpublish, and archive projects', function () {
     $project = Project::factory()->draft()->create(['user_id' => $user->id]);
 
     // Publish
-    $this->actingAs($user)->post(route('projects.publish', $project->id))->assertBack();
+    $this->actingAs($user)->from(route('projects.index'))->post(route('projects.publish', $project->id))->assertRedirect(route('projects.index'));
     expect($project->fresh()->is_published)->toBeTrue()
         ->and($project->fresh()->status)->toBe('published')
         ->and($project->fresh()->published_at)->not->toBeNull();
 
     // Unpublish
-    $this->actingAs($user)->post(route('projects.unpublish', $project->id))->assertBack();
+    $this->actingAs($user)->from(route('projects.index'))->post(route('projects.unpublish', $project->id))->assertRedirect(route('projects.index'));
     expect($project->fresh()->is_published)->toBeFalse()
         ->and($project->fresh()->status)->toBe('draft');
 
     // Archive
-    $this->actingAs($user)->post(route('projects.archive', $project->id))->assertBack();
+    $this->actingAs($user)->from(route('projects.index'))->post(route('projects.archive', $project->id))->assertRedirect(route('projects.index'));
     expect($project->fresh()->status)->toBe('archived')
         ->and($project->fresh()->is_published)->toBeFalse();
 });

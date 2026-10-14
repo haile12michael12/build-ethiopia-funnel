@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\AuditFunnelController;
 use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\AutomationRunController;
-use App\Http\Controllers\AuditFunnelController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\DemoController;

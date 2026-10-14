@@ -1,31 +1,28 @@
+import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { type CategoriesMap, type Project } from '@/types/project';
 import { type BreadcrumbItem } from '@/types';
+import { type CategoriesMap, type Project } from '@/types/project';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
-    CheckCircle2,
     Clock,
     FileText,
     FolderKanban,
     Globe,
-    HelpCircle,
     Image as ImageIcon,
     Languages,
     Link as LinkIcon,
     Plus,
     Save,
     Sparkles,
-    Trash2,
     Upload,
     X,
 } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import InputError from '@/components/input-error';
 
 interface ProjectFormProps {
     project: Project | null;
@@ -120,7 +117,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
     const removeTechnology = (techToRemove: string) => {
         setData(
             'technologies',
-            data.technologies.filter((t) => t !== techToRemove)
+            data.technologies.filter((t) => t !== techToRemove),
         );
     };
 
@@ -137,7 +134,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                 {
                     forceFormData: true,
                     preserveScroll: true,
-                }
+                },
             );
         } else {
             router.post(route('projects.store'), data, {
@@ -232,7 +229,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                     id="category"
                                     value={data.category}
                                     onChange={(e) => setData('category', e.target.value)}
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                     required
                                 >
                                     {Object.entries(categories).map(([key, cat]) => (
@@ -275,7 +272,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                     placeholder="Brief 1-2 sentence overview shown in cards and teasers..."
                                     value={data.summary_en}
                                     onChange={(e) => setData('summary_en', e.target.value)}
-                                    className="w-full rounded-md border border-input bg-background p-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="w-full rounded-md border border-input bg-background p-3 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                 />
                                 <InputError message={errors.summary_en} />
                             </div>
@@ -288,7 +285,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                     placeholder="Provide in-depth architectural details, key problem solved, agency execution, and impact..."
                                     value={data.description_en}
                                     onChange={(e) => setData('description_en', e.target.value)}
-                                    className="w-full rounded-md border border-input bg-background p-3 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="w-full rounded-md border border-input bg-background p-3 font-mono text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                 />
                                 <InputError message={errors.description_en} />
                             </div>
@@ -337,7 +334,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                     placeholder="ለካርዶች እና ለማጠቃለያ የሚሆን አጭር መግለጫ..."
                                     value={data.summary_am}
                                     onChange={(e) => setData('summary_am', e.target.value)}
-                                    className="w-full rounded-md border border-input bg-background p-3 text-sm font-amharic shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="font-amharic w-full rounded-md border border-input bg-background p-3 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                 />
                                 <InputError message={errors.summary_am} />
                             </div>
@@ -350,7 +347,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                     placeholder="ስለ ፕሮጀክቱ ዝርዝር አሰራር፣ የተፈቱ ችግሮች እና የተገኙ ውጤቶች..."
                                     value={data.description_am}
                                     onChange={(e) => setData('description_am', e.target.value)}
-                                    className="w-full rounded-md border border-input bg-background p-3 text-sm font-amharic shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="font-amharic w-full rounded-md border border-input bg-background p-3 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                 />
                                 <InputError message={errors.description_am} />
                             </div>
@@ -367,7 +364,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                         <div className="space-y-6">
                             {/* Cover Image */}
                             <div>
-                                <Label className="block mb-2">Cover Image (Featured Thumbnail)</Label>
+                                <Label className="mb-2 block">Cover Image (Featured Thumbnail)</Label>
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                                     {coverPreview ? (
                                         <div className="relative aspect-video w-48 overflow-hidden rounded-lg border border-border">
@@ -379,7 +376,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                                     setData('cover_image', '');
                                                     setData('cover_image_file', null);
                                                 }}
-                                                className="absolute right-1.5 top-1.5 rounded-full bg-black/70 p-1 text-white hover:bg-black"
+                                                className="absolute top-1.5 right-1.5 rounded-full bg-black/70 p-1 text-white hover:bg-black"
                                             >
                                                 <X className="h-3 w-3" />
                                             </button>
@@ -390,19 +387,14 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                         </div>
                                     )}
 
-                                    <div className="space-y-2 flex-1">
+                                    <div className="flex-1 space-y-2">
                                         <div className="flex items-center gap-2">
                                             <label className="cursor-pointer">
                                                 <span className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
                                                     <Upload className="mr-1.5 h-4 w-4" />
                                                     Upload Cover Image
                                                 </span>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={handleCoverChange}
-                                                    className="hidden"
-                                                />
+                                                <input type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
                                             </label>
                                             <span className="text-xs text-muted-foreground">Max 5MB (PNG, JPG, WebP)</span>
                                         </div>
@@ -425,7 +417,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
 
                             {/* Screenshot Gallery */}
                             <div>
-                                <Label className="block mb-2">Screenshot Gallery</Label>
+                                <Label className="mb-2 block">Screenshot Gallery</Label>
                                 <div className="space-y-3">
                                     <div className="flex flex-wrap gap-3">
                                         {galleryPreviews.map((url, idx) => (
@@ -434,7 +426,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeExistingGalleryImage(idx)}
-                                                    className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white hover:bg-black"
+                                                    className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white hover:bg-black"
                                                 >
                                                     <X className="h-3 w-3" />
                                                 </button>
@@ -444,13 +436,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                         <label className="flex aspect-video w-32 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 text-muted-foreground transition-colors hover:border-primary hover:bg-muted/40">
                                             <Plus className="h-5 w-5" />
                                             <span className="mt-1 text-xs">Add Images</span>
-                                            <input
-                                                type="file"
-                                                multiple
-                                                accept="image/*"
-                                                onChange={handleGalleryChange}
-                                                className="hidden"
-                                            />
+                                            <input type="file" multiple accept="image/*" onChange={handleGalleryChange} className="hidden" />
                                         </label>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
@@ -472,7 +458,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
 
                         <div className="space-y-4">
                             <div className="flex flex-wrap items-center gap-2">
-                                <div className="flex flex-1 items-center gap-2 max-w-md">
+                                <div className="flex max-w-md flex-1 items-center gap-2">
                                     <Input
                                         type="text"
                                         placeholder="Add technology (e.g. Next.js, OpenAI, PostgreSQL, Docker)..."
@@ -493,8 +479,20 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
 
                             {/* Preset chips for fast selection */}
                             <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-xs text-muted-foreground mr-1">Quick Add:</span>
-                                {['Laravel', 'React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'OpenAI', 'Python', 'Inertia.js', 'PostgreSQL', 'Docker', 'Stripe'].map((preset) => (
+                                <span className="mr-1 text-xs text-muted-foreground">Quick Add:</span>
+                                {[
+                                    'Laravel',
+                                    'React',
+                                    'Next.js',
+                                    'TypeScript',
+                                    'Tailwind CSS',
+                                    'OpenAI',
+                                    'Python',
+                                    'Inertia.js',
+                                    'PostgreSQL',
+                                    'Docker',
+                                    'Stripe',
+                                ].map((preset) => (
                                     <button
                                         type="button"
                                         key={preset}
@@ -518,11 +516,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                         className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
                                     >
                                         {tech}
-                                        <button
-                                            type="button"
-                                            onClick={() => removeTechnology(tech)}
-                                            className="hover:text-primary/70"
-                                        >
+                                        <button type="button" onClick={() => removeTechnology(tech)} className="hover:text-primary/70">
                                             <X className="h-3 w-3" />
                                         </button>
                                     </span>
@@ -596,7 +590,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                         setData('status', val);
                                         setData('is_published', val === 'published');
                                     }}
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                                 >
                                     <option value="draft">Draft (Private)</option>
                                     <option value="published">Published (Public)</option>
@@ -629,9 +623,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                     <Label htmlFor="is_featured" className="cursor-pointer font-medium">
                                         Mark as Featured Project
                                     </Label>
-                                    <p className="text-xs text-muted-foreground">
-                                        Highlights this project at the top of the portfolio.
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">Highlights this project at the top of the portfolio.</p>
                                 </div>
                                 <InputError message={errors.is_featured} />
                             </div>

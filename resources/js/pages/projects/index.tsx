@@ -1,35 +1,14 @@
-import AppLayout from '@/layouts/app-layout';
-import { type CategoriesMap, type PaginatedData, type Project, type ProjectStats } from '@/types/project';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
-import {
-    Archive,
-    CheckCircle2,
-    Clock,
-    Edit3,
-    ExternalLink,
-    Eye,
-    EyeOff,
-    FolderKanban,
-    Plus,
-    Search,
-    Sparkles,
-    Star,
-    Trash2,
-} from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
+import { type CategoriesMap, type PaginatedData, type Project, type ProjectStats } from '@/types/project';
+import { Head, Link, router } from '@inertiajs/react';
 import gsap from 'gsap';
+import { Archive, CheckCircle2, Clock, Edit3, ExternalLink, Eye, EyeOff, FolderKanban, Plus, Search, Sparkles, Star, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -59,11 +38,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
 
     useEffect(() => {
         const ctx = gsap.context(() => {
-            gsap.fromTo(
-                '.project-card',
-                { opacity: 0, y: 20 },
-                { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
-            );
+            gsap.fromTo('.project-card', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' });
         }, gridRef);
 
         return () => ctx.revert();
@@ -82,7 +57,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                 category: category !== 'all' ? category : undefined,
                 status: status !== 'all' ? status : undefined,
             },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
@@ -151,7 +126,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                     <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Projects</p>
+                                <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">Total Projects</p>
                                 <p className="mt-1 text-2xl font-bold text-foreground">{stats.total_projects}</p>
                             </div>
                             <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
@@ -163,7 +138,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                     <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Published</p>
+                                <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">Published</p>
                                 <p className="mt-1 text-2xl font-bold text-green-500">{stats.published_projects}</p>
                             </div>
                             <div className="rounded-lg bg-green-500/10 p-2.5 text-green-500">
@@ -175,7 +150,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                     <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Drafts</p>
+                                <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">Drafts</p>
                                 <p className="mt-1 text-2xl font-bold text-amber-500">{stats.draft_projects}</p>
                             </div>
                             <div className="rounded-lg bg-amber-500/10 p-2.5 text-amber-500">
@@ -187,7 +162,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                     <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Featured</p>
+                                <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">Featured</p>
                                 <p className="mt-1 text-2xl font-bold text-yellow-400">{stats.featured_projects}</p>
                             </div>
                             <div className="rounded-lg bg-yellow-400/10 p-2.5 text-yellow-400">
@@ -201,7 +176,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                 <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 md:flex-row md:items-center md:justify-between">
                     <form onSubmit={handleSearch} className="flex flex-1 items-center gap-2">
                         <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 type="text"
                                 placeholder="Search by title, summary, or category..."
@@ -220,7 +195,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                         <select
                             value={selectedCategory}
                             onChange={(e) => handleCategoryChange(e.target.value)}
-                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                         >
                             <option value="all">All Categories</option>
                             {Object.entries(categories).map(([key, cat]) => (
@@ -234,7 +209,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                         <select
                             value={selectedStatus}
                             onChange={(e) => handleStatusChange(e.target.value)}
-                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                         >
                             <option value="all">All Statuses</option>
                             <option value="published">Published</option>
@@ -285,7 +260,7 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                                         )}
 
                                         {/* Status & Featured badges */}
-                                        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+                                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                                             {project.status === 'published' ? (
                                                 <Badge className="bg-green-500/90 text-white hover:bg-green-600">Published</Badge>
                                             ) : project.status === 'archived' ? (
@@ -302,8 +277,8 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                                             )}
                                         </div>
 
-                                        <div className="absolute right-3 top-3">
-                                            <Badge variant="outline" className="border-border/60 bg-background/80 backdrop-blur-sm text-xs">
+                                        <div className="absolute top-3 right-3">
+                                            <Badge variant="outline" className="border-border/60 bg-background/80 text-xs backdrop-blur-sm">
                                                 {categoryName}
                                             </Badge>
                                         </div>
@@ -316,15 +291,11 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                                                 {project.title_en}
                                             </h3>
                                             {project.title_am && (
-                                                <p className="line-clamp-1 text-xs text-muted-foreground font-amharic">
-                                                    {project.title_am}
-                                                </p>
+                                                <p className="font-amharic line-clamp-1 text-xs text-muted-foreground">{project.title_am}</p>
                                             )}
                                         </div>
 
-                                        <p className="line-clamp-2 text-sm text-muted-foreground">
-                                            {project.summary_en || 'No summary provided.'}
-                                        </p>
+                                        <p className="line-clamp-2 text-sm text-muted-foreground">{project.summary_en || 'No summary provided.'}</p>
 
                                         {/* Tech Stack tags */}
                                         {project.technologies && project.technologies.length > 0 && (
@@ -467,8 +438,8 @@ export default function ProjectsIndex({ projects, filters, categories, stats }: 
                     <DialogHeader>
                         <DialogTitle>Delete Project</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete <span className="font-semibold text-foreground">"{deletingProject?.title_en}"</span>?
-                            This action cannot be undone.
+                            Are you sure you want to delete <span className="font-semibold text-foreground">"{deletingProject?.title_en}"</span>? This
+                            action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="gap-2 sm:gap-0">
