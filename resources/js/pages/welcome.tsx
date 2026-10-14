@@ -1,3 +1,4 @@
+import { PublicNavbar } from '@/components/navbar/public-navbar';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import gsap from 'gsap';
@@ -79,48 +80,7 @@ export default function Welcome() {
 
             <div ref={heroRef} className="min-h-screen bg-background text-foreground">
                 {/* Navigation */}
-                <nav className="fixed top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-lg">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                        <div className="flex h-16 items-center justify-between">
-                            <div className="flex items-center space-x-6">
-                                <div className="flex-shrink-0">
-                                    <span className="text-2xl font-bold text-foreground">OpenFunnels</span>
-                                </div>
-                                <Link
-                                    href={route('portfolio.index')}
-                                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                                >
-                                    Portfolio
-                                </Link>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                                {auth.user ? (
-                                    <Link
-                                        href={route('dashboard')}
-                                        className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                                    >
-                                        Dashboard
-                                    </Link>
-                                ) : (
-                                    <>
-                                        <Link
-                                            href={route('login')}
-                                            className="rounded-md px-3 py-2 font-medium text-muted-foreground hover:text-foreground"
-                                        >
-                                            Log in
-                                        </Link>
-                                        <Link
-                                            href={route('register')}
-                                            className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                                        >
-                                            Get Started
-                                        </Link>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </nav>
+                <PublicNavbar />
 
                 {/* Hero Section */}
                 <section className="bg-gradient-to-b from-background to-background/50 px-4 pt-24 pb-16 sm:px-6 lg:px-8">

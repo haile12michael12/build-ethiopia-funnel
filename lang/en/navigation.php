@@ -1,0 +1,35 @@
+<?php
+
+return [
+    'home' => 'Home',
+    'portfolio' => 'Work & Portfolio',
+    'services' => 'Services',
+    'services_tagline' => 'Scalable engineering and AI software tailored for growth.',
+    'categories' => [
+        'web_dev' => 'Web Development',
+        'web_dev_desc' => 'High-performance Laravel, React, and Next.js applications and portals.',
+        'ai_apps' => 'AI Applications',
+        'ai_apps_desc' => 'Intelligent LLM workflows, conversational bots, and RAG architectures.',
+        'automation' => 'Business Automation',
+        'automation_desc' => 'Custom CRM systems, lead routing pipelines, and webhook orchestrations.',
+        'saas' => 'SaaS Development',
+        'saas_desc' => 'Multi-tenant subscription architectures, dashboards, and payment flows.',
+    ],
+    'resources' => 'Resources',
+    'case_studies' => 'Case Studies',
+    'case_studies_desc' => 'Real-world software architectures and production results.',
+    'blog' => 'Blog & Insights',
+    'blog_desc' => 'Engineering deep dives, SaaS trends, and tech tutorials.',
+    'about' => 'About Us',
+    'contact' => 'Contact',
+    'growth_audit' => 'Free Growth Audit',
+    'search' => 'Search',
+    'search_placeholder' => 'Search projects, technologies, case studies...',
+    'dashboard' => 'Dashboard',
+    'sign_in' => 'Sign In',
+    'get_started' => 'Get Started',
+    'menu' => 'Navigation Menu',
+    'close_menu' => 'Close Menu',
+    'language' => 'Language',
+];
+

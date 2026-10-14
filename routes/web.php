@@ -15,6 +15,7 @@ use App\Http\Controllers\FunnelOpportunitySettingController;
 use App\Http\Controllers\FunnelResponseController;
 use App\Http\Controllers\FunnelVariantController;
 use App\Http\Controllers\LeadCaptureController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OpportunityController;
 use App\Http\Controllers\PipelineController;
 use App\Http\Controllers\PipelineStageController;
@@ -59,9 +60,15 @@ Route::domain($appDomain)->group(function () {
         ->middleware('signed')
         ->name('email.unsubscribe.update');
 
-    // Public Portfolio routes
+    // Public Portfolio & Agency routes
     Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
     Route::get('/portfolio/{project:slug}', [PortfolioController::class, 'show'])->name('portfolio.show');
+    Route::get('/case-studies', fn () => redirect()->route('portfolio.index'))->name('case-studies');
+    Route::get('/services', fn () => Inertia::render('services'))->name('services');
+    Route::get('/about', fn () => Inertia::render('about'))->name('about');
+    Route::get('/contact', fn () => Inertia::render('contact'))->name('contact');
+    Route::get('/blog', fn () => Inertia::render('blog'))->name('blog.index');
+    Route::post('/locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
     Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('dashboard', function () {

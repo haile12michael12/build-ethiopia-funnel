@@ -39,10 +39,19 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        $locale = $request->session()->get('locale', config('app.locale', 'en'));
+        if (in_array($locale, ['en', 'am'], true)) {
+            app()->setLocale($locale);
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
+            'locale' => app()->getLocale(),
+            'translations' => [
+                'navigation' => trans('navigation'),
+            ],
             'auth' => [
                 'user' => $request->user(),
             ],
