@@ -1,5 +1,6 @@
 import { PublicNavbar } from '@/components/navbar/public-navbar';
 import { type SharedData } from '@/types';
+import { type SiteContent } from '@/types/site-content';
 import { Head, Link, usePage } from '@inertiajs/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -7,8 +8,13 @@ import { useEffect, useRef } from 'react';
 
 gsap.registerPlugin(ScrollTrigger);
 
+interface WelcomePageProps extends SharedData {
+    testimonials: SiteContent[];
+}
+
 export default function Welcome() {
-    const { auth } = usePage<SharedData>().props;
+    const { auth, locale, testimonials } = usePage<WelcomePageProps>().props;
+    const isAmharic = locale === 'am';
     const heroRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -316,56 +322,37 @@ export default function Welcome() {
                             <p className="text-xl text-muted-foreground">See what our users are saying about Hailab</p>
                         </div>
                         <div className="testimonials-grid grid grid-cols-1 gap-8 md:grid-cols-3">
-                            <div className="testimonial-card rounded-xl border border-border bg-secondary/30 p-6">
-                                <div className="mb-4 flex items-center">
-                                    <img
-                                        className="mr-4 h-12 w-12 rounded-full border border-border"
-                                        src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=80"
-                                        alt="Sarah Johnson"
-                                    />
-                                    <div>
-                                        <h4 className="font-semibold text-foreground">Sarah Johnson</h4>
-                                        <p className="text-sm text-muted-foreground">Marketing Director, TechStart Inc.</p>
-                                    </div>
-                                </div>
-                                <p className="text-muted-foreground italic">
-                                    "Hailab transformed our lead generation. We saw a 300% increase in conversions within the first month."
-                                </p>
-                            </div>
+                            {testimonials.map((testimonial) => {
+                                const name = isAmharic && testimonial.person_name_am ? testimonial.person_name_am : testimonial.person_name_en;
+                                const role = isAmharic && testimonial.person_role_am ? testimonial.person_role_am : testimonial.person_role_en;
+                                const company = isAmharic && testimonial.company_am ? testimonial.company_am : testimonial.company_en;
 
-                            <div className="testimonial-card rounded-xl border border-border bg-secondary/30 p-6">
-                                <div className="mb-4 flex items-center">
-                                    <img
-                                        className="mr-4 h-12 w-12 rounded-full border border-border"
-                                        src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80"
-                                        alt="Mike Chen"
-                                    />
-                                    <div>
-                                        <h4 className="font-semibold text-foreground">Mike Chen</h4>
-                                        <p className="text-sm text-muted-foreground">Founder, Growth Labs</p>
+                                return (
+                                    <div key={testimonial.id} className="testimonial-card rounded-xl border border-border bg-secondary/30 p-6">
+                                        <div className="mb-4 flex items-center">
+                                            {testimonial.image ? (
+                                                <img className="mr-4 h-12 w-12 rounded-full border border-border object-cover" src={testimonial.image} alt={name ?? ''} />
+                                            ) : (
+                                                <div aria-hidden="true" className="mr-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
+                                                    {name?.slice(0, 1)}
+                                                </div>
+                                            )}
+                                            <div>
+                                                <h4 className="font-semibold text-foreground">{name}</h4>
+                                                <p className="text-sm text-muted-foreground">{[role, company].filter(Boolean).join(', ')}</p>
+                                            </div>
+                                        </div>
+                                        <p className="whitespace-pre-line text-muted-foreground italic">
+                                            “{isAmharic && testimonial.body_am ? testimonial.body_am : testimonial.body_en}”
+                                        </p>
                                     </div>
-                                </div>
-                                <p className="text-muted-foreground italic">
-                                    "The drag-and-drop interface is incredibly intuitive. I built my first funnel in under 30 minutes!"
+                                );
+                            })}
+                            {!testimonials.length && (
+                                <p className="text-center text-sm text-muted-foreground md:col-span-3">
+                                    {isAmharic ? 'የደንበኞች ምስክርነቶች በቅርቡ ይታያሉ።' : 'Customer testimonials will appear here soon.'}
                                 </p>
-                            </div>
-
-                            <div className="testimonial-card rounded-xl border border-border bg-secondary/30 p-6">
-                                <div className="mb-4 flex items-center">
-                                    <img
-                                        className="mr-4 h-12 w-12 rounded-full border border-border"
-                                        src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"
-                                        alt="Emily Rodriguez"
-                                    />
-                                    <div>
-                                        <h4 className="font-semibold text-foreground">Emily Rodriguez</h4>
-                                        <p className="text-sm text-muted-foreground">E-commerce Manager, Retail Plus</p>
-                                    </div>
-                                </div>
-                                <p className="text-muted-foreground italic">
-                                    "Being open-source gives us the flexibility we need. The community support is amazing too."
-                                </p>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </section>

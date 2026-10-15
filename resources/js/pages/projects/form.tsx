@@ -65,6 +65,10 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
         is_featured: project?.is_featured || false,
         sort_order: project?.sort_order ?? 0,
         published_at: project?.published_at ? project.published_at.slice(0, 16) : '',
+        seo_title_en: project?.seo_title_en || '',
+        seo_title_am: project?.seo_title_am || '',
+        seo_description_en: project?.seo_description_en || '',
+        seo_description_am: project?.seo_description_am || '',
     });
 
     const [newTech, setNewTech] = useState('');
@@ -568,6 +572,35 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
                                     onChange={(e) => setData('video_url', e.target.value)}
                                 />
                                 <InputError message={errors.video_url} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                        <div className="mb-4 border-b border-border/60 pb-3">
+                            <h2 className="text-lg font-semibold text-foreground">SEO Metadata</h2>
+                            <p className="mt-1 text-sm text-muted-foreground">Search titles and descriptions for both languages.</p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="seo_title_en">SEO Title (English)</Label>
+                                <Input id="seo_title_en" value={data.seo_title_en} onChange={(e) => setData('seo_title_en', e.target.value)} />
+                                <InputError message={errors.seo_title_en} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="seo_title_am">SEO Title (Amharic)</Label>
+                                <Input id="seo_title_am" value={data.seo_title_am} onChange={(e) => setData('seo_title_am', e.target.value)} />
+                                <InputError message={errors.seo_title_am} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="seo_description_en">SEO Description (English)</Label>
+                                <textarea id="seo_description_en" value={data.seo_description_en} onChange={(e) => setData('seo_description_en', e.target.value)} maxLength={300} className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                                <InputError message={errors.seo_description_en} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="seo_description_am">SEO Description (Amharic)</Label>
+                                <textarea id="seo_description_am" value={data.seo_description_am} onChange={(e) => setData('seo_description_am', e.target.value)} maxLength={300} className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                                <InputError message={errors.seo_description_am} />
                             </div>
                         </div>
                     </div>

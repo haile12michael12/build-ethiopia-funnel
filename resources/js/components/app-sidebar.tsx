@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BriefcaseBusiness, FolderKanban, LayoutGrid, Plus, Users, Workflow, Zap } from 'lucide-react';
+import { BookOpen, BriefcaseBusiness, FileText, FolderKanban, LayoutGrid, MessageSquareQuote, Plus, Users, Workflow, Wrench, Zap } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -21,6 +21,26 @@ const mainNavItems: NavItem[] = [
         title: 'Projects',
         href: '/projects',
         icon: FolderKanban,
+    },
+    {
+        title: 'Services',
+        href: '/site-content/service',
+        icon: Wrench,
+    },
+    {
+        title: 'Blog Posts',
+        href: '/site-content/blog',
+        icon: BookOpen,
+    },
+    {
+        title: 'Testimonials',
+        href: '/site-content/testimonial',
+        icon: MessageSquareQuote,
+    },
+    {
+        title: 'Pages',
+        href: '/site-content/page',
+        icon: FileText,
     },
     {
         title: 'Contacts',

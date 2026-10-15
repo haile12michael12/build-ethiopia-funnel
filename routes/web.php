@@ -22,6 +22,7 @@ use App\Http\Controllers\PipelineController;
 use App\Http\Controllers\PipelineStageController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\SiteContentController;
 use App\Models\Domain;
 use App\Models\FunnelEvent;
 use App\Services\FunnelPublicUrlResolver;
@@ -39,8 +40,8 @@ Route::post('funnels/{funnel}/events', [FunnelAnalyticsController::class, 'store
     ->name('funnels.events.store');
 
 Route::domain($appDomain)->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('welcome');
+    Route::get('/', function (SiteContentController $content) {
+        return Inertia::render('welcome', ['testimonials' => $content->homeTestimonials()]);
     })->name('home');
     Route::get('/demo', DemoController::class)->middleware('throttle:20,1')->name('demo');
     Route::get('/business-growth-audit', [AuditFunnelController::class, 'show'])->name('business-audit.show');
@@ -65,10 +66,12 @@ Route::domain($appDomain)->group(function () {
     Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
     Route::get('/portfolio/{project:slug}', [PortfolioController::class, 'show'])->name('portfolio.show');
     Route::get('/case-studies', fn () => redirect()->route('portfolio.index'))->name('case-studies');
-    Route::get('/services', fn () => Inertia::render('services'))->name('services');
-    Route::get('/about', fn () => Inertia::render('about'))->name('about');
-    Route::get('/contact', fn () => Inertia::render('contact'))->name('contact');
-    Route::get('/blog', fn () => Inertia::render('blog'))->name('blog.index');
+    Route::get('/services', [SiteContentController::class, 'services'])->name('services');
+    Route::get('/contact', [SiteContentController::class, 'namedPage'])->defaults('slug', 'contact')->name('contact');
+    Route::get('/about', [SiteContentController::class, 'namedPage'])->defaults('slug', 'about')->name('about');
+    Route::get('/blog', [SiteContentController::class, 'blog'])->name('blog.index');
+    Route::get('/blog/{content:slug}', [SiteContentController::class, 'blogShow'])->name('blog.show');
+    Route::get('/p/{content:slug}', [SiteContentController::class, 'page'])->name('site-pages.show');
     Route::post('/locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
     Route::middleware(['auth', 'verified'])->group(function () {
@@ -188,6 +191,12 @@ Route::domain($appDomain)->group(function () {
         Route::post('projects/{project}/unpublish', [ProjectController::class, 'unpublish'])->name('projects.unpublish');
         Route::post('projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
         Route::get('projects/{project}/preview', [ProjectController::class, 'preview'])->name('projects.preview');
+        Route::get('site-content/{type}', [SiteContentController::class, 'index'])->name('site-content.index');
+        Route::get('site-content/{type}/create', [SiteContentController::class, 'create'])->name('site-content.create');
+        Route::post('site-content/{type}', [SiteContentController::class, 'store'])->name('site-content.store');
+        Route::get('site-content/{type}/{entry}/edit', [SiteContentController::class, 'edit'])->name('site-content.edit');
+        Route::put('site-content/{type}/{entry}', [SiteContentController::class, 'update'])->name('site-content.update');
+        Route::delete('site-content/{type}/{entry}', [SiteContentController::class, 'destroy'])->name('site-content.destroy');
     });
 
     require __DIR__.'/settings.php';

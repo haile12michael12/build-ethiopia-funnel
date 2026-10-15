@@ -33,6 +33,10 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
         return p.description_en || p.summary_en || '';
     };
 
+    const getSeoTitle = (p: Project) => (locale === 'am' ? p.seo_title_am : p.seo_title_en) || getTitle(p);
+    const getSeoDescription = (p: Project) =>
+        (locale === 'am' ? p.seo_description_am : p.seo_description_en) || getSummary(p);
+
     const getCategoryName = (catKey: string) => {
         const cat = categories[catKey];
         if (!cat) return catKey;
@@ -52,8 +56,8 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
     return (
         <div className="flex min-h-screen flex-col justify-between bg-background text-foreground">
             <Head>
-                <title>{`${getTitle(project)} - ${locale === 'am' ? 'ፖርትፎሊዮ' : 'Portfolio'}`}</title>
-                <meta name="description" content={getSummary(project)} />
+                <title>{getSeoTitle(project)}</title>
+                <meta name="description" content={getSeoDescription(project)} />
             </Head>
 
             {/* Preview Mode Banner */}

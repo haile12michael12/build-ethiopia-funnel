@@ -35,6 +35,10 @@ class Project extends Model
         'is_featured',
         'sort_order',
         'published_at',
+        'seo_title_en',
+        'seo_title_am',
+        'seo_description_en',
+        'seo_description_am',
     ];
 
     protected $casts = [

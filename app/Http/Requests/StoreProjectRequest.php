@@ -42,6 +42,10 @@ class StoreProjectRequest extends FormRequest
             'is_featured' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'published_at' => ['nullable', 'date'],
+            'seo_title_en' => ['nullable', 'string', 'max:255'],
+            'seo_title_am' => ['nullable', 'string', 'max:255'],
+            'seo_description_en' => ['nullable', 'string', 'max:300'],
+            'seo_description_am' => ['nullable', 'string', 'max:300'],
         ];
     }
 }

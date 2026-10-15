@@ -20,6 +20,10 @@ export interface Project {
     is_featured: boolean;
     sort_order: number;
     published_at?: string | null;
+    seo_title_en?: string | null;
+    seo_title_am?: string | null;
+    seo_description_en?: string | null;
+    seo_description_am?: string | null;
     created_at?: string;
     updated_at?: string;
 }
