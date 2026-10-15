@@ -47,6 +47,8 @@ test('authorized users can create a project with bilingual content and tech stac
         'status' => 'published',
         'is_featured' => true,
         'sort_order' => 1,
+        'seo_title_en' => 'AI Copilot Case Study | Hailab',
+        'seo_description_en' => 'Details about the AI customer support project.',
     ];
 
     $response = $this->actingAs($user)->post(route('projects.store'), $payload);
@@ -61,6 +63,7 @@ test('authorized users can create a project with bilingual content and tech stac
         'status' => 'published',
         'is_published' => true,
         'is_featured' => true,
+        'seo_title_en' => 'AI Copilot Case Study | Hailab',
     ]);
 
     $project = Project::query()->where('title_en', 'AI Customer Copilot')->first();

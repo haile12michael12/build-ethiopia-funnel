@@ -13,7 +13,8 @@ export interface SiteContent {
     body_am: string | null;
     image: string | null;
     category: string | null;
-    highlights: string[] | null;
+    highlights_en: string[] | null;
+    highlights_am: string[] | null;
     person_name_en: string | null;
     person_name_am: string | null;
     person_role_en: string | null;

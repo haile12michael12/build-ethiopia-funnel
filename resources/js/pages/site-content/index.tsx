@@ -97,7 +97,7 @@ export default function SiteContentIndex({ type, label, entries, search }: Conte
                     <div className="flex flex-wrap gap-2">
                         {entries.links.map((link, index) => (
                             <Button key={index} size="sm" variant={link.active ? 'default' : 'outline'} disabled={!link.url} asChild={!!link.url}>
-                                {link.url ? <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} /> : <span dangerouslySetInnerHTML={{ __html: link.label }} />}
+                                {link.url ? <Link href={link.url}>{link.label.replace(/&laquo;/g, '‹').replace(/&raquo;/g, '›')}</Link> : <span>{link.label.replace(/&laquo;/g, '‹').replace(/&raquo;/g, '›')}</span>}
                             </Button>
                         ))}
                     </div>

@@ -7,7 +7,7 @@ import { type BreadcrumbItem } from '@/types';
 import { type SiteContent, type SiteContentType } from '@/types/site-content';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
-import { FormEvent } from 'react';
+import { type FormEvent } from 'react';
 
 interface ContentFormProps {
     type: SiteContentType;
@@ -26,7 +26,8 @@ type FormValues = {
     image: string;
     image_file: File | null;
     category: string;
-    highlights: string[];
+    highlights_en: string[];
+    highlights_am: string[];
     person_name_en: string;
     person_name_am: string;
     person_role_en: string;
@@ -42,8 +43,28 @@ type FormValues = {
     seo_description_am: string;
 };
 
+type TextFormKey =
+    | 'title_en'
+    | 'title_am'
+    | 'slug'
+    | 'summary_en'
+    | 'summary_am'
+    | 'body_en'
+    | 'body_am'
+    | 'category'
+    | 'person_name_en'
+    | 'person_name_am'
+    | 'person_role_en'
+    | 'person_role_am'
+    | 'company_en'
+    | 'company_am'
+    | 'seo_title_en'
+    | 'seo_title_am'
+    | 'seo_description_en'
+    | 'seo_description_am';
+
 function Field({ id, label, value, onChange, error, multiline = false, required = false }: {
-    id: keyof FormValues;
+    id: TextFormKey | 'sort_order';
     label: string;
     value: string | number;
     onChange: (value: string) => void;
@@ -73,7 +94,7 @@ export default function SiteContentForm({ type, label, entry }: ContentFormProps
         { title: label, href: route('site-content.index', type) },
         { title: editing ? 'Edit item' : 'Create item', href: '#' },
     ];
-    const { data, setData, post, put, processing, errors } = useForm<FormValues>({
+    const { data, setData, post, transform, processing, errors } = useForm<FormValues>({
         title_en: entry?.title_en ?? '',
         title_am: entry?.title_am ?? '',
         slug: entry?.slug ?? '',
@@ -84,7 +105,8 @@ export default function SiteContentForm({ type, label, entry }: ContentFormProps
         image: entry?.image ?? '',
         image_file: null,
         category: entry?.category ?? '',
-        highlights: entry?.highlights ?? [],
+        highlights_en: entry?.highlights_en ?? [],
+        highlights_am: entry?.highlights_am ?? [],
         person_name_en: entry?.person_name_en ?? '',
         person_name_am: entry?.person_name_am ?? '',
         person_role_en: entry?.person_role_en ?? '',
@@ -103,12 +125,16 @@ export default function SiteContentForm({ type, label, entry }: ContentFormProps
     const submit = (event: FormEvent) => {
         event.preventDefault();
         const options = { forceFormData: true, preserveScroll: true };
-        if (entry) put(route('site-content.update', { type, entry: entry.id }), options);
-        else post(route('site-content.store', type), options);
+        if (entry) {
+            transform((values) => ({ ...values, _method: 'put' }));
+            post(route('site-content.update', { type, entry: entry.id }), options);
+        } else {
+            post(route('site-content.store', type), options);
+        }
     };
 
-    const field = (id: keyof FormValues, label: string, multiline = false, required = false) => (
-        <Field id={id} label={label} value={data[id] as string | number} onChange={(value) => setData(id, value as never)} error={errors[id]} multiline={multiline} required={required} />
+    const field = (id: TextFormKey, label: string, multiline = false, required = false) => (
+        <Field id={id} label={label} value={data[id]} onChange={(value) => setData(id, value)} error={errors[id]} multiline={multiline} required={required} />
     );
 
     return (
@@ -145,10 +171,18 @@ export default function SiteContentForm({ type, label, entry }: ContentFormProps
                         </div>
                     )}
                     {type === 'service' && (
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="highlights">Service highlights (one per line)</Label>
-                            <textarea id="highlights" value={data.highlights.join('\n')} onChange={(event) => setData('highlights', event.target.value.split('\n').filter((line) => line.trim()))} className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                        </div>
+                        <>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="highlights_en">Service highlights (English, one per line)</Label>
+                                <textarea id="highlights_en" value={data.highlights_en.join('\n')} onChange={(event) => setData('highlights_en', event.target.value.split('\n').map((line) => line.trim()).filter(Boolean))} className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                                <InputError message={errors.highlights_en} />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="highlights_am">Service highlights (Amharic, one per line)</Label>
+                                <textarea id="highlights_am" value={data.highlights_am.join('\n')} onChange={(event) => setData('highlights_am', event.target.value.split('\n').map((line) => line.trim()).filter(Boolean))} className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                                <InputError message={errors.highlights_am} />
+                            </div>
+                        </>
                     )}
                     {type === 'testimonial' && (
                         <>

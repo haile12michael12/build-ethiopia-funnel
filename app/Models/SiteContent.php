@@ -20,7 +20,8 @@ class SiteContent extends Model
         'body_am',
         'image',
         'category',
-        'highlights',
+        'highlights_en',
+        'highlights_am',
         'person_name_en',
         'person_name_am',
         'person_role_en',
@@ -37,7 +38,8 @@ class SiteContent extends Model
     ];
 
     protected $casts = [
-        'highlights' => 'array',
+        'highlights_en' => 'array',
+        'highlights_am' => 'array',
         'published_at' => 'datetime',
         'sort_order' => 'integer',
     ];

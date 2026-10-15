@@ -49,9 +49,9 @@ export default function Services() {
                         <h2 className="text-2xl font-bold text-foreground">{localized(service.title_en, service.title_am)}</h2>
                         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{localized(service.summary_en, service.summary_am)}</p>
                         <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-foreground/90">{localized(service.body_en, service.body_am)}</p>
-                        {!!service.highlights?.length && (
+                        {!!(isAmharic ? service.highlights_am : service.highlights_en)?.length && (
                             <ul className="mt-5 space-y-2">
-                                {service.highlights.map((highlight, index) => (
+                                {(isAmharic ? service.highlights_am : service.highlights_en)?.map((highlight, index) => (
                                     <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
                                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{highlight}
                                     </li>

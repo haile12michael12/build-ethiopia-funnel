@@ -21,7 +21,8 @@ return new class extends Migration
             $table->longText('body_am')->nullable();
             $table->string('image')->nullable();
             $table->string('category')->nullable();
-            $table->json('highlights')->nullable();
+            $table->json('highlights_en')->nullable();
+            $table->json('highlights_am')->nullable();
             $table->string('person_name_en')->nullable();
             $table->string('person_name_am')->nullable();
             $table->string('person_role_en')->nullable();

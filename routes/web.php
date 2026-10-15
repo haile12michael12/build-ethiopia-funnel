@@ -40,9 +40,7 @@ Route::post('funnels/{funnel}/events', [FunnelAnalyticsController::class, 'store
     ->name('funnels.events.store');
 
 Route::domain($appDomain)->group(function () {
-    Route::get('/', function (SiteContentController $content) {
-        return Inertia::render('welcome', ['testimonials' => $content->homeTestimonials()]);
-    })->name('home');
+    Route::get('/', [SiteContentController::class, 'home'])->name('home');
     Route::get('/demo', DemoController::class)->middleware('throttle:20,1')->name('demo');
     Route::get('/business-growth-audit', [AuditFunnelController::class, 'show'])->name('business-audit.show');
     Route::post('/business-growth-audit', [AuditFunnelController::class, 'store'])

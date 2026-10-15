@@ -117,6 +117,16 @@ class SiteContentController extends Controller
         ]);
     }
 
+    public function home(): Response
+    {
+        $homePage = SiteContent::query()->where('type', 'page')->where('slug', 'home')->published()->first();
+        if ($homePage) {
+            return Inertia::render('site-content/show', ['content' => $homePage]);
+        }
+
+        return Inertia::render('welcome', ['testimonials' => $this->homeTestimonials()]);
+    }
+
     public function blog(): Response
     {
         return Inertia::render('blog', [
@@ -171,8 +181,10 @@ class SiteContentController extends Controller
             'image' => ['nullable', 'string', 'max:2048'],
             'image_file' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp,gif', 'max:5120'],
             'category' => ['nullable', 'string', 'max:100'],
-            'highlights' => ['nullable', 'array', 'max:20'],
-            'highlights.*' => ['string', 'max:200'],
+            'highlights_en' => ['nullable', 'array', 'max:20'],
+            'highlights_en.*' => ['string', 'max:200'],
+            'highlights_am' => ['nullable', 'array', 'max:20'],
+            'highlights_am.*' => ['string', 'max:200'],
             'person_name_en' => [$type === 'testimonial' ? 'required' : 'nullable', 'string', 'max:255'],
             'person_name_am' => ['nullable', 'string', 'max:255'],
             'person_role_en' => ['nullable', 'string', 'max:255'],

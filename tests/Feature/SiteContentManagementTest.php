@@ -22,7 +22,7 @@ test('users can create bilingual content with SEO metadata and publish it', func
         'summary_am' => 'ለንግድዎ የተዘጋጀ ሶፍትዌር።',
         'body_en' => 'We design and build software products.',
         'body_am' => 'የሶፍትዌር ምርቶችን እንነድፋለን እና እንገነባለን።',
-        'highlights' => ['Laravel applications', 'AI integrations'],
+        'highlights_en' => ['Laravel applications', 'AI integrations'],
         'seo_title_en' => 'Custom software | Hailab',
         'seo_description_en' => 'Custom software design and implementation.',
         'status' => 'published',
@@ -32,7 +32,7 @@ test('users can create bilingual content with SEO metadata and publish it', func
     $content = SiteContent::query()->where('title_en', 'Custom software engineering')->firstOrFail();
     expect($content->user_id)->toBe($user->id)
         ->and($content->slug)->toBe('custom-software-engineering')
-        ->and($content->highlights)->toBe(['Laravel applications', 'AI integrations'])
+        ->and($content->highlights_en)->toBe(['Laravel applications', 'AI integrations'])
         ->and($content->published_at)->not->toBeNull();
 });
 
@@ -90,6 +90,15 @@ test('public blog only renders published entries and supports bilingual pages', 
         'status' => 'published',
         'published_at' => now()->subMinute(),
     ]);
+    SiteContent::query()->create([
+        'user_id' => $user->id,
+        'type' => 'page',
+        'title_en' => 'Home',
+        'slug' => 'home',
+        'body_en' => 'Welcome to our agency.',
+        'status' => 'published',
+        'published_at' => now()->subMinute(),
+    ]);
 
     $this->get(route('blog.index'))
         ->assertOk()
@@ -112,6 +121,12 @@ test('public blog only renders published entries and supports bilingual pages', 
         ->assertInertia(fn (Assert $response) => $response
             ->component('site-content/show')
             ->where('content.id', $page->id)
+        );
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $response) => $response
+            ->component('site-content/show')
+            ->where('content.slug', 'home')
         );
 });
 
@@ -149,5 +164,53 @@ test('site content admin lists are restricted to the selected type and owner', f
             ->component('site-content/index')
             ->has('entries.data', 1)
             ->where('entries.data.0.title_en', 'Owned service')
+        );
+});
+
+test('public services and homepage use only published CMS entries', function () {
+    $user = User::factory()->create();
+    SiteContent::query()->create([
+        'user_id' => $user->id,
+        'type' => 'service',
+        'title_en' => 'Published service',
+        'slug' => 'published-service',
+        'body_en' => 'Service description.',
+        'highlights_en' => ['Discovery', 'Delivery'],
+        'status' => 'published',
+        'published_at' => now()->subMinute(),
+    ]);
+    SiteContent::query()->create([
+        'user_id' => $user->id,
+        'type' => 'service',
+        'title_en' => 'Draft service',
+        'slug' => 'draft-service',
+        'body_en' => 'Draft service description.',
+        'status' => 'draft',
+    ]);
+    SiteContent::query()->create([
+        'user_id' => $user->id,
+        'type' => 'testimonial',
+        'title_en' => 'Customer quote',
+        'slug' => 'customer-quote',
+        'person_name_en' => 'A Customer',
+        'body_en' => 'Excellent work.',
+        'status' => 'published',
+        'published_at' => now()->subMinute(),
+    ]);
+
+    $this->get(route('services'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $response) => $response
+            ->component('services')
+            ->has('services', 1)
+            ->where('services.0.title_en', 'Published service')
+        );
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $response) => $response
+            ->component('welcome')
+            ->has('testimonials', 1)
+            ->where('testimonials.0.title_en', 'Customer quote')
         );
 });
