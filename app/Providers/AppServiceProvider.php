@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\CopilotAdvisor;
 use App\Contracts\FunnelGenerator;
+use App\Services\Ai\DisabledCopilotAdvisor;
 use App\Services\Ai\DisabledFunnelGenerator;
+use App\Services\Ai\OpenAICopilotAdvisor;
 use App\Services\Ai\OpenAICompatibleFunnelGenerator;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,6 +24,14 @@ class AppServiceProvider extends ServiceProvider
 
             return new DisabledFunnelGenerator;
         });
+
+        $this->app->bind(CopilotAdvisor::class, function () {
+            if (config('funnel-ai.driver') === 'openai-compatible' && config('funnel-ai.api_key')) {
+                return new OpenAICopilotAdvisor;
+            }
+
+            return new DisabledCopilotAdvisor;
+        });
     }
 
     /**
@@ -31,3 +42,4 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 }
+

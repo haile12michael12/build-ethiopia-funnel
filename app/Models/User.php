@@ -100,4 +100,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Project::class);
     }
+
+    public function copilotAudits(): HasMany
+    {
+        return $this->hasMany(CopilotAudit::class);
+    }
 }

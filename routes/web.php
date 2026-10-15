@@ -4,6 +4,7 @@ use App\Http\Controllers\AuditFunnelController;
 use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\AutomationRunController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\CopilotController;
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DomainController;
@@ -175,6 +176,11 @@ Route::domain($appDomain)->group(function () {
         Route::post('funnels/{funnel}/domains', [DomainController::class, 'store'])->name('domains.store');
         Route::post('funnels/{funnel}/domains/{domain}/verify', [DomainController::class, 'verify'])->name('domains.verify');
         Route::delete('domains/{domain}', [DomainController::class, 'destroy'])->name('domains.destroy');
+
+        // Copilot Optimization routes
+        Route::get('funnels/{funnel}/copilot', [CopilotController::class, 'show'])->name('copilot.show');
+        Route::post('funnels/{funnel}/copilot/audit', [CopilotController::class, 'store'])->name('copilot.audit');
+        Route::get('funnels/{funnel}/copilot/audit/{audit}', [CopilotController::class, 'showAudit'])->name('copilot.audit.show');
 
         // Project Management routes
         Route::resource('projects', ProjectController::class)->except(['show']);

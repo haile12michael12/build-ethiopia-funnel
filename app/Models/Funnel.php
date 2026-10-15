@@ -94,6 +94,11 @@ class Funnel extends Model
         return $this->hasOne(FunnelOpportunitySetting::class);
     }
 
+    public function copilotAudits(): HasMany
+    {
+        return $this->hasMany(CopilotAudit::class);
+    }
+
     public function incrementViews(): void
     {
         $this->increment('views');

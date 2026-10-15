@@ -51,6 +51,7 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'translations' => [
                 'navigation' => trans('navigation'),
+                'copilot' => trans('copilot'),
             ],
             'auth' => [
                 'user' => $request->user(),

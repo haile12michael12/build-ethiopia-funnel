@@ -1,0 +1,145 @@
+export interface CopilotMetrics {
+    date_from: string;
+    date_to: string;
+    views: number;
+    unique_sessions: number;
+    cta_clicks: number;
+    form_starts: number;
+    conversions: number;
+    conversion_rate: number;
+    cta_click_rate: number;
+    form_completion_rate: number;
+    daily: DailyMetric[];
+    sample_size_sufficient: boolean;
+    data_quality: 'good' | 'partial' | 'insufficient' | 'no_data';
+    control?: VariantMetrics;
+    variants?: VariantMetrics[];
+}
+
+export interface DailyMetric {
+    date: string;
+    views: number;
+    cta_clicks: number;
+    conversions: number;
+}
+
+export interface VariantMetrics {
+    id?: number;
+    name?: string;
+    weight?: number;
+    views: number;
+    conversions: number;
+    conversion_rate: number;
+    sample_sufficient?: boolean;
+}
+
+export type RecommendationCategory =
+    | 'content_clarity'
+    | 'cta_optimization'
+    | 'form_friction'
+    | 'trust_credibility'
+    | 'conversion_tracking'
+    | 'experiment_opportunities'
+    | 'data_quality'
+    | 'performance';
+
+export interface Recommendation {
+    key: string;
+    title: string;
+    category: RecommendationCategory;
+    evidence: string;
+    explanation: string;
+    suggested_action: string;
+    priority: number;
+    confidence: 'high' | 'medium' | 'low';
+    effort: 'low' | 'medium' | 'high' | 'n/a';
+}
+
+export interface AiExplanation {
+    key: string;
+    explanation: string;
+}
+
+export interface AiCopySuggestion {
+    key: string;
+    type: string;
+    original: string | null;
+    suggestion: string;
+    rationale: string;
+}
+
+export interface AiExperimentHypothesis {
+    hypothesis: string;
+    primary_metric: string;
+    variant_description: string;
+}
+
+export interface AiAdvice {
+    explanations: AiExplanation[];
+    copy_suggestions: AiCopySuggestion[];
+    experiment_hypotheses: AiExperimentHypothesis[];
+    next_steps: string[];
+}
+
+export interface CopilotAudit {
+    id: number;
+    funnel_id: number;
+    status: 'pending' | 'running' | 'completed' | 'failed';
+    funnel_revision: number | null;
+    date_from: string | null;
+    date_to: string | null;
+    metrics: CopilotMetrics | null;
+    recommendations: Recommendation[] | null;
+    ai_advice: AiAdvice | null;
+    ai_provider: string | null;
+    ai_model: string | null;
+    error_message: string | null;
+    has_ai_advice: boolean;
+    created_at: string | null;
+    completed_at: string | null;
+}
+
+export interface AuditHistoryItem {
+    id: number;
+    status: 'pending' | 'running' | 'completed' | 'failed';
+    date_from: string | null;
+    date_to: string | null;
+    metrics_summary: {
+        views: number;
+        conversions: number;
+        conversion_rate: number;
+    } | null;
+    recommendation_count: number;
+    has_ai_advice: boolean;
+    created_at: string | null;
+    completed_at: string | null;
+}
+
+export interface CopilotFunnel {
+    id: number;
+    name: string;
+    slug: string;
+    status: string;
+    is_published: boolean;
+    views: number;
+    conversions: number;
+    conversion_rate: number;
+    revision: number | null;
+    variants: CopilotVariant[];
+}
+
+export interface CopilotVariant {
+    id: number;
+    name: string;
+    weight: number;
+    is_active: boolean;
+    views: number;
+    conversions: number;
+}
+
+export interface CopilotPageProps {
+    funnel: CopilotFunnel;
+    latestAudit: CopilotAudit | null;
+    auditHistory: AuditHistoryItem[];
+}
+
