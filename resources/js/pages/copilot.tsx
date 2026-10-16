@@ -157,8 +157,8 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                     );
                     setActionNotice(
                         action === 'accept'
-                            ? t.recommendation_accepted ?? 'Recommendation accepted.'
-                            : t.recommendation_dismissed ?? 'Recommendation dismissed.',
+                            ? t.recommendation_accepted_notice ?? 'Recommendation accepted.'
+                                : t.recommendation_dismissed_notice ?? 'Recommendation dismissed.',
                     );
                 }
                 if (data.variant) {

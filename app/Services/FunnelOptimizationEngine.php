@@ -217,8 +217,34 @@ class FunnelOptimizationEngine
                 'form_completion_rate' => $metrics['form_completion_rate'],
             ],
             'low_sample_size' => ['views' => $metrics['views']],
+            'form_step_dropoff' => $this->stepSupportingMetrics($metrics),
+            'traffic_source_variation' => [
+                'source_comparison' => collect($metrics['traffic_sources'])
+                    ->filter(fn (array $source) => $source['label'] !== 'unknown')
+                    ->map(fn (array $source) => "{$source['label']}: {$source['conversion_rate']}% ({$source['conversions']}/{$source['views']})")
+                    ->implode(' vs. '),
+            ],
+            'inconsistent_analytics' => ['data_warnings' => implode(' ', $metrics['data_warnings'])],
             default => [],
         };
+    }
+
+    /**
+     * @return array<string, int|string|null>
+     */
+    private function stepSupportingMetrics(array $metrics): array
+    {
+        $step = collect($metrics['form_steps'])->first(fn (array $step) => $step['drop_offs'] !== null && $step['drop_offs'] > 0);
+        if (! $step) {
+            return [];
+        }
+
+        return [
+            'form_id' => $step['form_id'],
+            'step' => $step['step'],
+            'sessions' => $step['sessions'],
+            'drop_offs' => $step['drop_offs'],
+        ];
     }
 
     /**
@@ -385,6 +411,20 @@ class FunnelOptimizationEngine
     {
         $findings = [];
 
+        if ($metrics['data_quality'] === 'inconsistent') {
+            $findings[] = $this->finding(
+                'inconsistent_analytics',
+                'Analytics Events Do Not Reconcile',
+                'conversion_tracking',
+                implode(' ', $metrics['data_warnings']),
+                'Stored event counts conflict with the expected funnel sequence. Rates are shown from the raw events and should not be used to evaluate performance until tracking is checked.',
+                'Verify event instrumentation and session/variant assignment before acting on conversion-rate findings.',
+                95,
+                'high',
+                'low',
+            );
+        }
+
         if (! $metrics['sample_size_sufficient']) {
             $findings[] = $this->finding(
                 'low_sample_size',
@@ -399,6 +439,48 @@ class FunnelOptimizationEngine
             );
 
             return $findings;
+        }
+
+        $sourceMetrics = collect($metrics['traffic_sources'])
+            ->filter(fn (array $source) => $source['label'] !== 'unknown' && $source['views'] >= $this->thresholds['min_sample_size'])
+            ->sortBy('conversion_rate')
+            ->values();
+        if ($sourceMetrics->count() >= 2) {
+            $lowest = $sourceMetrics->first();
+            $highest = $sourceMetrics->last();
+            if ($lowest['conversion_rate'] < $highest['conversion_rate']) {
+                $findings[] = $this->finding(
+                    'traffic_source_variation',
+                    'Conversion Rates Vary by Traffic Source',
+                    'performance',
+                    "{$lowest['label']}: {$lowest['conversion_rate']}% ({$lowest['conversions']}/{$lowest['views']}); {$highest['label']}: {$highest['conversion_rate']}% ({$highest['conversions']}/{$highest['views']}).",
+                    'These are comparisons within this funnel and period, not universal benchmarks or proof that the source caused the difference. Campaign audience and attribution may differ.',
+                    'Review campaign targeting and message match for the lower-rate source, then validate any change with a controlled test before reallocating traffic.',
+                    55,
+                    'medium',
+                    'medium',
+                );
+            }
+        }
+
+        $largestStepDropoff = collect($metrics['form_steps'])
+            ->filter(fn (array $step) => $step['drop_offs'] !== null
+                && $step['sessions'] >= $this->thresholds['min_sample_size']
+                && $step['drop_offs'] > 0)
+            ->sortByDesc(fn (array $step) => $step['drop_offs'] / max(1, $step['sessions']))
+            ->first();
+        if ($largestStepDropoff) {
+            $findings[] = $this->finding(
+                'form_step_dropoff',
+                'Visitors Drop Between Form Steps',
+                'form_friction',
+                "Form {$largestStepDropoff['form_id']}, step {$largestStepDropoff['step']}: {$largestStepDropoff['sessions']} sessions reached this step and {$largestStepDropoff['drop_offs']} did not reach the next step.",
+                'The event data shows a drop between these steps. This identifies where to investigate, but does not establish why visitors left.',
+                'Review the fields and instructions at this step; test one simplification at a time and compare completion events.',
+                70,
+                'medium',
+                'medium',
+            );
         }
 
         // Low conversion rate

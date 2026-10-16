@@ -1596,6 +1596,15 @@ export default function EnhancedFunnelEditor({
 
                             {/* Action Buttons */}
                             <div className="flex items-center space-x-2">
+                                {initialFunnel?.id && (
+                                    <Link
+                                        href={route('copilot.show', { funnel: initialFunnel.id })}
+                                        className="flex items-center space-x-2 rounded-lg bg-orange-500/10 px-3 py-2 text-orange-300 transition-colors hover:bg-orange-500/20"
+                                    >
+                                        <Sparkles className="h-4 w-4" />
+                                        <span>Copilot</span>
+                                    </Link>
+                                )}
                                 <button
                                     onClick={() => setIsAiModalOpen(true)}
                                     className="flex items-center space-x-2 rounded-lg bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/20"

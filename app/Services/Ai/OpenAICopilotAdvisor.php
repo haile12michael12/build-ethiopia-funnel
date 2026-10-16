@@ -127,6 +127,7 @@ class OpenAICopilotAdvisor implements CopilotAdvisor
                 'sample_size_sufficient', 'data_quality', 'data_warnings',
             ])),
             'daily' => array_slice($metrics['daily'] ?? [], 0, 90),
+            'form_steps' => array_slice($metrics['form_steps'] ?? [], 0, 30),
             'traffic_sources' => array_slice($metrics['traffic_sources'] ?? [], 0, 10),
             'devices' => array_slice($metrics['devices'] ?? [], 0, 5),
             'variants' => array_slice($metrics['variants'] ?? [], 0, 10),
