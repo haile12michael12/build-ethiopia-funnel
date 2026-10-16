@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Contracts\CopilotAdvisor;
 use App\Models\Funnel;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class FunnelSupportChatAssistant
 {

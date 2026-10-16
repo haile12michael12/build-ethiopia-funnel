@@ -5,6 +5,7 @@ use App\Models\Funnel;
 use App\Models\User;
 use App\Services\Ai\OpenAICopilotAdvisor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -217,7 +218,7 @@ test('support chat falls back to page content after a provider timeout', functio
         'funnel-ai.model' => 'test-model',
         'funnel-ai.timeout' => 1,
     ]);
-    Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('Provider timed out'));
+    Http::fake(fn () => throw new ConnectionException('Provider timed out'));
     $funnel = supportChatFunnel(User::factory()->create());
 
     $this->postJson(route('funnels.support-chat', $funnel), ['question' => 'What is the pricing?'])

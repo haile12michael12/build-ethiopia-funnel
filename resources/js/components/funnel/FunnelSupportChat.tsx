@@ -94,6 +94,9 @@ export function FunnelSupportChat({ funnelId, variantId }: FunnelSupportChatProp
                     id="funnel-support-panel"
                     aria-label="Funnel support chat"
                     className="flex max-h-[min(34rem,calc(100vh-7rem))] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-900 shadow-2xl"
+                    onKeyDown={(event) => {
+                        if (event.key === 'Escape') setIsOpen(false);
+                    }}
                 >
                     <header className="flex items-center justify-between bg-gray-950 px-4 py-3 text-white">
                         <div className="flex items-center gap-2">
@@ -155,7 +158,7 @@ export function FunnelSupportChat({ funnelId, variantId }: FunnelSupportChatProp
                             onChange={(event) => setQuestion(event.target.value)}
                             placeholder="Type your question…"
                             disabled={isSending}
-                            className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-60"
+                            className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-60 sm:text-sm"
                         />
                         <Button type="submit" size="icon" aria-label="Send question" disabled={isSending || !question.trim()}>
                             <Send aria-hidden="true" />
@@ -167,7 +170,7 @@ export function FunnelSupportChat({ funnelId, variantId }: FunnelSupportChatProp
             <Button
                 type="button"
                 aria-expanded={isOpen}
-                aria-controls="funnel-support-panel"
+                aria-controls={isOpen ? 'funnel-support-panel' : undefined}
                 aria-label={isOpen ? 'Close page support chat' : 'Open page support chat'}
                 className="h-12 rounded-full px-5 shadow-lg"
                 onClick={() => setIsOpen((open) => !open)}
