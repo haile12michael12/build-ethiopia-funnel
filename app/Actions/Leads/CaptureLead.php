@@ -106,10 +106,11 @@ class CaptureLead
         Request $request,
         array $settings,
         ?Funnel $analyticsFunnel = null,
+        ?int $variantId = null,
     ): array {
         $dispatchAutomationImmediately = config('queue.default') !== 'sync';
 
-        $result = DB::transaction(function () use ($owner, $validated, $request, $settings, $analyticsFunnel, $dispatchAutomationImmediately): array {
+        $result = DB::transaction(function () use ($owner, $validated, $request, $settings, $analyticsFunnel, $variantId, $dispatchAutomationImmediately): array {
             $email = mb_strtolower($validated['email']);
             $contact = Contact::firstOrNew(['user_id' => $owner->id, 'email' => $email]);
             $isNewContact = ! $contact->exists;
@@ -172,6 +173,7 @@ class CaptureLead
 
             $submission = $contact->submissions()->create([
                 'funnel_id' => $analyticsFunnel?->id,
+                'variant_id' => $variantId,
                 'form_id' => 'client-acquisition',
                 'fields' => $project,
                 'attribution' => $validated['attribution'] ?? [],
@@ -204,10 +206,15 @@ class CaptureLead
                 $analyticsFunnel->incrementConversions();
                 $analyticsFunnel->events()->create([
                     'event_type' => 'conversion',
+                    'variant_id' => $variantId,
                     'session_id' => $sessionId,
                     'form_id' => 'client-acquisition',
                     'attribution' => $validated['attribution'] ?? [],
-                    'metadata' => ['market' => $project['market'], 'services' => $project['service_interests']],
+                    'metadata' => [
+                        'market' => $project['market'],
+                        'services' => implode(',', $project['service_interests']),
+                        'qualified' => (string) ((int) ($score['score'] >= (int) $settings['qualified_score'])),
+                    ],
                     'occurred_at' => now(),
                 ]);
 

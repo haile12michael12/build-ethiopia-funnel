@@ -45,6 +45,7 @@ class StoreClientProjectRequest extends FormRequest
             'attribution.referrer' => ['nullable', 'url', 'max:2000'],
             'attribution.device' => ['nullable', Rule::in(['mobile', 'tablet', 'desktop'])],
             'session_id' => ['nullable', 'uuid'],
+            'variant_id' => ['nullable', 'integer', 'min:1'],
         ];
     }
 

@@ -11,6 +11,8 @@ use App\Models\Project;
 use App\Models\SiteContent;
 use App\Models\User;
 use App\Services\ClientAcquisitionConfiguration;
+use App\Services\FunnelVariantResolver;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
@@ -19,10 +21,21 @@ use Inertia\Response;
 
 class ClientAcquisitionController extends Controller
 {
-    public function show(ClientAcquisitionConfiguration $configuration): Response
+    public function show(Request $request, ClientAcquisitionConfiguration $configuration, FunnelVariantResolver $variantResolver): Response
     {
         $owner = $this->configuredOwner();
         $settings = $configuration->forOwner($owner->id);
+        $variant = null;
+
+        if ($settings['analytics_funnel_id']) {
+            $funnel = Funnel::query()
+                ->where('user_id', $owner->id)
+                ->where('is_published', true)
+                ->findOrFail($settings['analytics_funnel_id']);
+            $assignment = $variantResolver->resolve($funnel, $request);
+            $variant = $assignment['variant'];
+            Cookie::queue(cookie($assignment['cookie'], $assignment['value'], 60 * 24 * 30, '/', null, false, false, false, 'lax'));
+        }
 
         return Inertia::render('client-acquisition/index', [
             'services' => SiteContent::query()
@@ -52,6 +65,10 @@ class ClientAcquisitionController extends Controller
                 'meeting_url' => $settings['meeting_url'],
                 'analytics_funnel_id' => $settings['analytics_funnel_id'],
             ],
+            'experiment' => [
+                'variant_id' => $variant?->id,
+                ...$this->variantCopy($variant?->content ?? []),
+            ],
         ]);
     }
 
@@ -63,12 +80,21 @@ class ClientAcquisitionController extends Controller
         $owner = $this->configuredOwner();
         $settings = $configuration->forOwner($owner->id);
         $analyticsFunnel = null;
+        $variantId = $request->validated('variant_id');
 
         if ($settings['analytics_funnel_id']) {
             $analyticsFunnel = Funnel::query()
                 ->where('user_id', $owner->id)
                 ->where('is_published', true)
                 ->findOrFail($settings['analytics_funnel_id']);
+
+            if ($variantId !== null) {
+                $analyticsFunnel->variants()
+                    ->where('is_active', true)
+                    ->findOrFail($variantId);
+            }
+        } elseif ($variantId !== null) {
+            abort(422, 'An experiment variant requires a linked analytics funnel.');
         }
 
         $result = $captureLead->handleClientProject(
@@ -77,6 +103,7 @@ class ClientAcquisitionController extends Controller
             $request,
             $settings,
             $analyticsFunnel,
+            $variantId,
         );
 
         return redirect()->to(URL::temporarySignedRoute(
@@ -134,5 +161,45 @@ class ClientAcquisitionController extends Controller
         abort_unless(is_numeric($ownerId), 503, 'Client acquisition is not configured. Set BUSINESS_AUDIT_OWNER_ID to an existing account id.');
 
         return User::query()->findOrFail((int) $ownerId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $content
+     * @return array{headline: string|null, call_to_action: string|null}
+     */
+    private function variantCopy(array $content): array
+    {
+        $headline = null;
+        $callToAction = null;
+
+        foreach (array_slice(is_array($content['sections'] ?? null) ? $content['sections'] : [], 0, 12) as $section) {
+            foreach (array_slice(is_array($section['columns'] ?? null) ? $section['columns'] : [], 0, 4) as $column) {
+                foreach (array_slice(is_array($column['blocks'] ?? null) ? $column['blocks'] : [], 0, 30) as $block) {
+                    if (! is_array($block) || ! is_array($block['content'] ?? null)) {
+                        continue;
+                    }
+
+                    $blockContent = $block['content'];
+                    if ($headline === null && ($block['type'] ?? null) === 'text') {
+                        $html = is_string($blockContent['html'] ?? null) ? $blockContent['html'] : '';
+                        if (preg_match('/<h[12]\b[^>]*>(.*?)<\/h[12]>/is', $html, $matches)) {
+                            $headline = trim(html_entity_decode(strip_tags($matches[1]), ENT_QUOTES | ENT_HTML5));
+                        }
+                    }
+
+                    if ($callToAction === null && ($block['type'] ?? null) === 'button') {
+                        $label = $blockContent['label'] ?? $blockContent['text'] ?? null;
+                        if (is_string($label) && trim(strip_tags($label)) !== '') {
+                            $callToAction = trim(strip_tags($label));
+                        }
+                    }
+                }
+            }
+        }
+
+        return [
+            'headline' => $headline !== '' ? $headline : null,
+            'call_to_action' => $callToAction !== '' ? $callToAction : null,
+        ];
     }
 }

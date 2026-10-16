@@ -47,4 +47,5 @@ export interface ClientAcquisitionProject {
     preferred_contact: 'email' | 'phone' | 'whatsapp';
     additional_requirements?: string | null;
     marketing_consent?: boolean;
+    variant_id?: number | null;
 }
