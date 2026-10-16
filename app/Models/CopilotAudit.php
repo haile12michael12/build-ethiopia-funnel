@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CopilotAudit extends Model
 {
@@ -44,7 +45,7 @@ class CopilotAudit extends Model
         return $this->belongsTo(Funnel::class);
     }
 
-    public function savedRecommendations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function savedRecommendations(): HasMany
     {
         return $this->hasMany(CopilotRecommendation::class, 'audit_id');
     }

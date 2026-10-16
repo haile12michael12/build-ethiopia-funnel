@@ -25,9 +25,9 @@ return [
     'form_completion_rate' => 'Form Completion Rate',
     'daily_performance' => 'Daily Performance',
     'data_quality' => 'Data Quality',
-    'data_quality_good' => 'Good — sufficient data for reliable analysis',
+    'data_quality_good' => 'Configured view threshold met; tracking and allocation still affect metric reliability',
     'data_quality_partial' => 'Partial — some event types are not being tracked',
-    'data_quality_insufficient' => 'Insufficient — not enough traffic for reliable metrics',
+    'data_quality_insufficient' => 'Below the configured view threshold for performance analysis',
     'data_quality_no_data' => 'No Data — no events recorded in this period',
     'data_quality_inconsistent' => 'Inconsistent — event counts do not reconcile',
     'data_limitations' => 'Data limitations',
@@ -103,7 +103,7 @@ return [
     'control' => 'Control',
     'variant' => 'Variant',
     'sample_size' => 'Sample Size',
-    'insufficient_sample' => 'Insufficient sample size for statistical comparison',
+    'insufficient_sample' => 'Sample is below the configured comparison heuristic; this is not a significance test',
 
     // Audit History
     'audit_history' => 'Audit History',

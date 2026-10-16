@@ -4,7 +4,6 @@ use App\Contracts\CopilotAdvisor;
 use App\Models\CopilotAudit;
 use App\Models\CopilotRecommendation;
 use App\Models\Funnel;
-use App\Models\FunnelEvent;
 use App\Models\User;
 use App\Services\Ai\OpenAICopilotAdvisor;
 use App\Services\FunnelOptimizationEngine;
@@ -390,33 +389,33 @@ test('engine reports stored source and device breakdowns without inventing missi
 test('engine compares sufficiently sampled traffic sources only within this funnel', function () {
     $funnel = copilotFunnel(User::factory()->create());
     foreach (['search', 'newsletter'] as $source) {
-    foreach (range(1, 30) as $index) {
+        foreach (range(1, 30) as $index) {
+            $funnel->events()->create([
+                'event_type' => 'view',
+                'attribution' => ['utm_source' => $source],
+                'occurred_at' => now(),
+            ]);
+        }
+    }
+    foreach (range(1, 10) as $index) {
         $funnel->events()->create([
-            'event_type' => 'view',
-            'attribution' => ['utm_source' => $source],
+            'event_type' => 'conversion',
+            'attribution' => ['utm_source' => 'newsletter'],
             'occurred_at' => now(),
         ]);
     }
-    }
-    foreach (range(1, 10) as $index) {
     $funnel->events()->create([
         'event_type' => 'conversion',
-        'attribution' => ['utm_source' => 'newsletter'],
+        'attribution' => ['utm_source' => 'search'],
         'occurred_at' => now(),
-    ]);
-    }
-    $funnel->events()->create([
-    'event_type' => 'conversion',
-    'attribution' => ['utm_source' => 'search'],
-    'occurred_at' => now(),
     ]);
 
     $result = (new FunnelOptimizationEngine)->analyze($funnel, now()->toDateString(), now()->toDateString());
     $finding = collect($result['recommendations'])->firstWhere('key', 'traffic_source_variation');
 
     expect($finding)->not->toBeNull()
-    ->and($finding['evidence'])->toContain('search')
-    ->and($finding['explanation'])->toContain('not universal benchmarks');
+        ->and($finding['evidence'])->toContain('search')
+        ->and($finding['explanation'])->toContain('not universal benchmarks');
 });
 
 test('engine handles empty datasets correctly', function () {
@@ -562,7 +561,7 @@ test('audit still completes when AI fails', function () {
         {
             public function advise(array $context): array
             {
-                throw new \RuntimeException('AI provider unavailable');
+                throw new RuntimeException('AI provider unavailable');
             }
         };
     });
@@ -817,6 +816,9 @@ test('accepted recommendations create only inactive draft variants with hypothes
 
     $this->postJson(route('copilot.recommendations.experiment', [$funnel, $recommendation]), $experimentPayload)->assertCreated();
     expect($funnel->variants()->count())->toBe(1);
+
+    $result = (new FunnelOptimizationEngine)->analyze($funnel, now()->subDays(30)->toDateString(), now()->toDateString());
+    expect(collect($result['recommendations'])->pluck('key'))->not->toContain('no_experiments');
 });
 
 test('copilot page shows latest audit and history', function () {

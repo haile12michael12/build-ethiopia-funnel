@@ -25,9 +25,9 @@ return [
     'form_completion_rate' => 'የቅጽ ማጠናቀቂያ ምጣኔ',
     'daily_performance' => 'ዕለታዊ አፈጻጸም',
     'data_quality' => 'የውሂብ ጥራት',
-    'data_quality_good' => 'ጥሩ — ለተአማኒ ትንተና በቂ መረጃ',
+    'data_quality_good' => 'የተዋቀረው የዕይታ ደረጃ ተሟልቷል፤ ክትትልና ምደባ አሁንም በመለኪያዎች ተአማኒነት ላይ ተጽዕኖ ያሳድራሉ',
     'data_quality_partial' => 'ከፊል — አንዳንድ ክስተቶች አይከታተሉም',
-    'data_quality_insufficient' => 'በቂ ያልሆነ — ለተአማኒ መለኪያ በቂ ትራፊክ የለም',
+    'data_quality_insufficient' => 'ለአፈጻጸም ትንተና ከተዋቀረው የዕይታ ደረጃ በታች ነው',
     'data_quality_no_data' => 'ምንም ውሂብ — በዚህ ጊዜ ምንም ክስተቶች አልተመዘገቡም',
     'data_quality_inconsistent' => 'የማይዛመድ — የክስተት ብዛቶች አይጣጣሙም',
     'data_limitations' => 'የውሂብ ገደቦች',
@@ -103,7 +103,7 @@ return [
     'control' => 'ቁጥጥር',
     'variant' => 'ልዩነት',
     'sample_size' => 'የናሙና መጠን',
-    'insufficient_sample' => 'ለስታቲስቲካዊ ንጽጽር በቂ ያልሆነ ናሙና',
+    'insufficient_sample' => 'ናሙናው ከተዋቀረው የንጽጽር መመሪያ በታች ነው፤ ይህ የስታቲስቲክስ ጠቀሜታ ሙከራ አይደለም',
 
     // Audit History
     'audit_history' => 'የትንተና ታሪክ',

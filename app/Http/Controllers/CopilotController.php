@@ -207,7 +207,7 @@ class CopilotController extends Controller
                 $audit->update(['ai_error' => $aiError]);
                 $audit->markCompleted($metrics, $savedRecommendations, $aiAdvice);
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             report($e);
             $audit->markFailed('Audit analysis failed. Please try again.');
 

@@ -572,7 +572,7 @@ class FunnelOptimizationEngine
         $variants = $funnel->variants()->where('is_active', true)->get();
 
         if ($variants->isEmpty()) {
-            if ($metrics['sample_size_sufficient']) {
+            if (! $funnel->variants()->exists() && $metrics['sample_size_sufficient']) {
                 $findings[] = $this->finding(
                     'no_experiments',
                     'No Active Experiments',
@@ -689,7 +689,7 @@ class FunnelOptimizationEngine
             'confidence_explanation' => 'This score estimates how strongly the available evidence supports the finding; it is not the probability of improving conversions.',
             'effort' => $effort,
             'expected_outcome' => 'Test whether the suggested change addresses this finding; no conversion lift is assumed.',
-            'hypothesis' => "If the suggested action is tested, then the issue described in the evidence may improve.",
+            'hypothesis' => 'If the suggested action is tested, then the issue described in the evidence may improve.',
         ];
     }
 

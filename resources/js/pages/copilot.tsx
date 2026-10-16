@@ -194,7 +194,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
     const tabs = [
         { key: 'overview' as const, label: t.metrics ?? 'Metrics', icon: BarChart3 },
         { key: 'recommendations' as const, label: t.recommendations ?? 'Recommendations', icon: Lightbulb, count: recommendations.length },
-        { key: 'ai' as const, label: t.ai_advice ?? 'AI Advisor', icon: Brain, disabled: !aiAdvice },
+        { key: 'ai' as const, label: t.ai_advice ?? 'AI Advisor', icon: Brain, disabled: !aiAdvice && !currentAudit?.ai_error },
         { key: 'experiments' as const, label: t.experiments ?? 'Experiments', icon: Target },
         { key: 'history' as const, label: t.audit_history ?? 'History', icon: Clock, count: auditHistory.length },
     ];
