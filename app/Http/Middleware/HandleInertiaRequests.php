@@ -52,6 +52,7 @@ class HandleInertiaRequests extends Middleware
             'translations' => [
                 'navigation' => trans('navigation'),
                 'copilot' => trans('copilot'),
+                'client_acquisition' => trans('client-acquisition'),
             ],
             'auth' => [
                 'user' => $request->user(),

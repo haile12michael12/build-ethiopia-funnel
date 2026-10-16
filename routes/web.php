@@ -5,6 +5,8 @@ use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\AutomationRunController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactLookupController;
+use App\Http\Controllers\ClientAcquisitionController;
+use App\Http\Controllers\ClientAcquisitionSettingsController;
 use App\Http\Controllers\CopilotController;
 use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DomainController;
@@ -53,6 +55,13 @@ Route::domain($appDomain)->group(function () {
     Route::get('/business-growth-audit/thank-you/{contact}', [AuditFunnelController::class, 'thankYou'])
         ->middleware('signed')
         ->name('business-audit.thank-you');
+    Route::get('/start-project', [ClientAcquisitionController::class, 'show'])->name('client-acquisition.show');
+    Route::post('/start-project', [ClientAcquisitionController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('client-acquisition.store');
+    Route::get('/start-project/thank-you/{contact}', [ClientAcquisitionController::class, 'thankYou'])
+        ->middleware('signed')
+        ->name('client-acquisition.thank-you');
 
     // Public funnel view — accessible without authentication.
     // Published funnels are open to all; unpublished funnels require ownership (enforced in controller).
@@ -77,6 +86,8 @@ Route::domain($appDomain)->group(function () {
     Route::post('/locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
     Route::middleware(['auth', 'verified'])->group(function () {
+        Route::get('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'edit'])->name('client-acquisition.settings.edit');
+        Route::put('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'update'])->name('client-acquisition.settings.update');
         Route::get('dashboard', function () {
             $user = auth()->user();
             $funnels = $user->funnels();

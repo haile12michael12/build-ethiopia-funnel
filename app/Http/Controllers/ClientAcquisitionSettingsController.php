@@ -6,7 +6,6 @@ use App\Models\ClientAcquisitionSettings;
 use App\Services\ClientAcquisitionConfiguration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,7 +28,6 @@ class ClientAcquisitionSettingsController extends Controller
     public function update(Request $request, ClientAcquisitionConfiguration $configuration): RedirectResponse
     {
         $this->authorizeOwner($request);
-        $defaults = ClientAcquisitionSettings::defaults();
         $validated = $request->validate([
             'services' => ['required', 'array', 'min:1', 'max:20'],
             'services.*.key' => ['required', 'string', 'alpha_dash', 'max:40'],

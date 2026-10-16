@@ -51,7 +51,8 @@ class StoreClientProjectRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if ($this->input('market') === 'ethiopia' && filled($this->input('country')) && mb_strtolower($this->input('country')) !== 'ethiopia') {
+            $country = $this->input('country');
+            if ($this->input('market') === 'ethiopia' && is_string($country) && filled($country) && mb_strtolower($country) !== 'ethiopia') {
                 $validator->errors()->add('country', __('client-acquisition.validation.country_market'));
             }
         });

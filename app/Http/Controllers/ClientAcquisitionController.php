@@ -1,0 +1,127 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Actions\Leads\CaptureLead;
+use App\Http\Requests\StoreClientProjectRequest;
+use App\Models\ClientAcquisitionSettings;
+use App\Models\Contact;
+use App\Models\Funnel;
+use App\Models\Project;
+use App\Models\SiteContent;
+use App\Models\User;
+use App\Services\ClientAcquisitionConfiguration;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class ClientAcquisitionController extends Controller
+{
+    public function show(ClientAcquisitionConfiguration $configuration): Response
+    {
+        $owner = $this->configuredOwner();
+        $settings = $configuration->forOwner($owner->id);
+
+        return Inertia::render('client-acquisition/index', [
+            'services' => SiteContent::query()
+                ->where('type', 'service')
+                ->published()
+                ->ordered()
+                ->get(['id', 'title_en', 'title_am', 'summary_en', 'summary_am', 'image', 'slug']),
+            'projects' => Project::query()
+                ->published()
+                ->featured()
+                ->ordered()
+                ->take(3)
+                ->get(['id', 'title_en', 'title_am', 'slug', 'summary_en', 'summary_am', 'cover_image', 'technologies']),
+            'testimonials' => SiteContent::query()
+                ->where('type', 'testimonial')
+                ->published()
+                ->ordered()
+                ->take(3)
+                ->get(['id', 'title_en', 'title_am', 'summary_en', 'summary_am', 'person_name_en', 'person_name_am', 'person_role_en', 'person_role_am', 'company_en', 'company_am']),
+            'settings' => [
+                'services' => $settings['services'],
+                'budgets' => $settings['budgets'],
+                'timelines' => $settings['timelines'],
+                'response_time_hours' => $settings['response_time_hours'],
+                'response_email' => $settings['response_email'],
+                'whatsapp_url' => $settings['whatsapp_url'],
+                'meeting_url' => $settings['meeting_url'],
+                'analytics_funnel_id' => $settings['analytics_funnel_id'],
+            ],
+        ]);
+    }
+
+    public function store(
+        StoreClientProjectRequest $request,
+        CaptureLead $captureLead,
+        ClientAcquisitionConfiguration $configuration,
+    ): RedirectResponse {
+        $owner = $this->configuredOwner();
+        $settings = $configuration->forOwner($owner->id);
+        $analyticsFunnel = null;
+
+        if ($settings['analytics_funnel_id']) {
+            $analyticsFunnel = Funnel::query()
+                ->where('user_id', $owner->id)
+                ->where('is_published', true)
+                ->findOrFail($settings['analytics_funnel_id']);
+        }
+
+        $result = $captureLead->handleClientProject(
+            $owner,
+            $request->validated(),
+            $request,
+            $settings,
+            $analyticsFunnel,
+        );
+
+        return redirect()->to(URL::temporarySignedRoute(
+            'client-acquisition.thank-you',
+            now()->addMinutes(30),
+            ['contact' => $result['contact']->id],
+        ));
+    }
+
+    public function thankYou(
+        Request $request,
+        Contact $contact,
+        ClientAcquisitionConfiguration $configuration,
+    ): Response {
+        $owner = $this->configuredOwner();
+        abort_unless($contact->user_id === $owner->id && $contact->source === 'client_acquisition', 404);
+        $settings = $configuration->forOwner($owner->id);
+        $project = $contact->client_project ?? [];
+
+        return Inertia::render('client-acquisition/thank-you', [
+            'request' => [
+                'name' => $contact->name,
+                'email' => $contact->email,
+                'business_name' => $project['business_name'] ?? null,
+                'market' => $project['market'] ?? null,
+                'country' => $project['country'] ?? null,
+                'service_interests' => $project['service_interests'] ?? [],
+                'project_description' => $project['project_description'] ?? null,
+                'budget' => $project['budget'] ?? null,
+                'timeline' => $project['timeline'] ?? null,
+            ],
+            'nextSteps' => [
+                'response_time_hours' => $settings['response_time_hours'],
+                'response_email' => $settings['response_email'],
+                'whatsapp_url' => $settings['whatsapp_url'],
+                'meeting_url' => $settings['meeting_url'],
+            ],
+        ]);
+    }
+
+    private function configuredOwner(): User
+    {
+        $ownerId = config('business-audit.owner_id');
+        abort_unless(is_numeric($ownerId), 503, 'Client acquisition is not configured. Set BUSINESS_AUDIT_OWNER_ID to an existing account id.');
+
+        return User::query()->findOrFail((int) $ownerId);
+    }
+}
