@@ -49,13 +49,18 @@ export default function SiteContentIndex({ type, label, entries, search }: Conte
                         <p className="mt-1 text-sm text-muted-foreground">Manage bilingual content, publishing, and search metadata.</p>
                     </div>
                     <Button asChild>
-                        <Link href={route('site-content.create', type)}><Plus className="mr-2 h-4 w-4" />New {label.slice(0, -1)}</Link>
+                        <Link href={route('site-content.create', type)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            New {label.slice(0, -1)}
+                        </Link>
                     </Button>
                 </div>
 
                 <form onSubmit={submitSearch} className="flex max-w-lg gap-2">
                     <Input value={term} onChange={(event) => setTerm(event.target.value)} placeholder={`Search ${label.toLowerCase()}...`} />
-                    <Button type="submit" variant="outline"><Search className="h-4 w-4" /></Button>
+                    <Button type="submit" variant="outline">
+                        <Search className="h-4 w-4" />
+                    </Button>
                 </form>
 
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -64,20 +69,34 @@ export default function SiteContentIndex({ type, label, entries, search }: Conte
                             {entries.data.map((entry) => (
                                 <div key={entry.id} className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center">
                                     <div className="flex min-w-0 items-center gap-3">
-                                        {entry.image ? <img src={entry.image} alt="" className="h-12 w-16 rounded-md object-cover" /> : <FileText className="h-8 w-8 shrink-0 text-muted-foreground" />}
+                                        {entry.image ? (
+                                            <img src={entry.image} alt="" className="h-12 w-16 rounded-md object-cover" />
+                                        ) : (
+                                            <FileText className="h-8 w-8 shrink-0 text-muted-foreground" />
+                                        )}
                                         <div className="min-w-0">
                                             <p className="truncate font-medium text-foreground">{entry.title_en}</p>
-                                            <p className="truncate text-sm text-muted-foreground">/{type === 'blog' ? 'blog/' : type === 'page' ? 'p/' : ''}{entry.slug}</p>
+                                            <p className="truncate text-sm text-muted-foreground">
+                                                /{type === 'blog' ? 'blog/' : type === 'page' ? 'p/' : ''}
+                                                {entry.slug}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${entry.status === 'published' ? 'bg-green-500/10 text-green-600' : 'bg-muted text-muted-foreground'}`}>
+                                        <span
+                                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${entry.status === 'published' ? 'bg-green-500/10 text-green-600' : 'bg-muted text-muted-foreground'}`}
+                                        >
                                             {entry.status}
                                         </span>
                                         <Button asChild size="sm" variant="outline">
                                             <Link href={route('site-content.edit', { type, entry: entry.id })}>Edit</Link>
                                         </Button>
-                                        <Button size="icon" variant="ghost" aria-label={`Delete ${entry.title_en}`} onClick={() => deleteEntry(entry)}>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            aria-label={`Delete ${entry.title_en}`}
+                                            onClick={() => deleteEntry(entry)}
+                                        >
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
                                     </div>
@@ -97,7 +116,11 @@ export default function SiteContentIndex({ type, label, entries, search }: Conte
                     <div className="flex flex-wrap gap-2">
                         {entries.links.map((link, index) => (
                             <Button key={index} size="sm" variant={link.active ? 'default' : 'outline'} disabled={!link.url} asChild={!!link.url}>
-                                {link.url ? <Link href={link.url}>{link.label.replace(/&laquo;/g, '‹').replace(/&raquo;/g, '›')}</Link> : <span>{link.label.replace(/&laquo;/g, '‹').replace(/&raquo;/g, '›')}</span>}
+                                {link.url ? (
+                                    <Link href={link.url}>{link.label.replace(/&laquo;/g, '‹').replace(/&raquo;/g, '›')}</Link>
+                                ) : (
+                                    <span>{link.label.replace(/&laquo;/g, '‹').replace(/&raquo;/g, '›')}</span>
+                                )}
                             </Button>
                         ))}
                     </div>

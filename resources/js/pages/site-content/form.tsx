@@ -63,7 +63,15 @@ type TextFormKey =
     | 'seo_description_en'
     | 'seo_description_am';
 
-function Field({ id, label, value, onChange, error, multiline = false, required = false }: {
+function Field({
+    id,
+    label,
+    value,
+    onChange,
+    error,
+    multiline = false,
+    required = false,
+}: {
     id: TextFormKey | 'sort_order';
     label: string;
     value: string | number;
@@ -81,8 +89,15 @@ function Field({ id, label, value, onChange, error, multiline = false, required 
 
     return (
         <div className="space-y-2">
-            <Label htmlFor={id}>{label}{required && <span className="text-destructive"> *</span>}</Label>
-            {multiline ? <textarea {...common} className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /> : <Input {...common} />}
+            <Label htmlFor={id}>
+                {label}
+                {required && <span className="text-destructive"> *</span>}
+            </Label>
+            {multiline ? (
+                <textarea {...common} className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+            ) : (
+                <Input {...common} />
+            )}
             <InputError message={error} />
         </div>
     );
@@ -134,7 +149,15 @@ export default function SiteContentForm({ type, label, entry }: ContentFormProps
     };
 
     const field = (id: TextFormKey, label: string, multiline = false, required = false) => (
-        <Field id={id} label={label} value={data[id]} onChange={(value) => setData(id, value)} error={errors[id]} multiline={multiline} required={required} />
+        <Field
+            id={id}
+            label={label}
+            value={data[id]}
+            onChange={(value) => setData(id, value)}
+            error={errors[id]}
+            multiline={multiline}
+            required={required}
+        />
     );
 
     return (
@@ -143,13 +166,22 @@ export default function SiteContentForm({ type, label, entry }: ContentFormProps
             <form onSubmit={submit} className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <Button asChild size="icon" variant="ghost"><Link href={route('site-content.index', type)}><ArrowLeft className="h-5 w-5" /></Link></Button>
+                        <Button asChild size="icon" variant="ghost">
+                            <Link href={route('site-content.index', type)}>
+                                <ArrowLeft className="h-5 w-5" />
+                            </Link>
+                        </Button>
                         <div>
-                            <h1 className="text-2xl font-bold">{editing ? 'Edit' : 'Create'} {label.slice(0, -1)}</h1>
+                            <h1 className="text-2xl font-bold">
+                                {editing ? 'Edit' : 'Create'} {label.slice(0, -1)}
+                            </h1>
                             <p className="text-sm text-muted-foreground">Add English and Amharic content, then set publishing and SEO options.</p>
                         </div>
                     </div>
-                    <Button type="submit" disabled={processing}><Save className="mr-2 h-4 w-4" />{processing ? 'Saving...' : 'Save'}</Button>
+                    <Button type="submit" disabled={processing}>
+                        <Save className="mr-2 h-4 w-4" />
+                        {processing ? 'Saving...' : 'Save'}
+                    </Button>
                 </div>
 
                 <section className="grid gap-5 rounded-xl border border-border bg-card p-6 md:grid-cols-2">
@@ -165,7 +197,12 @@ export default function SiteContentForm({ type, label, entry }: ContentFormProps
                     {(type === 'service' || type === 'blog' || type === 'testimonial') && (
                         <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="image_file">Image</Label>
-                            <Input id="image_file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => setData('image_file', event.target.files?.[0] ?? null)} />
+                            <Input
+                                id="image_file"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                onChange={(event) => setData('image_file', event.target.files?.[0] ?? null)}
+                            />
                             {data.image && <img src={data.image} alt="" className="h-28 rounded-md object-cover" />}
                             <InputError message={errors.image_file} />
                         </div>
@@ -174,12 +211,38 @@ export default function SiteContentForm({ type, label, entry }: ContentFormProps
                         <>
                             <div className="space-y-2 md:col-span-2">
                                 <Label htmlFor="highlights_en">Service highlights (English, one per line)</Label>
-                                <textarea id="highlights_en" value={data.highlights_en.join('\n')} onChange={(event) => setData('highlights_en', event.target.value.split('\n').map((line) => line.trim()).filter(Boolean))} className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                                <textarea
+                                    id="highlights_en"
+                                    value={data.highlights_en.join('\n')}
+                                    onChange={(event) =>
+                                        setData(
+                                            'highlights_en',
+                                            event.target.value
+                                                .split('\n')
+                                                .map((line) => line.trim())
+                                                .filter(Boolean),
+                                        )
+                                    }
+                                    className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                />
                                 <InputError message={errors.highlights_en} />
                             </div>
                             <div className="space-y-2 md:col-span-2">
                                 <Label htmlFor="highlights_am">Service highlights (Amharic, one per line)</Label>
-                                <textarea id="highlights_am" value={data.highlights_am.join('\n')} onChange={(event) => setData('highlights_am', event.target.value.split('\n').map((line) => line.trim()).filter(Boolean))} className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                                <textarea
+                                    id="highlights_am"
+                                    value={data.highlights_am.join('\n')}
+                                    onChange={(event) =>
+                                        setData(
+                                            'highlights_am',
+                                            event.target.value
+                                                .split('\n')
+                                                .map((line) => line.trim())
+                                                .filter(Boolean),
+                                        )
+                                    }
+                                    className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                />
                                 <InputError message={errors.highlights_am} />
                             </div>
                         </>
@@ -200,14 +263,32 @@ export default function SiteContentForm({ type, label, entry }: ContentFormProps
                     <h2 className="text-lg font-semibold md:col-span-2">Publishing</h2>
                     <div className="space-y-2">
                         <Label htmlFor="status">Status</Label>
-                        <select id="status" value={data.status} onChange={(event) => setData('status', event.target.value as FormValues['status'])} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                            <option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option>
+                        <select
+                            id="status"
+                            value={data.status}
+                            onChange={(event) => setData('status', event.target.value as FormValues['status'])}
+                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        >
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                            <option value="archived">Archived</option>
                         </select>
                     </div>
-                    <Field id="sort_order" label="Display order" value={data.sort_order} onChange={(value) => setData('sort_order', Number(value))} error={errors.sort_order} />
+                    <Field
+                        id="sort_order"
+                        label="Display order"
+                        value={data.sort_order}
+                        onChange={(value) => setData('sort_order', Number(value))}
+                        error={errors.sort_order}
+                    />
                     <div className="space-y-2">
                         <Label htmlFor="published_at">Publish date</Label>
-                        <Input id="published_at" type="datetime-local" value={data.published_at} onChange={(event) => setData('published_at', event.target.value)} />
+                        <Input
+                            id="published_at"
+                            type="datetime-local"
+                            value={data.published_at}
+                            onChange={(event) => setData('published_at', event.target.value)}
+                        />
                         <InputError message={errors.published_at} />
                     </div>
                 </section>
