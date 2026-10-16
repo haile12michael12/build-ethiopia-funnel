@@ -533,6 +533,11 @@ test('audit completes with valid AI response', function () {
                     'next_steps' => ['Step one', 'Step two'],
                 ];
             }
+
+            public function answerSupportQuestion(array $context): array
+            {
+                return ['answer' => 'Test answer'];
+            }
         };
     });
 
@@ -560,6 +565,11 @@ test('audit still completes when AI fails', function () {
         return new class implements CopilotAdvisor
         {
             public function advise(array $context): array
+            {
+                throw new RuntimeException('AI provider unavailable');
+            }
+
+            public function answerSupportQuestion(array $context): array
             {
                 throw new RuntimeException('AI provider unavailable');
             }

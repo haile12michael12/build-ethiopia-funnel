@@ -1,4 +1,5 @@
 import FunnelBlock from '@/components/funnel/FunnelBlock';
+import { FunnelSupportChat } from '@/components/funnel/FunnelSupportChat';
 import { currentAttribution, funnelSessionId, trackFunnelEvent } from '@/lib/analytics';
 import { getSuccessAction } from '@/lib/form-fields';
 import { shareLink } from '@/lib/share';
@@ -10,9 +11,10 @@ import { type CSSProperties, type FormEvent, useEffect, useState } from 'react';
 interface FunnelPreviewProps {
     funnel: Funnel & { id: number; slug: string };
     previewMode?: boolean;
+    supportChatEnabled?: boolean;
 }
 
-export default function FunnelPreview({ funnel, previewMode = false }: FunnelPreviewProps) {
+export default function FunnelPreview({ funnel, previewMode = false, supportChatEnabled = false }: FunnelPreviewProps) {
     const [selectedDevice, setSelectedDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
     const [submittingBlockId, setSubmittingBlockId] = useState<string | null>(null);
     const [submittedBlockId, setSubmittedBlockId] = useState<string | null>(null);
@@ -276,6 +278,7 @@ export default function FunnelPreview({ funnel, previewMode = false }: FunnelPre
                     </div>
                 )}
             </div>
+            {supportChatEnabled && !previewMode && <FunnelSupportChat funnelId={funnel.id} variantId={funnel.variant_id} />}
         </>
     );
 }

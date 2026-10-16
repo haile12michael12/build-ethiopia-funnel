@@ -14,6 +14,7 @@ use App\Http\Controllers\FunnelController;
 use App\Http\Controllers\FunnelGenerationController;
 use App\Http\Controllers\FunnelOpportunitySettingController;
 use App\Http\Controllers\FunnelResponseController;
+use App\Http\Controllers\FunnelSupportChatController;
 use App\Http\Controllers\FunnelVariantController;
 use App\Http\Controllers\LeadCaptureController;
 use App\Http\Controllers\LocaleController;
@@ -38,6 +39,9 @@ Route::post('funnels/{funnel}/leads', [LeadCaptureController::class, 'store'])->
 Route::post('funnels/{funnel}/events', [FunnelAnalyticsController::class, 'store'])
     ->middleware('throttle:120,1')
     ->name('funnels.events.store');
+Route::post('funnels/{funnel}/support-chat', FunnelSupportChatController::class)
+    ->middleware('throttle:10,1')
+    ->name('funnels.support-chat');
 
 Route::domain($appDomain)->group(function () {
     Route::get('/', [SiteContentController::class, 'home'])->name('home');
@@ -239,5 +243,6 @@ Route::fallback(function (Request $request) {
             'public_url' => app(FunnelPublicUrlResolver::class)->resolve($domain->funnel),
         ],
         'previewMode' => false,
+        'supportChatEnabled' => true,
     ]);
 });

@@ -127,6 +127,7 @@ class FunnelController extends Controller
         return Inertia::render('funnel-preview', [
             'funnel' => $this->serializeFunnel($funnel, $assignment['variant']),
             'previewMode' => false,
+            'supportChatEnabled' => $funnel->is_published,
         ]);
     }
 
