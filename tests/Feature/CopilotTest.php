@@ -328,6 +328,41 @@ test('engine reports measured form-step drop-offs by unique session', function (
         ->and($metrics['form_steps'][1]['drop_offs'])->toBeNull();
 });
 
+test('engine recommends investigating observed multi-step form drop-off without asserting its cause', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+    foreach (range(1, 30) as $index) {
+        $sessionId = hash('sha256', "step-session-{$index}");
+        $funnel->events()->create([
+            'event_type' => 'view',
+            'session_id' => $sessionId,
+            'occurred_at' => now(),
+        ]);
+        $funnel->events()->create([
+            'event_type' => 'form_step',
+            'form_id' => 'lead-form',
+            'session_id' => $sessionId,
+            'metadata' => ['step' => '1'],
+            'occurred_at' => now(),
+        ]);
+        if ($index <= 20) {
+            $funnel->events()->create([
+                'event_type' => 'form_step',
+                'form_id' => 'lead-form',
+                'session_id' => $sessionId,
+                'metadata' => ['step' => '2'],
+                'occurred_at' => now(),
+            ]);
+        }
+    }
+
+    $result = (new FunnelOptimizationEngine)->analyze($funnel, now()->toDateString(), now()->toDateString());
+    $finding = collect($result['recommendations'])->firstWhere('key', 'form_step_dropoff');
+
+    expect($finding)->not->toBeNull()
+        ->and($finding['evidence'])->toContain('10 did not reach the next step')
+        ->and($finding['supporting_metrics']['drop_offs'])->toBe(10);
+});
+
 test('engine reports stored source and device breakdowns without inventing missing values', function () {
     $funnel = copilotFunnel(User::factory()->create());
     $funnel->events()->create([
@@ -350,6 +385,38 @@ test('engine reports stored source and device breakdowns without inventing missi
         'conversions' => 1,
         'conversion_rate' => 100.0,
     ])->and($metrics['devices'][0]['label'])->toBe('mobile');
+});
+
+test('engine compares sufficiently sampled traffic sources only within this funnel', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+    foreach (['search', 'newsletter'] as $source) {
+    foreach (range(1, 30) as $index) {
+        $funnel->events()->create([
+            'event_type' => 'view',
+            'attribution' => ['utm_source' => $source],
+            'occurred_at' => now(),
+        ]);
+    }
+    }
+    foreach (range(1, 10) as $index) {
+    $funnel->events()->create([
+        'event_type' => 'conversion',
+        'attribution' => ['utm_source' => 'newsletter'],
+        'occurred_at' => now(),
+    ]);
+    }
+    $funnel->events()->create([
+    'event_type' => 'conversion',
+    'attribution' => ['utm_source' => 'search'],
+    'occurred_at' => now(),
+    ]);
+
+    $result = (new FunnelOptimizationEngine)->analyze($funnel, now()->toDateString(), now()->toDateString());
+    $finding = collect($result['recommendations'])->firstWhere('key', 'traffic_source_variation');
+
+    expect($finding)->not->toBeNull()
+    ->and($finding['evidence'])->toContain('search')
+    ->and($finding['explanation'])->toContain('not universal benchmarks');
 });
 
 test('engine handles empty datasets correctly', function () {
@@ -391,6 +458,16 @@ test('engine detects low conversion rate', function () {
     $result = $engine->analyze($funnel, now()->subDays(30)->toDateString(), now()->toDateString());
 
     expect(collect($result['recommendations'])->pluck('key'))->toContain('low_conversion_rate');
+});
+
+test('conversion-rate heuristic excludes values on its configured boundary', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+    seedEvents($funnel, views: 200, ctaClicks: 5, formStarts: 3, conversions: 2);
+
+    $result = (new FunnelOptimizationEngine)->analyze($funnel, now()->subDays(30)->toDateString(), now()->toDateString());
+
+    expect($result['metrics']['conversion_rate'])->toBe(1.0)
+        ->and(collect($result['recommendations'])->pluck('key'))->not->toContain('low_conversion_rate');
 });
 
 test('engine detects no conversions with traffic', function () {
@@ -536,6 +613,23 @@ test('OpenAI advisor rejects malformed JSON without requiring a live provider', 
     ]))->toThrow(RuntimeException::class);
 });
 
+test('OpenAI advisor reports rate limiting instead of returning partial advice', function () {
+    config([
+        'funnel-ai.api_key' => 'test-key',
+        'funnel-ai.endpoint' => 'https://api.openai.com/v1/responses',
+        'funnel-ai.model' => 'test-model',
+        'funnel-ai.timeout' => 1,
+    ]);
+    Http::fake(['api.openai.com/*' => Http::response(['error' => 'rate limited'], 429)]);
+
+    expect(fn () => (new OpenAICopilotAdvisor)->advise([
+        'content' => ['sections' => []],
+        'metrics' => [],
+        'findings' => [],
+        'language' => 'en',
+    ]))->toThrow(RuntimeException::class);
+});
+
 test('OpenAI advisor strips markup from validated text and fixes the primary metric', function () {
     config([
         'funnel-ai.api_key' => 'test-key',
@@ -555,12 +649,29 @@ test('OpenAI advisor strips markup from validated text and fixes the primary met
     ]);
 
     $advice = (new OpenAICopilotAdvisor)->advise([
-        'content' => ['sections' => []],
+        'content' => [
+            'secret_metadata' => 'private-funnel-secret',
+            'sections' => [[
+                'columns' => [[
+                    'blocks' => [[
+                        'type' => 'text',
+                        'content' => [
+                            'html' => '<h1>Public headline</h1>',
+                            'url' => 'https://private.example/token',
+                            'api_key' => 'private-block-secret',
+                        ],
+                    ]],
+                ]],
+            ]],
+        ],
         'metrics' => [],
         'findings' => [],
         'language' => 'en',
     ]);
 
+    Http::assertSent(fn ($request) => ! str_contains($request->body(), 'private-funnel-secret')
+        && ! str_contains($request->body(), 'private-block-secret')
+        && ! str_contains($request->body(), 'private.example/token'));
     expect($advice['explanations'][0]['explanation'])->toBe('Observed fact')
         ->and($advice['copy_suggestions'][0]['suggestion'])->toBe('bad()Start now')
         ->and($advice['experiment_hypotheses'][0]['primary_metric'])->toBe('conversion_rate');
@@ -681,26 +792,30 @@ test('users cannot access another users recommendation actions', function () {
 
 test('accepted recommendations create only inactive draft variants with hypothesis metadata', function () {
     $user = User::factory()->create();
-    $funnel = copilotFunnel($user, true, ['sections' => []]);
+    $funnel = copilotFunnel($user);
+    seedEvents($funnel, views: 100, ctaClicks: 1, formStarts: 0, conversions: 1);
     $audit = $this->actingAs($user)->postJson(route('copilot.audit', $funnel), [
-        'date_from' => now()->subDays(7)->toDateString(),
+        'date_from' => now()->subDays(30)->toDateString(),
         'date_to' => now()->toDateString(),
     ])->assertOk()->json('audit');
-    $recommendation = CopilotRecommendation::findOrFail($audit['recommendations'][0]['id']);
+    $recommendationData = collect($audit['recommendations'])->firstWhere('key', 'low_cta_ctr');
+    $recommendation = CopilotRecommendation::findOrFail($recommendationData['id']);
 
     $this->postJson(route('copilot.recommendations.experiment', [$funnel, $recommendation]))->assertStatus(409);
     $this->postJson(route('copilot.recommendations.accept', [$funnel, $recommendation]))->assertOk();
-    $response = $this->postJson(route('copilot.recommendations.experiment', [$funnel, $recommendation]))->assertCreated();
+    $experimentPayload = ['target' => 'cta', 'proposed_copy' => 'Book your free consultation'];
+    $response = $this->postJson(route('copilot.recommendations.experiment', [$funnel, $recommendation]), $experimentPayload)->assertCreated();
     $variant = $funnel->variants()->findOrFail($response->json('variant.id'));
 
     expect($variant->is_active)->toBeFalse()
-        ->and($variant->content)->toBe($funnel->content)
+        ->and($variant->content['sections'][0]['columns'][0]['blocks'][1]['content']['label'])->toBe('Book your free consultation')
+        ->and($funnel->content['sections'][0]['columns'][0]['blocks'][1]['content']['label'])->toBe('Get Started')
         ->and(data_get($variant->settings, 'copilot_experiment.recommendation_id'))->toBe($recommendation->id)
-        ->and(data_get($variant->settings, 'copilot_experiment.primary_metric'))->toBe('conversion_rate')
+        ->and(data_get($variant->settings, 'copilot_experiment.primary_metric'))->toBe('cta_click_rate')
         ->and(data_get($variant->settings, 'copilot_experiment.status'))->toBe('draft')
         ->and($response->json('variant.editor_url'))->toBe(route('funnel-editor.edit', $funnel));
 
-    $this->postJson(route('copilot.recommendations.experiment', [$funnel, $recommendation]))->assertCreated();
+    $this->postJson(route('copilot.recommendations.experiment', [$funnel, $recommendation]), $experimentPayload)->assertCreated();
     expect($funnel->variants()->count())->toBe(1);
 });
 

@@ -69,13 +69,13 @@ class OpenAICopilotAdvisor implements CopilotAdvisor
         }
 
         return [
-            'sections' => collect($sections)->filter('is_array')->take(12)->map(function (array $section) {
+            'sections' => collect($sections)->filter(fn ($section) => is_array($section))->take(12)->map(function (array $section) {
                 return [
                     'layout' => $this->safeText($section['layout'] ?? 'single', 80),
-                    'columns' => collect($section['columns'] ?? [])->filter('is_array')->take(4)->map(function (array $column) {
+                    'columns' => collect($section['columns'] ?? [])->filter(fn ($column) => is_array($column))->take(4)->map(function (array $column) {
                         return [
                             'width' => is_numeric($column['width'] ?? null) ? (int) $column['width'] : 100,
-                            'blocks' => collect($column['blocks'] ?? [])->filter('is_array')->take(30)->map(function (array $block) {
+                            'blocks' => collect($column['blocks'] ?? [])->filter(fn ($block) => is_array($block))->take(30)->map(function (array $block) {
                                 return [
                                     'type' => $this->safeText($block['type'] ?? 'text', 80),
                                     'content' => $this->sanitizeBlockContent($block['content'] ?? []),
@@ -99,7 +99,7 @@ class OpenAICopilotAdvisor implements CopilotAdvisor
         }
 
         if (is_array($content['fields'] ?? null)) {
-            $sanitized['fields'] = collect($content['fields'])->filter('is_array')->take(25)->map(fn (array $field) => [
+            $sanitized['fields'] = collect($content['fields'])->filter(fn ($field) => is_array($field))->take(25)->map(fn (array $field) => [
                 'type' => $this->safeText($field['type'] ?? '', 40),
                 'label' => $this->safeText($field['label'] ?? '', 120),
                 'required' => (bool) ($field['required'] ?? false),
@@ -111,7 +111,7 @@ class OpenAICopilotAdvisor implements CopilotAdvisor
 
     private function safeText(mixed $value, int $limit): string
     {
-        return mb_substr(trim(strip_tags((string) $value)), 0, $limit);
+        return is_scalar($value) ? mb_substr(trim(strip_tags((string) $value)), 0, $limit) : '';
     }
 
     private function buildPrompt(array $content, array $metrics, array $findings, string $language): string

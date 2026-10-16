@@ -110,20 +110,19 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                     headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
                     credentials: 'same-origin',
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    setCurrentAudit(data.audit);
-                    setActiveTab('overview');
-                }
-            } catch {
-                /* silent */
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message ?? t.error_generic ?? 'Something went wrong.');
+                setCurrentAudit(data.audit);
+                setActiveTab('overview');
+            } catch (loadError) {
+                setError(loadError instanceof Error ? loadError.message : t.error_generic ?? 'Something went wrong.');
             }
         },
-        [funnel.id],
+        [funnel.id, t],
     );
 
     const actOnRecommendation = useCallback(
-        async (recommendation: Recommendation, action: 'accept' | 'dismiss' | 'experiment') => {
+        async (recommendation: Recommendation, action: 'accept' | 'dismiss' | 'experiment', proposedCopy?: string) => {
             if (!recommendation.id) return;
 
             setActionBusyId(recommendation.id);
@@ -134,8 +133,20 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                 const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
                 const response = await fetch(route(`copilot.recommendations.${action}`, { funnel: funnel.id, recommendation: recommendation.id }), {
                     method: 'POST',
-                    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                        ...(action === 'experiment' ? { 'Content-Type': 'application/json' } : {}),
+                    },
                     credentials: 'same-origin',
+                    ...(action === 'experiment'
+                        ? {
+                              body: JSON.stringify({
+                                  target: recommendation.category === 'cta_optimization' ? 'cta' : 'headline',
+                                  proposed_copy: proposedCopy,
+                              }),
+                          }
+                        : {}),
                 });
                 const data: {
                     message?: string;
@@ -339,6 +350,7 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
 
     const kpis = [
         { label: t.views ?? 'Views', value: metrics.views, icon: Eye, color: 'text-blue-400' },
+        { label: t.unique_sessions ?? 'Unique Sessions', value: metrics.unique_sessions, icon: Users, color: 'text-indigo-400' },
         { label: t.cta_clicks ?? 'CTA Clicks', value: metrics.cta_clicks, icon: MousePointerClick, color: 'text-purple-400' },
         { label: t.form_starts ?? 'Form Starts', value: metrics.form_starts, icon: FileText, color: 'text-cyan-400' },
         { label: t.conversions ?? 'Conversions', value: metrics.conversions, icon: Target, color: 'text-green-400' },
@@ -364,7 +376,7 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
     return (
         <div className="space-y-4">
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
                 {kpis.map((kpi) => {
                     const Icon = kpi.icon;
                     return (
@@ -398,7 +410,7 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                 <div className="copilot-card rounded-lg border border-yellow-800 bg-yellow-950/30 px-4 py-3 text-sm text-yellow-200">
                     <p className="mb-2 font-medium">{t.data_limitations ?? 'Data limitations'}</p>
                     <ul className="list-inside list-disc space-y-1">
-                        {metrics.data_warnings.map((warning) => <li key={warning}>{warning}</li>)}
+                        {metrics.data_warnings?.map((warning) => <li key={warning}>{warning}</li>)}
                     </ul>
                 </div>
             )}
@@ -446,7 +458,7 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                                 </tr>
                             </thead>
                             <tbody>
-                                {metrics.form_steps.map((step) => (
+                                {metrics.form_steps?.map((step) => (
                                     <tr key={`${step.form_id}:${step.step}`} className="border-b border-neutral-800/50">
                                         <td className="py-2 pr-4">{step.form_id}</td>
                                         <td className="py-2 pr-4">{step.step}</td>
@@ -549,9 +561,10 @@ function RecommendationsSection({
     expandedRec: string | null;
     setExpandedRec: (k: string | null) => void;
     actionBusyId: number | null;
-    onAction: (recommendation: Recommendation, action: 'accept' | 'dismiss' | 'experiment') => void;
+    onAction: (recommendation: Recommendation, action: 'accept' | 'dismiss' | 'experiment', proposedCopy?: string) => void;
     t: Record<string, string>;
 }) {
+    const [experimentCopy, setExperimentCopy] = useState<Record<number, string>>({});
     const categoryKey = (cat: RecommendationCategory) => `category_${cat}` as keyof typeof t;
     const priorityColor = (p: number) => (p >= 80 ? 'bg-red-500/20 text-red-400' : p >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400');
     const confidenceBadge = (c: string) => (c === 'high' ? 'text-green-400' : c === 'medium' ? 'text-yellow-400' : 'text-neutral-400');
@@ -566,7 +579,8 @@ function RecommendationsSection({
             ) : (
                 recommendations.map((rec) => {
                     const isOpen = expandedRec === rec.key;
-                    const isBusy = rec.id !== undefined && actionBusyId === rec.id;
+                    const recommendationId = rec.id;
+                    const isBusy = recommendationId !== undefined && actionBusyId === recommendationId;
                     return (
                         <div key={rec.id ?? rec.key} className="copilot-card border-border overflow-hidden rounded-xl border">
                             <button
@@ -652,14 +666,32 @@ function RecommendationsSection({
                                             </>
                                         )}
                                         {rec.status === 'accepted' && (
-                                            <button
-                                                type="button"
-                                                onClick={() => onAction(rec, 'experiment')}
-                                                disabled={isBusy}
-                                                className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-500/30 disabled:opacity-50"
-                                            >
-                                                {isBusy ? t.saving ?? 'Saving…' : t.draft_experiment ?? 'Create inactive draft variant'}
-                                            </button>
+                                            recommendationId !== undefined && ['content_clarity', 'cta_optimization'].includes(rec.category) && (
+                                                <div className="w-full space-y-2 rounded-lg border border-neutral-800 p-3">
+                                                    <label className="block text-xs font-medium" htmlFor={`experiment-copy-${recommendationId}`}>
+                                                        {rec.category === 'cta_optimization' ? t.proposed_cta_copy ?? 'Proposed CTA text' : t.proposed_headline ?? 'Proposed headline'}
+                                                    </label>
+                                                    <input
+                                                        id={`experiment-copy-${recommendationId}`}
+                                                        value={experimentCopy[recommendationId] ?? ''}
+                                                        onChange={(event) => setExperimentCopy((current) => ({ ...current, [recommendationId]: event.target.value }))}
+                                                        maxLength={255}
+                                                        className="border-border bg-background w-full rounded-md border px-3 py-2 text-sm"
+                                                        placeholder={t.proposed_copy_placeholder ?? 'Enter the proposed copy to test'}
+                                                    />
+                                                    <p className="text-muted-foreground text-xs">
+                                                        {t.experiment_copy_note ?? 'Creates an inactive variant by replacing the first matching headline or CTA. Review it before activation.'}
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onAction(rec, 'experiment', experimentCopy[recommendationId])}
+                                                        disabled={isBusy || !(experimentCopy[recommendationId] ?? '').trim()}
+                                                        className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-500/30 disabled:opacity-50"
+                                                    >
+                                                        {isBusy ? t.saving ?? 'Saving…' : t.draft_experiment ?? 'Create inactive draft variant'}
+                                                    </button>
+                                                </div>
+                                            )
                                         )}
                                     </div>
                                 </div>

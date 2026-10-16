@@ -173,10 +173,7 @@ class CopilotController extends Controller
 
                 foreach ($recommendations as $recommendation) {
                     $fingerprint = hash('sha256', $funnel->id.':'.$recommendation['key']);
-                    $saved = CopilotRecommendation::query()->firstOrNew([
-                        'pending_fingerprint' => $fingerprint,
-                    ]);
-                    $saved->fill([
+                    $attributes = [
                         'user_id' => $funnel->user_id,
                         'funnel_id' => $funnel->id,
                         'audit_id' => $audit->id,
@@ -197,8 +194,13 @@ class CopilotController extends Controller
                         'supporting_metrics' => $recommendation['supporting_metrics'],
                         'status' => 'pending',
                         'pending_fingerprint' => $fingerprint,
-                    ]);
-                    $saved->save();
+                    ];
+                    $saved = CopilotRecommendation::query()->firstOrCreate([
+                        'pending_fingerprint' => $fingerprint,
+                    ], $attributes);
+                    if (! $saved->wasRecentlyCreated) {
+                        $saved->fill($attributes)->save();
+                    }
                     $savedRecommendations[] = $saved->fresh()->toCopilotArray();
                 }
 
@@ -243,13 +245,32 @@ class CopilotController extends Controller
         return $this->changeRecommendationStatus($funnel, $recommendation, 'dismissed');
     }
 
-    public function createDraftExperiment(Funnel $funnel, CopilotRecommendation $recommendation): JsonResponse
+    public function createDraftExperiment(Request $request, Funnel $funnel, CopilotRecommendation $recommendation): JsonResponse
     {
         $this->authorize('update', $funnel);
         abort_unless($recommendation->funnel_id === $funnel->id && $recommendation->user_id === auth()->id(), 404);
         abort_unless($recommendation->status === 'accepted', 409, 'Accept this recommendation before creating an experiment.');
 
-        $variant = DB::transaction(function () use ($funnel, $recommendation): FunnelVariant {
+        $validated = $request->validate([
+            'target' => ['required', 'string', 'in:headline,cta'],
+            'proposed_copy' => ['required', 'string', 'min:1', 'max:255'],
+        ]);
+        abort_unless(trim($validated['proposed_copy']) !== '', 422, 'Proposed copy cannot be empty.');
+        abort_unless(
+            ($validated['target'] === 'headline' && $recommendation->category === 'content_clarity')
+            || ($validated['target'] === 'cta' && $recommendation->category === 'cta_optimization'),
+            422,
+            'This recommendation does not support this experiment target.',
+        );
+
+        $variantContent = $funnel->content ?? ['sections' => []];
+        abort_unless(
+            $this->applyProposedCopy($variantContent, $validated['target'], trim($validated['proposed_copy'])),
+            422,
+            'No matching headline or call-to-action exists in the current funnel content.',
+        );
+
+        $variant = DB::transaction(function () use ($funnel, $recommendation, $validated, $variantContent): FunnelVariant {
             $existing = $funnel->variants()->get()->first(fn (FunnelVariant $variant) => (int) data_get($variant->settings, 'copilot_experiment.recommendation_id') === $recommendation->id);
             if ($existing) {
                 return $existing;
@@ -259,7 +280,9 @@ class CopilotController extends Controller
             $settings['copilot_experiment'] = [
                 'recommendation_id' => $recommendation->id,
                 'hypothesis' => $recommendation->hypothesis,
-                'primary_metric' => 'conversion_rate',
+                'primary_metric' => $validated['target'] === 'cta' ? 'cta_click_rate' : 'conversion_rate',
+                'target' => $validated['target'],
+                'proposed_copy' => trim($validated['proposed_copy']),
                 'status' => 'draft',
                 'approval_required_to_activate' => true,
             ];
@@ -267,7 +290,7 @@ class CopilotController extends Controller
             return $funnel->variants()->create([
                 'name' => Str::limit('Copilot: '.$recommendation->title, 100, ''),
                 'weight' => 50,
-                'content' => $funnel->content ?? ['sections' => []],
+                'content' => $variantContent,
                 'settings' => $settings,
                 'is_active' => false,
             ]);
@@ -279,9 +302,53 @@ class CopilotController extends Controller
                 'name' => $variant->name,
                 'is_active' => $variant->is_active,
                 'status' => data_get($variant->settings, 'copilot_experiment.status', 'draft'),
+                'proposed_copy' => data_get($variant->settings, 'copilot_experiment.proposed_copy'),
                 'editor_url' => route('funnel-editor.edit', $funnel),
             ],
         ], 201);
+    }
+
+    private function applyProposedCopy(array &$content, string $target, string $proposedCopy): bool
+    {
+        if (! is_array($content['sections'] ?? null)) {
+            return false;
+        }
+
+        foreach ($content['sections'] as &$section) {
+            if (! is_array($section['columns'] ?? null)) {
+                continue;
+            }
+            foreach ($section['columns'] as &$column) {
+                if (! is_array($column['blocks'] ?? null)) {
+                    continue;
+                }
+                foreach ($column['blocks'] as &$block) {
+                    if ($target === 'cta' && ($block['type'] ?? null) === 'button') {
+                        $block['content']['label'] = $proposedCopy;
+
+                        return true;
+                    }
+
+                    if ($target === 'headline' && ($block['type'] ?? null) === 'text' && is_string($block['content']['html'] ?? null)) {
+                        $replacementCount = 0;
+                        $updatedHtml = preg_replace_callback(
+                            '/(<h([12])\b[^>]*>)(.*?)(<\/h\2>)/is',
+                            fn (array $matches) => $matches[1].e($proposedCopy).$matches[4],
+                            $block['content']['html'],
+                            1,
+                            $replacementCount,
+                        );
+                        if ($replacementCount > 0 && is_string($updatedHtml)) {
+                            $block['content']['html'] = $updatedHtml;
+
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     private function changeRecommendationStatus(
