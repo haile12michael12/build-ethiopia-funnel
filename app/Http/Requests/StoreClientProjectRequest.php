@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Http\Requests;
+
+use App\Services\ClientAcquisitionConfiguration;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
+
+class StoreClientProjectRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(ClientAcquisitionConfiguration $configuration): array
+    {
+        $settings = $configuration->forOwner($this->ownerId());
+
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email:rfc', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50', 'regex:/^[+]?[\d\s().-]{7,30}$/'],
+            'business_name' => ['nullable', 'string', 'max:255'],
+            'market' => ['required', Rule::in(['ethiopia', 'international'])],
+            'country' => ['required', 'string', 'max:120'],
+            'service_interests' => ['required', 'array', 'min:1', 'max:5'],
+            'service_interests.*' => ['required', 'string', 'distinct', Rule::in(collect($settings['services'])->pluck('key')->all())],
+            'project_description' => ['required', 'string', 'min:30', 'max:5000'],
+            'budget' => ['required', Rule::in(collect($settings['budgets'])->pluck('key')->all())],
+            'timeline' => ['required', Rule::in(collect($settings['timelines'])->pluck('key')->all())],
+            'website' => ['nullable', 'url', 'max:2048'],
+            'social_links' => ['nullable', 'array', 'max:4'],
+            'social_links.*' => ['nullable', 'url', 'max:2048'],
+            'preferred_contact' => ['required', Rule::in(['email', 'phone', 'whatsapp'])],
+            'additional_requirements' => ['nullable', 'string', 'max:3000'],
+            'marketing_consent' => ['sometimes', 'boolean'],
+            'attribution' => ['nullable', 'array'],
+            'attribution.utm_source' => ['nullable', 'string', 'max:255'],
+            'attribution.utm_medium' => ['nullable', 'string', 'max:255'],
+            'attribution.utm_campaign' => ['nullable', 'string', 'max:255'],
+            'attribution.utm_term' => ['nullable', 'string', 'max:255'],
+            'attribution.utm_content' => ['nullable', 'string', 'max:255'],
+            'attribution.referrer' => ['nullable', 'url', 'max:2000'],
+            'attribution.device' => ['nullable', Rule::in(['mobile', 'tablet', 'desktop'])],
+            'session_id' => ['nullable', 'uuid'],
+        ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($this->input('market') === 'ethiopia' && filled($this->input('country')) && mb_strtolower($this->input('country')) !== 'ethiopia') {
+                $validator->errors()->add('country', __('client-acquisition.validation.country_market'));
+            }
+        });
+    }
+
+    private function ownerId(): ?int
+    {
+        $ownerId = config('business-audit.owner_id');
+
+        return is_numeric($ownerId) ? (int) $ownerId : null;
+    }
+}

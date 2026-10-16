@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -106,9 +107,9 @@ class User extends Authenticatable
         return $this->hasMany(SiteContent::class);
     }
 
-    public function clientAcquisitionSettings(): HasMany
+    public function clientAcquisitionSettings(): HasOne
     {
-        return $this->hasMany(ClientAcquisitionSettings::class);
+        return $this->hasOne(ClientAcquisitionSettings::class);
     }
 
     public function copilotAudits(): HasMany
