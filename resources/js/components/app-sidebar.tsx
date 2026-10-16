@@ -6,6 +6,7 @@ import { Link } from '@inertiajs/react';
 import {
     BookOpen,
     BriefcaseBusiness,
+    ClipboardCheck,
     FileText,
     FolderKanban,
     LayoutGrid,
@@ -58,6 +59,11 @@ const mainNavItems: NavItem[] = [
         title: 'Contacts',
         href: '/contacts',
         icon: Users,
+    },
+    {
+        title: 'Client Acquisition',
+        href: '/settings/client-acquisition',
+        icon: ClipboardCheck,
     },
     {
         title: 'Opportunities',

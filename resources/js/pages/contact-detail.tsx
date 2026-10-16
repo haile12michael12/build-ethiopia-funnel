@@ -10,6 +10,7 @@ import { ArrowLeft, BriefcaseBusiness, Clock, Mail, MessageSquare, Phone, Plus, 
 interface ContactSubmission {
     id: number;
     form_id: string | null;
+    variant_id: number | null;
     fields: Record<string, unknown>;
     source: string;
     url: string | null;
@@ -33,7 +34,23 @@ interface ContactDetailProps {
         source: string;
         lead_score: number;
         lead_score_breakdown: Record<string, number>;
+        lead_score_reasons: Array<{ key: string; points: number; reason: string }>;
         business_audit: BusinessAuditData | null;
+        client_project: {
+            business_name: string | null;
+            market: 'ethiopia' | 'international';
+            country: string;
+            service_interests: string[];
+            service_labels: string[];
+            project_description: string;
+            budget_label: string;
+            timeline_label: string;
+            website: string | null;
+            social_links: string[];
+            preferred_contact: string;
+            additional_requirements: string | null;
+            marketing_consent: boolean;
+        } | null;
         tags: string[];
         metadata: Record<string, unknown>;
         notes: Array<{
@@ -123,12 +140,12 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                         <div>
                             <h1 className="text-2xl font-bold text-foreground">{contact.name || contact.email}</h1>
                             <p className="text-muted-foreground">
-                                Captured from {contact.funnel?.name || (contact.source === 'business_audit' ? 'Business growth audit' : contact.source)}
+                                Captured from {contact.funnel?.name || (contact.source === 'business_audit' ? 'Business growth audit' : contact.source === 'client_acquisition' ? 'Client project request' : contact.source)}
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        {contact.business_audit && <LeadScoreBadge score={contact.lead_score} />}
+                        {(contact.business_audit || contact.client_project) && <LeadScoreBadge score={contact.lead_score} />}
                         <select
                             value={contact.status}
                             onChange={(event) => updateStatus(event.target.value)}
@@ -187,6 +204,32 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                         </div>
 
                         <BusinessAuditSummary audit={contact.business_audit} score={contact.lead_score} />
+                        {contact.client_project && (
+                            <section className="rounded-xl border border-border bg-card p-5">
+                                <h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground">
+                                    <BriefcaseBusiness className="h-4 w-4" />
+                                    Project request
+                                </h2>
+                                <dl className="space-y-3 text-sm">
+                                    {contact.client_project.business_name && <div><dt className="text-muted-foreground">Business</dt><dd className="text-foreground">{contact.client_project.business_name}</dd></div>}
+                                    <div><dt className="text-muted-foreground">Market</dt><dd className="capitalize text-foreground">{contact.client_project.market} · {contact.client_project.country}</dd></div>
+                                    <div><dt className="text-muted-foreground">Services</dt><dd className="text-foreground">{contact.client_project.service_labels.join(', ') || contact.client_project.service_interests.join(', ')}</dd></div>
+                                    <div><dt className="text-muted-foreground">Budget range</dt><dd className="text-foreground">{contact.client_project.budget_label}</dd></div>
+                                    <div><dt className="text-muted-foreground">Timeline</dt><dd className="text-foreground">{contact.client_project.timeline_label}</dd></div>
+                                    <div><dt className="text-muted-foreground">Project details</dt><dd className="whitespace-pre-wrap text-foreground">{contact.client_project.project_description}</dd></div>
+                                    {contact.client_project.additional_requirements && <div><dt className="text-muted-foreground">Additional requirements</dt><dd className="whitespace-pre-wrap text-foreground">{contact.client_project.additional_requirements}</dd></div>}
+                                    {contact.client_project.website && <div><dt className="text-muted-foreground">Website</dt><dd><a href={contact.client_project.website} target="_blank" rel="noreferrer" className="text-primary underline">{contact.client_project.website}</a></dd></div>}
+                                    {contact.client_project.social_links.length > 0 && <div><dt className="text-muted-foreground">Social links</dt><dd className="flex flex-col">{contact.client_project.social_links.map((url) => <a key={url} href={url} target="_blank" rel="noreferrer" className="truncate text-primary underline">{url}</a>)}</dd></div>}
+                                    <div><dt className="text-muted-foreground">Preferred contact</dt><dd className="capitalize text-foreground">{contact.client_project.preferred_contact}</dd></div>
+                                    <div><dt className="text-muted-foreground">Marketing consent</dt><dd className="text-foreground">{contact.client_project.marketing_consent ? 'Granted' : 'Not granted'}</dd></div>
+                                </dl>
+                                <div className="mt-5 border-t border-border pt-4">
+                                    <h3 className="mb-3 font-medium text-foreground">Lead score rationale</h3>
+                                    <LeadScoreBreakdown breakdown={contact.lead_score_breakdown} />
+                                    {contact.lead_score_reasons.length > 0 && <ul className="mt-3 space-y-2 text-xs text-muted-foreground">{contact.lead_score_reasons.map((item) => <li key={item.key}><span className="font-medium text-foreground">{item.points} points:</span> {item.reason}</li>)}</ul>}
+                                </div>
+                            </section>
+                        )}
                         {contact.business_audit && (
                             <div className="rounded-xl border border-border bg-card p-5">
                                 <h2 className="mb-4 font-semibold text-foreground">Lead score breakdown</h2>

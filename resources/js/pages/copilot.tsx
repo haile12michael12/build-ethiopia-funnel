@@ -6,6 +6,7 @@ import type {
     CopilotAudit,
     CopilotMetrics,
     CopilotPageProps,
+    ProjectRequestSegment,
     Recommendation,
     RecommendationCategory,
 } from '@/types/copilot';
@@ -380,6 +381,25 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
               : 'text-red-400 border-red-800 bg-red-950/30';
 
     const maxViews = Math.max(1, ...metrics.daily.map((d) => d.views));
+    const projectRequestBreakdowns: Array<{
+        key: string;
+        title: string;
+        rows: ProjectRequestSegment[];
+        label: (row: ProjectRequestSegment) => string;
+    }> = [
+        {
+            key: 'markets',
+            title: t.project_requests_by_market ?? 'By market',
+            rows: metrics.project_requests_by_market ?? [],
+            label: (row) => (row.market === 'ethiopia' ? t.market_ethiopia ?? 'Ethiopia' : t.market_international ?? 'International'),
+        },
+        {
+            key: 'services',
+            title: t.project_requests_by_service ?? 'By service',
+            rows: metrics.project_requests_by_service ?? [],
+            label: (row) => row.service?.replace(/_/g, ' ') ?? 'Unknown',
+        },
+    ];
 
     return (
         <div className="space-y-4">
@@ -481,6 +501,42 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </section>
+            )}
+
+            {(metrics.project_request_submissions ?? 0) > 0 && (
+                <section className="copilot-card rounded-xl border border-border p-4">
+                    <div className="mb-3">
+                        <h3 className="font-medium">{t.project_requests ?? 'Client project requests'}</h3>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                            {t.project_request_limitations ??
+                                'Submission counts are not unique visitors. Qualified counts reflect the score threshold when each request was submitted; market and service conversion rates are unavailable because visits are not segmented by these choices.'}
+                        </p>
+                    </div>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                        {t.project_request_submissions ?? 'Recorded submissions'}: {metrics.project_request_submissions}
+                    </p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {projectRequestBreakdowns.map(({ key, title, rows, label }) => (
+                            <div key={key}>
+                                <h4 className="mb-2 text-sm font-medium">{title}</h4>
+                                {rows.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">{t.metrics_unavailable ?? 'No data recorded for this breakdown.'}</p>
+                                ) : (
+                                    <ul className="space-y-2">
+                                        {rows.map((row) => (
+                                            <li key={row.market ?? row.service ?? 'unknown'} className="flex items-center justify-between gap-3 text-sm">
+                                                <span className="truncate capitalize">{label(row)}</span>
+                                                <span className="shrink-0 text-muted-foreground">
+                                                    {row.submissions} {t.submissions ?? 'submissions'} · {row.qualified_submissions} {t.qualified ?? 'qualified'}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </section>
             )}

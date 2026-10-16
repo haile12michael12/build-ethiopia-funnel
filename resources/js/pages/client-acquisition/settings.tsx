@@ -8,6 +8,7 @@ import type { FormEvent } from 'react';
 interface SettingsPageProps {
     settings: ClientAcquisitionSettings;
     funnels: Array<{ id: number; name: string }>;
+    analyticsFunnelUnavailable: boolean;
 }
 
 const weightLabels: Array<{ key: keyof ClientAcquisitionSettings['scoring_weights']; label: string }> = [
@@ -18,7 +19,7 @@ const weightLabels: Array<{ key: keyof ClientAcquisitionSettings['scoring_weight
     { key: 'consultation', label: 'Consultation/custom project request' },
 ];
 
-export default function ClientAcquisitionSettingsPage({ settings, funnels }: SettingsPageProps) {
+export default function ClientAcquisitionSettingsPage({ settings, funnels, analyticsFunnelUnavailable }: SettingsPageProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Client Acquisition', href: route('client-acquisition.settings.edit') },
         { title: 'Settings', href: route('client-acquisition.settings.edit') },
@@ -40,7 +41,9 @@ export default function ClientAcquisitionSettingsPage({ settings, funnels }: Set
         const updated = form.data[key].map((option, optionIndex) =>
             optionIndex === index ? { ...option, [field]: value } : option,
         );
-        form.setData(key, updated as ClientAcquisitionSettings[K]);
+        if (key === 'services') form.setData('services', updated as ClientAcquisitionSettings['services']);
+        else if (key === 'budgets') form.setData('budgets', updated as ClientAcquisitionSettings['budgets']);
+        else form.setData('timelines', updated as ClientAcquisitionSettings['timelines']);
     };
 
     const removeArrayItem = (key: 'services' | 'budgets' | 'timelines', index: number) => {
@@ -146,12 +149,14 @@ export default function ClientAcquisitionSettingsPage({ settings, funnels }: Set
                                 Published funnel used for analytics and Copilot
                                 <select value={form.data.analytics_funnel_id ?? ''} onChange={(event) => form.setData('analytics_funnel_id', event.target.value ? Number(event.target.value) : null)} className="w-full rounded-md border border-border bg-background px-3 py-2">
                                     <option value="">No analytics funnel linked</option>
+                                    {analyticsFunnelUnavailable && form.data.analytics_funnel_id && <option value={form.data.analytics_funnel_id} disabled>Previously selected funnel is unavailable</option>}
                                     {funnels.map((funnel) => <option key={funnel.id} value={funnel.id}>{funnel.name}</option>)}
                                 </select>
+                                {analyticsFunnelUnavailable && <p role="alert" className="mt-2 text-sm text-amber-600">The linked funnel is no longer published or available. Analytics and experiments are paused until you select another published funnel or clear this setting.</p>}
                                 {form.data.analytics_funnel_id && <Link href={route('copilot.show', form.data.analytics_funnel_id)} className="mt-2 inline-flex items-center gap-1 text-primary hover:underline">Open Copilot analysis <ArrowUpRight className="h-3.5 w-3.5" /></Link>}
                             </label>
                         </div>
-                        <p className="mt-3 text-xs text-muted-foreground">The project request page sends views, form progress, and submitted conversions to the selected funnel. Existing experiment controls and analysis remain available on that funnel.</p>
+                        <p className="mt-3 text-xs text-muted-foreground">The project request page sends views, form progress, and submitted conversions to the selected funnel. Active variants can test the first headline and CTA label from the linked funnel. Traffic and results are available in its existing Copilot.</p>
                     </section>
 
                     {errors.length > 0 && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{errors[0]}</div>}

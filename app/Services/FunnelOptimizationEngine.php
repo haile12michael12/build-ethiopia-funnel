@@ -141,6 +141,47 @@ class FunnelOptimizationEngine
                 ];
             })->values();
         })->values()->all();
+        $projectRequestEvents = $events
+            ->where('event_type', 'conversion')
+            ->filter(fn (FunnelEvent $event) => data_get($event->metadata, 'lead_source') === 'client_acquisition');
+        $projectRequestsByMarket = $projectRequestEvents
+            ->filter(fn (FunnelEvent $event) => in_array(data_get($event->metadata, 'market'), ['ethiopia', 'international'], true))
+            ->groupBy(fn (FunnelEvent $event) => data_get($event->metadata, 'market'))
+            ->map(fn (Collection $marketEvents, string $market) => [
+                'market' => $market,
+                'submissions' => $marketEvents->count(),
+                'qualified_submissions' => $marketEvents->filter(fn (FunnelEvent $event) => filter_var(data_get($event->metadata, 'qualified'), FILTER_VALIDATE_BOOLEAN))->count(),
+            ])
+            ->sortByDesc('submissions')
+            ->values()
+            ->all();
+        $projectRequestsByService = $projectRequestEvents
+            ->flatMap(function (FunnelEvent $event): array {
+                $services = data_get($event->metadata, 'services');
+                if (! is_string($services)) {
+                    return [];
+                }
+
+                return collect(explode(',', $services))
+                    ->map(fn (string $service) => trim($service))
+                    ->filter(fn (string $service) => preg_match('/^[a-zA-Z0-9_-]{1,40}$/', $service) === 1)
+                    ->unique()
+                    ->map(fn (string $service) => [
+                        'service' => $service,
+                        'qualified' => filter_var(data_get($event->metadata, 'qualified'), FILTER_VALIDATE_BOOLEAN),
+                    ])
+                    ->values()
+                    ->all();
+            })
+            ->groupBy('service')
+            ->map(fn (Collection $serviceEvents, string $service) => [
+                'service' => $service,
+                'submissions' => $serviceEvents->count(),
+                'qualified_submissions' => $serviceEvents->where('qualified', true)->count(),
+            ])
+            ->sortByDesc('submissions')
+            ->values()
+            ->all();
 
         return [
             'date_from' => $dateFrom,
@@ -155,6 +196,9 @@ class FunnelOptimizationEngine
             'form_completion_rate' => $formCompletionRate,
             'daily' => $daily,
             'form_steps' => $formSteps,
+            'project_request_submissions' => $projectRequestEvents->count(),
+            'project_requests_by_market' => $projectRequestsByMarket,
+            'project_requests_by_service' => $projectRequestsByService,
             'traffic_sources' => $this->breakdownBy($events, 'source'),
             'devices' => $this->breakdownBy($events, 'device'),
             'data_warnings' => array_values(array_unique($dataWarnings)),

@@ -16,12 +16,17 @@ class ClientAcquisitionSettingsController extends Controller
     {
         $this->authorizeOwner($request);
 
+        $settings = $configuration->forOwner($request->user()->id);
+        $funnels = $request->user()->funnels()
+            ->where('is_published', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return Inertia::render('client-acquisition/settings', [
-            'settings' => $configuration->forOwner($request->user()->id),
-            'funnels' => $request->user()->funnels()
-                ->where('is_published', true)
-                ->orderBy('name')
-                ->get(['id', 'name']),
+            'settings' => $settings,
+            'funnels' => $funnels,
+            'analyticsFunnelUnavailable' => $settings['analytics_funnel_id'] !== null
+                && ! $funnels->contains('id', $settings['analytics_funnel_id']),
         ]);
     }
 

@@ -211,6 +211,7 @@ class CaptureLead
                     'form_id' => 'client-acquisition',
                     'attribution' => $validated['attribution'] ?? [],
                     'metadata' => [
+                        'lead_source' => 'client_acquisition',
                         'market' => $project['market'],
                         'services' => implode(',', $project['service_interests']),
                         'qualified' => (string) ((int) ($score['score'] >= (int) $settings['qualified_score'])),

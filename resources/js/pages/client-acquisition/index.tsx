@@ -43,6 +43,7 @@ interface AcquisitionForm {
     marketing_consent: boolean;
     session_id: string;
     attribution: Record<string, string>;
+    variant_id: number | null;
 }
 
 interface ClientAcquisitionPageProps {
@@ -50,6 +51,7 @@ interface ClientAcquisitionPageProps {
     projects: LocalizedContent[];
     testimonials: LocalizedContent[];
     settings: Pick<AcquisitionOptions, 'services' | 'budgets' | 'timelines' | 'response_time_hours' | 'response_email' | 'whatsapp_url' | 'meeting_url' | 'analytics_funnel_id'>;
+    experiment: { variant_id: number | null; headline: string | null; call_to_action: string | null };
 }
 
 const serviceIcons = [Code2, Sparkles, Layers3, Globe2];
@@ -58,7 +60,7 @@ function localized(text: string | null | undefined): string {
     return text?.trim() || '';
 }
 
-export default function ClientAcquisitionPage({ services, projects, testimonials, settings }: ClientAcquisitionPageProps) {
+export default function ClientAcquisitionPage({ services, projects, testimonials, settings, experiment }: ClientAcquisitionPageProps) {
     const { locale, translations } = usePage<SharedData>().props;
     const isAmharic = locale === 'am';
     const copy = translations?.client_acquisition;
@@ -90,14 +92,15 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
         marketing_consent: false,
         session_id: '',
         attribution: {},
+        variant_id: experiment.variant_id,
     });
 
     const steps = [t('step_market'), t('step_project'), t('step_contact')];
     const budgets = settings.budgets.filter((budget) => !form.data.market || budget.currency === (form.data.market === 'ethiopia' ? 'ETB' : 'USD'));
 
     useEffect(() => {
-        if (settings.analytics_funnel_id) trackFunnelEvent(settings.analytics_funnel_id, 'view');
-    }, [settings.analytics_funnel_id]);
+        if (settings.analytics_funnel_id) trackFunnelEvent(settings.analytics_funnel_id, 'view', {}, experiment.variant_id);
+    }, [settings.analytics_funnel_id, experiment.variant_id]);
 
     const trackFormStart = () => {
         if (!trackedFormStart.current && settings.analytics_funnel_id) {
@@ -105,7 +108,7 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
             trackFunnelEvent(settings.analytics_funnel_id, 'form_start', {
                 formId: 'client-acquisition',
                 metadata: { market: form.data.market || 'unselected' },
-            });
+            }, experiment.variant_id);
         }
     };
 
@@ -135,7 +138,7 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
 
     const goNext = () => {
         const activeFields = formElement.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-            '[data-current-step] [required]',
+            '[data-current-step]:not([hidden]) [required]',
         );
         if (activeFields && !Array.from(activeFields).every((field) => field.reportValidity())) return;
         if (step === 0 && (form.data.service_interests.length === 0 || !form.data.market)) {
@@ -151,7 +154,7 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
                     market: form.data.market,
                     services: form.data.service_interests.join(','),
                 },
-            });
+            }, experiment.variant_id);
         }
         setStep((current) => Math.min(current + 1, 2));
     };
@@ -162,6 +165,7 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
             ...data,
             session_id: funnelSessionId(),
             attribution: currentAttribution(),
+            variant_id: experiment.variant_id,
             social_links: data.social_links.filter((url) => url.trim() !== ''),
         }));
         form.post(route('client-acquisition.store'), {
@@ -189,14 +193,15 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
                             <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold tracking-wide text-primary uppercase">
                                 <Sparkles className="h-3.5 w-3.5" /> {t('eyebrow')}
                             </p>
-                            <h1 className="max-w-3xl text-4xl leading-tight font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">{t('headline')}</h1>
+                            <h1 className="max-w-3xl text-4xl leading-tight font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">{experiment.headline || t('headline')}</h1>
                             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">{t('intro')}</p>
                             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                                 <Button size="lg" onClick={() => {
                                     trackFormStart();
+                                    if (settings.analytics_funnel_id) trackFunnelEvent(settings.analytics_funnel_id, 'cta_click', { metadata: { cta: 'start_project' } }, experiment.variant_id);
                                     formSection.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                 }}>
-                                    {t('nav')} <ArrowRight className="h-4 w-4" />
+                                    {experiment.call_to_action || t('nav')} <ArrowRight className="h-4 w-4" />
                                 </Button>
                                 <Button asChild size="lg" variant="outline">
                                     <Link href={route('portfolio.index')}>{t('work_title')} <ArrowDown className="h-4 w-4" /></Link>

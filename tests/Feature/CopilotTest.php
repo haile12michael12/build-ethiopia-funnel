@@ -386,6 +386,47 @@ test('engine reports stored source and device breakdowns without inventing missi
     ])->and($metrics['devices'][0]['label'])->toBe('mobile');
 });
 
+test('engine reports client project request submissions by market and service without inferring segment conversion rates', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+    $funnel->events()->create([
+        'event_type' => 'conversion',
+        'metadata' => [
+            'lead_source' => 'client_acquisition',
+            'market' => 'ethiopia',
+            'services' => 'web_app,consultation',
+            'qualified' => '1',
+        ],
+        'occurred_at' => now(),
+    ]);
+    $funnel->events()->create([
+        'event_type' => 'conversion',
+        'metadata' => [
+            'lead_source' => 'client_acquisition',
+            'market' => 'ethiopia',
+            'services' => 'web_app',
+            'qualified' => '0',
+        ],
+        'occurred_at' => now(),
+    ]);
+    $funnel->events()->create([
+        'event_type' => 'conversion',
+        'metadata' => ['market' => 'international', 'services' => 'ai_chatbot', 'qualified' => '1'],
+        'occurred_at' => now(),
+    ]);
+
+    $metrics = (new FunnelOptimizationEngine)->computeMetrics($funnel, now()->toDateString(), now()->toDateString());
+
+    expect($metrics['project_request_submissions'])->toBe(2)
+        ->and($metrics['project_requests_by_market'])->toBe([
+            ['market' => 'ethiopia', 'submissions' => 2, 'qualified_submissions' => 1],
+        ])
+        ->and($metrics['project_requests_by_service'])->toBe([
+            ['service' => 'web_app', 'submissions' => 2, 'qualified_submissions' => 1],
+            ['service' => 'consultation', 'submissions' => 1, 'qualified_submissions' => 1],
+        ])
+        ->and(array_key_exists('conversion_rate', $metrics['project_requests_by_market'][0]))->toBeFalse();
+});
+
 test('engine compares sufficiently sampled traffic sources only within this funnel', function () {
     $funnel = copilotFunnel(User::factory()->create());
     foreach (['search', 'newsletter'] as $source) {

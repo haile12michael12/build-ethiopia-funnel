@@ -141,7 +141,9 @@ class ContactController extends Controller
                 'source' => $contact->source,
                 'lead_score' => $contact->lead_score,
                 'lead_score_breakdown' => $contact->lead_score_breakdown ?? [],
+                'lead_score_reasons' => $contact->lead_score_reasons ?? [],
                 'business_audit' => $contact->business_audit,
+                'client_project' => $contact->client_project,
                 'tags' => $contact->tags ?? [],
                 'metadata' => $contact->metadata ?? [],
                 'notes' => data_get($contact->metadata, 'notes', []),
@@ -169,6 +171,7 @@ class ContactController extends Controller
                 'submissions' => $contact->submissions->map(fn ($submission) => [
                     'id' => $submission->id,
                     'form_id' => $submission->form_id,
+                    'variant_id' => $submission->variant_id,
                     'fields' => $submission->fields ?? [],
                     'source' => $submission->source,
                     'url' => $submission->url,

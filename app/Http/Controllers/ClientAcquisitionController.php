@@ -26,15 +26,25 @@ class ClientAcquisitionController extends Controller
         $owner = $this->configuredOwner();
         $settings = $configuration->forOwner($owner->id);
         $variant = null;
+        $analyticsFunnel = $this->publishedAnalyticsFunnel($owner, $settings['analytics_funnel_id']);
 
-        if ($settings['analytics_funnel_id']) {
-            $funnel = Funnel::query()
-                ->where('user_id', $owner->id)
-                ->where('is_published', true)
-                ->findOrFail($settings['analytics_funnel_id']);
-            $assignment = $variantResolver->resolve($funnel, $request);
-            $variant = $assignment['variant'];
-            Cookie::queue(cookie($assignment['cookie'], $assignment['value'], 60 * 24 * 30, '/', null, false, false, false, 'lax'));
+        if ($analyticsFunnel) {
+            $assignment = $variantResolver->resolve($analyticsFunnel, $request);
+            $candidateCopy = $this->variantCopy($assignment['variant']?->content ?? []);
+            $variant = $assignment['variant'] && ($candidateCopy['headline'] || $candidateCopy['call_to_action'])
+                ? $assignment['variant']
+                : null;
+            Cookie::queue(cookie(
+                $assignment['cookie'],
+                $variant ? $assignment['value'] : 'control',
+                60 * 24 * 30,
+                '/',
+                null,
+                false,
+                false,
+                false,
+                'lax',
+            ));
         }
 
         return Inertia::render('client-acquisition/index', [
@@ -63,7 +73,7 @@ class ClientAcquisitionController extends Controller
                 'response_email' => $settings['response_email'],
                 'whatsapp_url' => $settings['whatsapp_url'],
                 'meeting_url' => $settings['meeting_url'],
-                'analytics_funnel_id' => $settings['analytics_funnel_id'],
+                'analytics_funnel_id' => $analyticsFunnel?->id,
             ],
             'experiment' => [
                 'variant_id' => $variant?->id,
@@ -79,14 +89,15 @@ class ClientAcquisitionController extends Controller
     ): RedirectResponse {
         $owner = $this->configuredOwner();
         $settings = $configuration->forOwner($owner->id);
-        $analyticsFunnel = null;
+        $analyticsFunnel = $this->publishedAnalyticsFunnel($owner, $settings['analytics_funnel_id']);
         $variantId = $request->validated('variant_id');
 
-        if ($settings['analytics_funnel_id']) {
-            $analyticsFunnel = Funnel::query()
-                ->where('user_id', $owner->id)
-                ->where('is_published', true)
-                ->findOrFail($settings['analytics_funnel_id']);
+        if ($analyticsFunnel) {
+            abort_unless(
+                (string) $request->cookie('of_variant_'.$analyticsFunnel->id, 'control') === ($variantId === null ? 'control' : (string) $variantId),
+                422,
+                'The submitted experiment variant does not match this visitor’s assigned variant.',
+            );
 
             if ($variantId !== null) {
                 $analyticsFunnel->variants()
@@ -161,6 +172,17 @@ class ClientAcquisitionController extends Controller
         abort_unless(is_numeric($ownerId), 503, 'Client acquisition is not configured. Set BUSINESS_AUDIT_OWNER_ID to an existing account id.');
 
         return User::query()->findOrFail((int) $ownerId);
+    }
+
+    private function publishedAnalyticsFunnel(User $owner, ?int $funnelId): ?Funnel
+    {
+        if (! $funnelId) {
+            return null;
+        }
+
+        return $owner->funnels()
+            ->where('is_published', true)
+            ->find($funnelId);
     }
 
     /**

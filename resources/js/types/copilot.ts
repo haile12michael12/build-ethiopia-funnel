@@ -14,11 +14,21 @@ export interface CopilotMetrics {
     data_quality: 'good' | 'partial' | 'insufficient' | 'no_data' | 'inconsistent';
     data_warnings?: string[];
     form_steps?: FormStepMetric[];
+    project_request_submissions?: number;
+    project_requests_by_market?: ProjectRequestSegment[];
+    project_requests_by_service?: ProjectRequestSegment[];
     traffic_sources?: BreakdownMetric[];
     devices?: BreakdownMetric[];
     control?: VariantMetrics;
     variants?: VariantMetrics[];
     experiment_comparisons?: ExperimentComparison[];
+}
+
+export interface ProjectRequestSegment {
+    market?: 'ethiopia' | 'international';
+    service?: string;
+    submissions: number;
+    qualified_submissions: number;
 }
 
 export interface FormStepMetric {

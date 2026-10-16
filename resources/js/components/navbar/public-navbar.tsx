@@ -512,6 +512,11 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                             {t('sign_in', 'Sign In')}
                                         </Link>
                                     </Button>
+                                    <Button asChild size="sm" variant="outline">
+                                        <Link href={route('client-acquisition.show')}>
+                                            {t('start_project', 'Start a Project')}
+                                        </Link>
+                                    </Button>
                                     <Button asChild size="sm">
                                         <Link href={route('business-audit.show')}>
                                             {t('growth_audit', 'Free Growth Audit')}
@@ -711,6 +716,11 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
 
                                     {/* Mobile Bottom Actions */}
                                     <div className="border-t border-border pt-4 space-y-3">
+                                        <Button asChild className="w-full">
+                                            <Link href={route('client-acquisition.show')} onClick={() => setMobileOpen(false)}>
+                                                {t('start_project', 'Start a Project')}
+                                            </Link>
+                                        </Button>
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs text-muted-foreground flex items-center gap-1.5">
                                                 <Languages className="h-4 w-4" />

@@ -56,6 +56,14 @@ class StoreClientProjectRequest extends FormRequest
             if ($this->input('market') === 'ethiopia' && is_string($country) && filled($country) && mb_strtolower($country) !== 'ethiopia') {
                 $validator->errors()->add('country', __('client-acquisition.validation.country_market'));
             }
+
+            $settings = app(ClientAcquisitionConfiguration::class)->forOwner($this->ownerId());
+            $budget = collect($settings['budgets'])->firstWhere('key', $this->input('budget'));
+            $expectedCurrency = $this->input('market') === 'ethiopia' ? 'ETB' : 'USD';
+
+            if ($budget && $budget['currency'] !== $expectedCurrency) {
+                $validator->errors()->add('budget', 'Choose a planning range in the selected market currency.');
+            }
         });
     }
 
