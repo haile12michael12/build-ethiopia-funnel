@@ -11,6 +11,7 @@ use App\Services\OpportunityAutomationService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class LeadCaptureController extends Controller
@@ -41,6 +42,7 @@ class LeadCaptureController extends Controller
             'attribution.utm_term' => ['nullable', 'string', 'max:255'],
             'attribution.utm_content' => ['nullable', 'string', 'max:255'],
             'attribution.referrer' => ['nullable', 'url', 'max:2000'],
+            'attribution.device' => ['nullable', Rule::in(['mobile', 'tablet', 'desktop'])],
             'session_id' => ['nullable', 'uuid'],
             'variant_id' => ['nullable', 'integer'],
         ]);

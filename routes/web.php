@@ -182,6 +182,9 @@ Route::domain($appDomain)->group(function () {
         Route::get('funnels/{funnel}/copilot', [CopilotController::class, 'show'])->name('copilot.show');
         Route::post('funnels/{funnel}/copilot/audit', [CopilotController::class, 'store'])->name('copilot.audit');
         Route::get('funnels/{funnel}/copilot/audit/{audit}', [CopilotController::class, 'showAudit'])->name('copilot.audit.show');
+        Route::post('funnels/{funnel}/copilot/recommendations/{recommendation}/accept', [CopilotController::class, 'acceptRecommendation'])->name('copilot.recommendations.accept');
+        Route::post('funnels/{funnel}/copilot/recommendations/{recommendation}/dismiss', [CopilotController::class, 'dismissRecommendation'])->name('copilot.recommendations.dismiss');
+        Route::post('funnels/{funnel}/copilot/recommendations/{recommendation}/experiment', [CopilotController::class, 'createDraftExperiment'])->name('copilot.recommendations.experiment');
 
         // Project Management routes
         Route::resource('projects', ProjectController::class)->except(['show']);

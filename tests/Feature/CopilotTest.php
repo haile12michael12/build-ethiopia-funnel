@@ -2,11 +2,14 @@
 
 use App\Contracts\CopilotAdvisor;
 use App\Models\CopilotAudit;
+use App\Models\CopilotRecommendation;
 use App\Models\Funnel;
 use App\Models\FunnelEvent;
 use App\Models\User;
+use App\Services\Ai\OpenAICopilotAdvisor;
 use App\Services\FunnelOptimizationEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -45,28 +48,28 @@ function copilotFunnel(User $user, bool $published = true, array $content = []):
 
 function seedEvents(Funnel $funnel, int $views = 50, int $ctaClicks = 10, int $formStarts = 8, int $conversions = 3): void
 {
-    foreach (range(1, $views) as $i) {
+    for ($i = 1; $i <= $views; $i++) {
         $funnel->events()->create([
             'event_type' => 'view',
             'session_id' => hash('sha256', "session-{$i}"),
             'occurred_at' => now()->subDays(random_int(0, 14)),
         ]);
     }
-    foreach (range(1, $ctaClicks) as $i) {
+    for ($i = 1; $i <= $ctaClicks; $i++) {
         $funnel->events()->create([
             'event_type' => 'cta_click',
             'session_id' => hash('sha256', "session-{$i}"),
             'occurred_at' => now()->subDays(random_int(0, 14)),
         ]);
     }
-    foreach (range(1, $formStarts) as $i) {
+    for ($i = 1; $i <= $formStarts; $i++) {
         $funnel->events()->create([
             'event_type' => 'form_start',
             'session_id' => hash('sha256', "session-{$i}"),
             'occurred_at' => now()->subDays(random_int(0, 14)),
         ]);
     }
-    foreach (range(1, $conversions) as $i) {
+    for ($i = 1; $i <= $conversions; $i++) {
         $funnel->events()->create([
             'event_type' => 'conversion',
             'session_id' => hash('sha256', "session-{$i}"),
@@ -271,6 +274,84 @@ test('engine computes correct metrics', function () {
         ->and($result['metrics']['data_quality'])->toBe('good');
 });
 
+test('engine returns floating zero rates when there are no views', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+
+    $metrics = (new FunnelOptimizationEngine)->computeMetrics($funnel, now()->subDays(7)->toDateString(), now()->toDateString());
+
+    expect($metrics['conversion_rate'])->toBe(0.0)
+        ->and($metrics['cta_click_rate'])->toBe(0.0)
+        ->and($metrics['form_completion_rate'])->toBe(0.0);
+});
+
+test('engine marks inconsistent analytics and preserves observed raw rates', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+    $funnel->events()->create(['event_type' => 'view', 'occurred_at' => now()]);
+    foreach (range(1, 2) as $index) {
+        $funnel->events()->create(['event_type' => 'conversion', 'occurred_at' => now()]);
+    }
+
+    $metrics = (new FunnelOptimizationEngine)->computeMetrics($funnel, now()->toDateString(), now()->toDateString());
+
+    expect($metrics['conversion_rate'])->toBe(200.0)
+        ->and($metrics['data_quality'])->toBe('inconsistent')
+        ->and($metrics['data_warnings'])->toContain('Conversion events exceed view events in this period.');
+});
+
+test('engine reports measured form-step drop-offs by unique session', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+    foreach (['session-a', 'session-b', 'session-c'] as $session) {
+        $funnel->events()->create([
+            'event_type' => 'form_step',
+            'form_id' => 'lead-form',
+            'session_id' => hash('sha256', $session),
+            'metadata' => ['step' => '1'],
+            'occurred_at' => now(),
+        ]);
+    }
+    foreach (['session-a', 'session-b'] as $session) {
+        $funnel->events()->create([
+            'event_type' => 'form_step',
+            'form_id' => 'lead-form',
+            'session_id' => hash('sha256', $session),
+            'metadata' => ['step' => '2'],
+            'occurred_at' => now(),
+        ]);
+    }
+
+    $metrics = (new FunnelOptimizationEngine)->computeMetrics($funnel, now()->toDateString(), now()->toDateString());
+
+    expect($metrics['form_steps'])->toHaveCount(2)
+        ->and($metrics['form_steps'][0]['sessions'])->toBe(3)
+        ->and($metrics['form_steps'][0]['drop_offs'])->toBe(1)
+        ->and($metrics['form_steps'][1]['sessions'])->toBe(2)
+        ->and($metrics['form_steps'][1]['drop_offs'])->toBeNull();
+});
+
+test('engine reports stored source and device breakdowns without inventing missing values', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+    $funnel->events()->create([
+        'event_type' => 'view',
+        'attribution' => ['utm_source' => 'newsletter', 'device' => 'mobile'],
+        'metadata' => ['device' => 'mobile'],
+        'occurred_at' => now(),
+    ]);
+    $funnel->events()->create([
+        'event_type' => 'conversion',
+        'attribution' => ['utm_source' => 'newsletter', 'device' => 'mobile'],
+        'occurred_at' => now(),
+    ]);
+
+    $metrics = (new FunnelOptimizationEngine)->computeMetrics($funnel, now()->toDateString(), now()->toDateString());
+
+    expect($metrics['traffic_sources'][0])->toMatchArray([
+        'label' => 'newsletter',
+        'views' => 1,
+        'conversions' => 1,
+        'conversion_rate' => 100.0,
+    ])->and($metrics['devices'][0]['label'])->toBe('mobile');
+});
+
 test('engine handles empty datasets correctly', function () {
     $user = User::factory()->create();
     $funnel = copilotFunnel($user);
@@ -321,6 +402,41 @@ test('engine detects no conversions with traffic', function () {
     $result = $engine->analyze($funnel, now()->subDays(30)->toDateString(), now()->toDateString());
 
     expect(collect($result['recommendations'])->pluck('key'))->toContain('no_conversions');
+});
+
+test('zero conversions at the sample-size threshold triggers a tracking recommendation', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+    seedEvents($funnel, views: 30, ctaClicks: 0, formStarts: 0, conversions: 0);
+
+    $result = (new FunnelOptimizationEngine)->analyze($funnel, now()->subDays(30)->toDateString(), now()->toDateString());
+
+    expect($result['metrics']['sample_size_sufficient'])->toBeTrue()
+        ->and(collect($result['recommendations'])->pluck('key'))->toContain('no_conversions');
+});
+
+test('engine exposes descriptive experiment comparisons without declaring a winner', function () {
+    $funnel = copilotFunnel(User::factory()->create());
+    $variant = $funnel->variants()->create([
+        'name' => 'Draft treatment',
+        'content' => $funnel->content,
+        'settings' => [],
+        'weight' => 50,
+        'is_active' => true,
+    ]);
+
+    foreach (range(1, 100) as $index) {
+        $funnel->events()->create(['event_type' => 'view', 'occurred_at' => now()]);
+        $funnel->events()->create(['event_type' => 'view', 'variant_id' => $variant->id, 'occurred_at' => now()]);
+    }
+    $funnel->events()->create(['event_type' => 'conversion', 'occurred_at' => now()]);
+    $funnel->events()->create(['event_type' => 'conversion', 'variant_id' => $variant->id, 'occurred_at' => now()]);
+
+    $result = (new FunnelOptimizationEngine)->analyze($funnel, now()->toDateString(), now()->toDateString());
+
+    expect($result['metrics']['variants'][0]['views'])->toBe(100)
+        ->and($result['metrics']['control']['views'])->toBe(100)
+        ->and($result['metrics']['experiment_comparisons'][0]['sample_sufficient'])->toBeTrue()
+        ->and($result['metrics']['experiment_comparisons'][0]['winner_declared'])->toBeFalse();
 });
 
 // ── AI Advisor Tests ────────────────────────────────────────────────
@@ -401,6 +517,55 @@ test('audit without AI flag skips advisor', function () {
     expect($response->json('audit.has_ai_advice'))->toBeFalse();
 });
 
+test('OpenAI advisor rejects malformed JSON without requiring a live provider', function () {
+    config([
+        'funnel-ai.api_key' => 'test-key',
+        'funnel-ai.endpoint' => 'https://api.openai.com/v1/responses',
+        'funnel-ai.model' => 'test-model',
+        'funnel-ai.timeout' => 1,
+    ]);
+    Http::fake([
+        'api.openai.com/*' => Http::response(['output' => [['content' => [['text' => '{invalid json']]]]], 200),
+    ]);
+
+    expect(fn () => (new OpenAICopilotAdvisor)->advise([
+        'content' => ['sections' => []],
+        'metrics' => [],
+        'findings' => [],
+        'language' => 'en',
+    ]))->toThrow(RuntimeException::class);
+});
+
+test('OpenAI advisor strips markup from validated text and fixes the primary metric', function () {
+    config([
+        'funnel-ai.api_key' => 'test-key',
+        'funnel-ai.endpoint' => 'https://api.openai.com/v1/responses',
+        'funnel-ai.model' => 'test-model',
+        'funnel-ai.timeout' => 1,
+    ]);
+    Http::fake([
+        'api.openai.com/*' => Http::response(['output' => [['content' => [[
+            'text' => json_encode([
+                'explanations' => [['key' => 'key', 'explanation' => '<b>Observed</b> fact']],
+                'copy_suggestions' => [['key' => 'cta', 'type' => 'cta', 'suggestion' => '<script>bad()</script>Start now', 'rationale' => 'Test it']],
+                'experiment_hypotheses' => [['hypothesis' => 'Test copy', 'primary_metric' => 'fabricated_metric', 'variant_description' => 'New copy']],
+                'next_steps' => ['Review the draft'],
+            ], JSON_THROW_ON_ERROR),
+        ]]]]], 200),
+    ]);
+
+    $advice = (new OpenAICopilotAdvisor)->advise([
+        'content' => ['sections' => []],
+        'metrics' => [],
+        'findings' => [],
+        'language' => 'en',
+    ]);
+
+    expect($advice['explanations'][0]['explanation'])->toBe('Observed fact')
+        ->and($advice['copy_suggestions'][0]['suggestion'])->toBe('bad()Start now')
+        ->and($advice['experiment_hypotheses'][0]['primary_metric'])->toBe('conversion_rate');
+});
+
 // ── Audit Persistence Tests ─────────────────────────────────────────
 
 test('audits are persisted and retrievable', function () {
@@ -423,6 +588,120 @@ test('audits are persisted and retrievable', function () {
         ->getJson(route('copilot.audit.show', [$funnel, $audit]))
         ->assertOk()
         ->assertJsonPath('audit.id', $audit->id);
+});
+
+test('recommendations persist with evidence metrics and casts', function () {
+    $user = User::factory()->create();
+    $funnel = copilotFunnel($user, true, ['sections' => []]);
+
+    $response = $this->actingAs($user)->postJson(route('copilot.audit', $funnel), [
+        'date_from' => now()->subDays(7)->toDateString(),
+        'date_to' => now()->toDateString(),
+    ])->assertOk();
+
+    $saved = CopilotRecommendation::findOrFail($response->json('audit.recommendations.0.id'));
+    expect($saved->funnel_id)->toBe($funnel->id)
+        ->and($saved->user_id)->toBe($user->id)
+        ->and($saved->supporting_metrics)->toBeArray()
+        ->and($saved->confidence_score)->toBeInt()
+        ->and($saved->status)->toBe('pending')
+        ->and($funnel->copilotRecommendations()->count())->toBeGreaterThan(0);
+});
+
+test('repeated audits reuse an existing pending recommendation', function () {
+    $user = User::factory()->create();
+    $funnel = copilotFunnel($user, true, ['sections' => []]);
+    $payload = [
+        'date_from' => now()->subDays(7)->toDateString(),
+        'date_to' => now()->toDateString(),
+    ];
+
+    $firstResponse = $this->actingAs($user)->postJson(route('copilot.audit', $funnel), $payload)->assertOk();
+    $firstId = $firstResponse->json('audit.recommendations.0.id');
+    $secondResponse = $this->postJson(route('copilot.audit', $funnel), $payload)->assertOk();
+
+    expect($secondResponse->json('audit.recommendations.0.id'))->toBe($firstId)
+        ->and($funnel->copilotRecommendations()->where('key', 'empty_funnel')->where('status', 'pending')->count())->toBe(1);
+});
+
+test('accepted and dismissed recommendations retain their status and allow later review', function () {
+    $user = User::factory()->create();
+    $funnel = copilotFunnel($user, true, ['sections' => []]);
+    $payload = [
+        'date_from' => now()->subDays(7)->toDateString(),
+        'date_to' => now()->toDateString(),
+    ];
+    $audit = $this->actingAs($user)->postJson(route('copilot.audit', $funnel), $payload)->assertOk()->json('audit');
+    $recommendation = CopilotRecommendation::findOrFail($audit['recommendations'][0]['id']);
+
+    $this->postJson(route('copilot.recommendations.accept', [$funnel, $recommendation]))
+        ->assertOk()
+        ->assertJsonPath('recommendation.status', 'accepted');
+    expect($recommendation->fresh()->pending_fingerprint)->toBeNull()
+        ->and($recommendation->fresh()->accepted_at)->not->toBeNull();
+
+    $nextAudit = $this->postJson(route('copilot.audit', $funnel), $payload)->assertOk()->json('audit');
+    expect($nextAudit['recommendations'][0]['id'])->not->toBe($recommendation->id)
+        ->and($funnel->copilotRecommendations()->where('status', 'pending')->count())->toBeGreaterThan(0);
+
+    $newPending = CopilotRecommendation::findOrFail($nextAudit['recommendations'][0]['id']);
+    $this->postJson(route('copilot.recommendations.dismiss', [$funnel, $newPending]))
+        ->assertOk()
+        ->assertJsonPath('recommendation.status', 'dismissed');
+    expect($newPending->fresh()->dismissed_at)->not->toBeNull();
+});
+
+test('users cannot act on recommendations for a different funnel', function () {
+    $user = User::factory()->create();
+    $firstFunnel = copilotFunnel($user, true, ['sections' => []]);
+    $otherFunnel = copilotFunnel($user, true, ['sections' => []]);
+    $audit = $this->actingAs($user)->postJson(route('copilot.audit', $firstFunnel), [
+        'date_from' => now()->subDays(7)->toDateString(),
+        'date_to' => now()->toDateString(),
+    ])->assertOk()->json('audit');
+    $recommendation = CopilotRecommendation::findOrFail($audit['recommendations'][0]['id']);
+
+    $this->postJson(route('copilot.recommendations.accept', [$otherFunnel, $recommendation]))->assertNotFound();
+});
+
+test('users cannot access another users recommendation actions', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $funnel = copilotFunnel($owner, true, ['sections' => []]);
+    $audit = $this->actingAs($owner)->postJson(route('copilot.audit', $funnel), [
+        'date_from' => now()->subDays(7)->toDateString(),
+        'date_to' => now()->toDateString(),
+    ])->assertOk()->json('audit');
+    $recommendation = CopilotRecommendation::findOrFail($audit['recommendations'][0]['id']);
+
+    $this->actingAs($other)
+        ->postJson(route('copilot.recommendations.dismiss', [$funnel, $recommendation]))
+        ->assertForbidden();
+});
+
+test('accepted recommendations create only inactive draft variants with hypothesis metadata', function () {
+    $user = User::factory()->create();
+    $funnel = copilotFunnel($user, true, ['sections' => []]);
+    $audit = $this->actingAs($user)->postJson(route('copilot.audit', $funnel), [
+        'date_from' => now()->subDays(7)->toDateString(),
+        'date_to' => now()->toDateString(),
+    ])->assertOk()->json('audit');
+    $recommendation = CopilotRecommendation::findOrFail($audit['recommendations'][0]['id']);
+
+    $this->postJson(route('copilot.recommendations.experiment', [$funnel, $recommendation]))->assertStatus(409);
+    $this->postJson(route('copilot.recommendations.accept', [$funnel, $recommendation]))->assertOk();
+    $response = $this->postJson(route('copilot.recommendations.experiment', [$funnel, $recommendation]))->assertCreated();
+    $variant = $funnel->variants()->findOrFail($response->json('variant.id'));
+
+    expect($variant->is_active)->toBeFalse()
+        ->and($variant->content)->toBe($funnel->content)
+        ->and(data_get($variant->settings, 'copilot_experiment.recommendation_id'))->toBe($recommendation->id)
+        ->and(data_get($variant->settings, 'copilot_experiment.primary_metric'))->toBe('conversion_rate')
+        ->and(data_get($variant->settings, 'copilot_experiment.status'))->toBe('draft')
+        ->and($response->json('variant.editor_url'))->toBe(route('funnel-editor.edit', $funnel));
+
+    $this->postJson(route('copilot.recommendations.experiment', [$funnel, $recommendation]))->assertCreated();
+    expect($funnel->variants()->count())->toBe(1);
 });
 
 test('copilot page shows latest audit and history', function () {
@@ -496,4 +775,3 @@ test('existing variant operations still work', function () {
 
     expect($funnel->variants()->count())->toBe(1);
 });
-

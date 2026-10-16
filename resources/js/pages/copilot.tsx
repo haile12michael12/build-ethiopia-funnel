@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export default function CopilotPage({ funnel, latestAudit, auditHistory }: CopilotPageProps) {
+export default function CopilotPage({ funnel, latestAudit, auditHistory, recommendationHistory: initialRecommendationHistory }: CopilotPageProps) {
     const { translations } = usePage<SharedData>().props;
     const t = translations?.copilot ?? ({} as Record<string, string>);
 
@@ -48,8 +48,12 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory }: Copil
     ];
 
     const [currentAudit, setCurrentAudit] = useState<CopilotAudit | null>(latestAudit);
+    const [recommendationHistory, setRecommendationHistory] = useState(initialRecommendationHistory);
     const [isRunning, setIsRunning] = useState(false);
+    const [actionBusyId, setActionBusyId] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [actionNotice, setActionNotice] = useState<string | null>(null);
+    const [draftExperimentUrl, setDraftExperimentUrl] = useState<string | null>(null);
     const [dateFrom, setDateFrom] = useState(() => {
         const d = new Date();
         d.setDate(d.getDate() - 30);
@@ -60,6 +64,8 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory }: Copil
     const [expandedRec, setExpandedRec] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'overview' | 'recommendations' | 'ai' | 'experiments' | 'history'>('overview');
     const cardsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => setRecommendationHistory(initialRecommendationHistory), [initialRecommendationHistory]);
 
     useEffect(() => {
         if (cardsRef.current) {
@@ -114,6 +120,58 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory }: Copil
             }
         },
         [funnel.id],
+    );
+
+    const actOnRecommendation = useCallback(
+        async (recommendation: Recommendation, action: 'accept' | 'dismiss' | 'experiment') => {
+            if (!recommendation.id) return;
+
+            setActionBusyId(recommendation.id);
+            setError(null);
+            setActionNotice(null);
+            setDraftExperimentUrl(null);
+            try {
+                const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+                const response = await fetch(route(`copilot.recommendations.${action}`, { funnel: funnel.id, recommendation: recommendation.id }), {
+                    method: 'POST',
+                    headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+                    credentials: 'same-origin',
+                });
+                const data: {
+                    message?: string;
+                    recommendation?: Recommendation;
+                    variant?: { editor_url: string; name: string };
+                } = await response.json();
+                if (!response.ok) throw new Error(data.message ?? t.error_generic ?? 'Something went wrong.');
+
+                if (data.recommendation) {
+                    const updatedRecommendation = data.recommendation;
+                    setRecommendationHistory((items) => items.map((item) => (item.id === updatedRecommendation.id ? updatedRecommendation : item)));
+                    setCurrentAudit((audit) =>
+                        audit
+                            ? {
+                                  ...audit,
+                                  recommendations: audit.recommendations?.map((item) => (item.id === updatedRecommendation.id ? updatedRecommendation : item)) ?? null,
+                              }
+                            : audit,
+                    );
+                    setActionNotice(
+                        action === 'accept'
+                            ? t.recommendation_accepted ?? 'Recommendation accepted.'
+                            : t.recommendation_dismissed ?? 'Recommendation dismissed.',
+                    );
+                }
+                if (data.variant) {
+                    setDraftExperimentUrl(data.variant.editor_url);
+                    setActionNotice(t.experiment_draft_created ?? 'Inactive draft variant created. Review it in the funnel editor before activation.');
+                }
+            } catch (actionError) {
+                setError(actionError instanceof Error ? actionError.message : t.error_generic ?? 'Something went wrong.');
+            } finally {
+                setActionBusyId(null);
+            }
+        },
+        [funnel.id, t],
     );
 
     const metrics = currentAudit?.metrics ?? null;
@@ -197,6 +255,16 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory }: Copil
                         {error}
                     </div>
                 )}
+                {actionNotice && (
+                    <div className="copilot-card rounded-lg border border-green-800 bg-green-950/30 px-4 py-3 text-sm text-green-300" role="status">
+                        {actionNotice}{' '}
+                        {draftExperimentUrl && (
+                            <Link href={draftExperimentUrl} className="font-medium underline underline-offset-2">
+                                {t.review_draft ?? 'Review draft'}
+                            </Link>
+                        )}
+                    </div>
+                )}
 
                 {/* Tabs */}
                 <div className="copilot-card border-border flex gap-1 overflow-x-auto rounded-lg border p-1">
@@ -207,6 +275,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory }: Copil
                                 key={tab.key}
                                 onClick={() => !tab.disabled && setActiveTab(tab.key)}
                                 disabled={tab.disabled}
+                                aria-pressed={activeTab === tab.key}
                                 className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition whitespace-nowrap ${
                                     activeTab === tab.key ? 'bg-orange-500/20 text-orange-400' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                                 } ${tab.disabled ? 'cursor-not-allowed opacity-40' : ''}`}
@@ -234,7 +303,15 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory }: Copil
 
                 {/* Recommendations Tab */}
                 {currentAudit && activeTab === 'recommendations' && (
-                    <RecommendationsSection recommendations={recommendations} expandedRec={expandedRec} setExpandedRec={setExpandedRec} funnelId={funnel.id} t={t} />
+                    <RecommendationsSection
+                        recommendations={recommendations}
+                        history={recommendationHistory}
+                        expandedRec={expandedRec}
+                        setExpandedRec={setExpandedRec}
+                        actionBusyId={actionBusyId}
+                        onAction={actOnRecommendation}
+                        t={t}
+                    />
                 )}
 
                 {/* AI Advisor Tab */}
@@ -242,7 +319,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory }: Copil
                 {currentAudit && activeTab === 'ai' && !aiAdvice && (
                     <div className="copilot-card border-border flex flex-col items-center justify-center rounded-xl border py-12 text-center">
                         <Sparkles className="text-muted-foreground mb-4 h-10 w-10" />
-                        <p className="text-muted-foreground text-sm">{t.ai_unavailable ?? 'AI advisor is not configured.'}</p>
+                        <p className="text-muted-foreground text-sm">{currentAudit.ai_error ?? t.ai_unavailable ?? 'AI advisor is not configured.'}</p>
                     </div>
                 )}
 
@@ -316,6 +393,72 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
             <div className={`copilot-card rounded-lg border px-4 py-3 text-sm ${dqColor}`}>
                 <span className="font-medium">{t.data_quality ?? 'Data Quality'}:</span> {dqLabel}
             </div>
+
+            {(metrics.data_warnings?.length ?? 0) > 0 && (
+                <div className="copilot-card rounded-lg border border-yellow-800 bg-yellow-950/30 px-4 py-3 text-sm text-yellow-200">
+                    <p className="mb-2 font-medium">{t.data_limitations ?? 'Data limitations'}</p>
+                    <ul className="list-inside list-disc space-y-1">
+                        {metrics.data_warnings.map((warning) => <li key={warning}>{warning}</li>)}
+                    </ul>
+                </div>
+            )}
+
+            {(metrics.traffic_sources?.length ?? 0) > 0 || (metrics.devices?.length ?? 0) > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                    {[
+                        { key: 'traffic_sources', title: t.traffic_sources ?? 'Traffic sources', rows: metrics.traffic_sources ?? [] },
+                        { key: 'devices', title: t.devices ?? 'Devices', rows: metrics.devices ?? [] },
+                    ].map(({ key, title, rows }) => (
+                        <section key={key} className="copilot-card border-border rounded-xl border p-4">
+                            <h3 className="mb-3 font-medium">{title}</h3>
+                            {rows.length === 0 ? (
+                                <p className="text-muted-foreground text-sm">{t.metrics_unavailable ?? 'No data recorded for this breakdown.'}</p>
+                            ) : (
+                                <ul className="space-y-2">
+                                    {rows.map((row) => (
+                                        <li key={row.label} className="flex items-center justify-between gap-3 text-sm">
+                                            <span className="truncate">{row.label}</span>
+                                            <span className="shrink-0 text-muted-foreground">
+                                                {row.views} {t.views ?? 'views'} · {row.conversions} {t.conversions ?? 'conversions'} · {row.conversion_rate}%
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </section>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-muted-foreground px-1 text-xs">{t.metrics_unavailable ?? 'Traffic-source and device breakdowns are unavailable for this period.'}</p>
+            )}
+
+            {(metrics.form_steps?.length ?? 0) > 0 && (
+                <section className="copilot-card border-border rounded-xl border p-4">
+                    <h3 className="mb-3 font-medium">{t.form_step_dropoffs ?? 'Form-step progression'}</h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[32rem] text-left text-sm">
+                            <thead>
+                                <tr className="text-muted-foreground border-b border-neutral-800">
+                                    <th className="pb-2 pr-4 font-medium">{t.form ?? 'Form'}</th>
+                                    <th className="pb-2 pr-4 font-medium">{t.step ?? 'Step'}</th>
+                                    <th className="pb-2 pr-4 font-medium">{t.sessions ?? 'Sessions'}</th>
+                                    <th className="pb-2 font-medium">{t.drop_offs ?? 'Drop-offs before next step'}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {metrics.form_steps.map((step) => (
+                                    <tr key={`${step.form_id}:${step.step}`} className="border-b border-neutral-800/50">
+                                        <td className="py-2 pr-4">{step.form_id}</td>
+                                        <td className="py-2 pr-4">{step.step}</td>
+                                        <td className="py-2 pr-4">{step.sessions}</td>
+                                        <td className="py-2">{step.drop_offs ?? '—'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            )}
 
             {/* Daily Chart */}
             {metrics.daily.length > 0 && (
@@ -394,77 +537,153 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
 /* ── Recommendations Section ── */
 function RecommendationsSection({
     recommendations,
+    history,
     expandedRec,
     setExpandedRec,
-    funnelId,
+    actionBusyId,
+    onAction,
     t,
 }: {
     recommendations: Recommendation[];
+    history: Recommendation[];
     expandedRec: string | null;
     setExpandedRec: (k: string | null) => void;
-    funnelId: number;
+    actionBusyId: number | null;
+    onAction: (recommendation: Recommendation, action: 'accept' | 'dismiss' | 'experiment') => void;
     t: Record<string, string>;
 }) {
-    if (recommendations.length === 0) {
-        return (
-            <div className="copilot-card border-border flex flex-col items-center justify-center rounded-xl border py-12 text-center">
-                <CheckCircle2 className="mb-4 h-10 w-10 text-green-400" />
-                <p className="text-muted-foreground text-sm">{t.no_recommendations ?? 'No issues found. Your funnel looks well-structured.'}</p>
-            </div>
-        );
-    }
-
     const categoryKey = (cat: RecommendationCategory) => `category_${cat}` as keyof typeof t;
     const priorityColor = (p: number) => (p >= 80 ? 'bg-red-500/20 text-red-400' : p >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400');
     const confidenceBadge = (c: string) => (c === 'high' ? 'text-green-400' : c === 'medium' ? 'text-yellow-400' : 'text-neutral-400');
 
     return (
         <div className="space-y-3">
-            {recommendations.map((rec) => {
-                const isOpen = expandedRec === rec.key;
-                return (
-                    <div key={rec.key} className="copilot-card border-border overflow-hidden rounded-xl border">
-                        <button onClick={() => setExpandedRec(isOpen ? null : rec.key)} className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-neutral-800/30">
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor(rec.priority)}`}>P{rec.priority}</span>
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate font-medium">{rec.title}</p>
-                                <p className="text-muted-foreground truncate text-xs">{t[categoryKey(rec.category)] ?? rec.category}</p>
-                            </div>
-                            <span className={`text-xs ${confidenceBadge(rec.confidence)}`}>{rec.confidence}</span>
-                            {isOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
-                        </button>
-                        {isOpen && (
-                            <div className="space-y-3 border-t border-neutral-800 px-4 pb-4 pt-3 text-sm">
-                                <div>
-                                    <p className="text-muted-foreground mb-1 text-xs font-medium">{t.evidence ?? 'Evidence'}</p>
-                                    <p>{rec.evidence}</p>
+            {recommendations.length === 0 ? (
+                <div className="copilot-card border-border flex flex-col items-center justify-center rounded-xl border py-12 text-center">
+                    <CheckCircle2 className="mb-4 h-10 w-10 text-green-400" />
+                    <p className="text-muted-foreground text-sm">{t.no_recommendations ?? 'No issues found. Your funnel looks well-structured.'}</p>
+                </div>
+            ) : (
+                recommendations.map((rec) => {
+                    const isOpen = expandedRec === rec.key;
+                    const isBusy = rec.id !== undefined && actionBusyId === rec.id;
+                    return (
+                        <div key={rec.id ?? rec.key} className="copilot-card border-border overflow-hidden rounded-xl border">
+                            <button
+                                onClick={() => setExpandedRec(isOpen ? null : rec.key)}
+                                aria-expanded={isOpen}
+                                className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-neutral-800/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
+                            >
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor(rec.priority)}`}>
+                                    {t.priority ?? 'Priority'} {rec.priority}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate font-medium">{rec.title}</p>
+                                    <p className="text-muted-foreground truncate text-xs">{t[categoryKey(rec.category)] ?? rec.category}</p>
                                 </div>
-                                <div>
-                                    <p className="text-muted-foreground mb-1 text-xs font-medium">{t.explanation ?? 'Why this matters'}</p>
-                                    <p>{rec.explanation}</p>
+                                <span className={`text-xs ${confidenceBadge(rec.confidence)}`}>
+                                    {rec.confidence_score ?? rec.confidence} {rec.confidence_score !== undefined ? '/100' : ''}
+                                </span>
+                                {rec.status && rec.status !== 'pending' && (
+                                    <span className="rounded-full bg-neutral-700 px-2 py-0.5 text-xs">{t[`recommendation_${rec.status}`] ?? rec.status}</span>
+                                )}
+                                {isOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+                            </button>
+                            {isOpen && (
+                                <div className="space-y-3 border-t border-neutral-800 px-4 pb-4 pt-3 text-sm">
+                                    <div className="flex flex-wrap gap-2 text-xs">
+                                        <span className="rounded bg-neutral-800 px-2 py-1">
+                                            {rec.evidence_type === 'measured' ? t.measured_evidence ?? 'Measured evidence' : t.content_evidence ?? 'Content review'}
+                                        </span>
+                                        {rec.created_at && <span className="text-muted-foreground py-1">{new Date(rec.created_at).toLocaleString()}</span>}
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground mb-1 text-xs font-medium">{t.evidence ?? 'Evidence'}</p>
+                                        <p>{rec.evidence}</p>
+                                        {rec.supporting_metrics && Object.keys(rec.supporting_metrics).length > 0 && (
+                                            <dl className="mt-2 flex flex-wrap gap-2">
+                                                {Object.entries(rec.supporting_metrics).map(([label, value]) => (
+                                                    <div key={label} className="rounded bg-neutral-800 px-2 py-1 text-xs">
+                                                        <dt className="inline text-muted-foreground">{label.replaceAll('_', ' ')}: </dt>
+                                                        <dd className="inline font-medium">{value ?? '—'}</dd>
+                                                    </div>
+                                                ))}
+                                            </dl>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground mb-1 text-xs font-medium">{t.explanation ?? 'Why this matters'}</p>
+                                        <p>{rec.explanation}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground mb-1 text-xs font-medium">{t.suggested_action ?? 'Suggested Action'}</p>
+                                        <p className="text-orange-300">{rec.suggested_action}</p>
+                                    </div>
+                                    {rec.hypothesis && (
+                                        <div>
+                                            <p className="text-muted-foreground mb-1 text-xs font-medium">{t.hypothesis ?? 'Testable hypothesis'}</p>
+                                            <p>{rec.hypothesis}</p>
+                                        </div>
+                                    )}
+                                    {rec.expected_outcome && <p className="text-muted-foreground text-xs">{rec.expected_outcome}</p>}
+                                    <p className="text-muted-foreground text-xs">
+                                        {t.confidence ?? 'Confidence'}: {rec.confidence_score ?? rec.confidence}
+                                        {rec.confidence_explanation && ` — ${rec.confidence_explanation}`}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        {rec.status === 'pending' && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onAction(rec, 'accept')}
+                                                    disabled={isBusy}
+                                                    className="rounded-md bg-orange-500/20 px-3 py-1.5 text-xs font-medium text-orange-300 hover:bg-orange-500/30 disabled:opacity-50"
+                                                >
+                                                    {isBusy ? t.saving ?? 'Saving…' : t.accept ?? 'Accept'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onAction(rec, 'dismiss')}
+                                                    disabled={isBusy}
+                                                    className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium hover:bg-neutral-700 disabled:opacity-50"
+                                                >
+                                                    {t.dismiss ?? 'Dismiss'}
+                                                </button>
+                                            </>
+                                        )}
+                                        {rec.status === 'accepted' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onAction(rec, 'experiment')}
+                                                disabled={isBusy}
+                                                className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-500/30 disabled:opacity-50"
+                                            >
+                                                {isBusy ? t.saving ?? 'Saving…' : t.draft_experiment ?? 'Create inactive draft variant'}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-muted-foreground mb-1 text-xs font-medium">{t.suggested_action ?? 'Suggested Action'}</p>
-                                    <p className="text-orange-300">{rec.suggested_action}</p>
-                                </div>
-                                <div className="text-muted-foreground flex gap-4 text-xs">
-                                    <span>
-                                        {t.effort ?? 'Effort'}: {rec.effort}
-                                    </span>
-                                </div>
-                                <div className="flex gap-2 pt-1">
-                                    <Link
-                                        href={`/funnel-editor/${funnelId}`}
-                                        className="inline-flex items-center gap-1 rounded-md bg-orange-500/20 px-3 py-1.5 text-xs font-medium text-orange-400 transition hover:bg-orange-500/30"
-                                    >
-                                        {t.accept ?? 'Apply'}
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
+                            )}
+                        </div>
+                    );
+                })
+            )}
+
+            {history.some((item) => item.status !== 'pending') && (
+                <section className="copilot-card border-border rounded-xl border p-4" aria-labelledby="recommendation-history-heading">
+                    <h3 id="recommendation-history-heading" className="mb-3 font-medium">{t.recommendation_history ?? 'Reviewed recommendations'}</h3>
+                    <ul className="space-y-2">
+                        {history
+                            .filter((item) => item.status !== 'pending')
+                            .map((item) => (
+                                <li key={item.id ?? item.key} className="flex items-center justify-between gap-3 text-sm">
+                                    <span className="truncate">{item.title}</span>
+                                    <span className="shrink-0 rounded-full bg-neutral-800 px-2 py-0.5 text-xs">{t[`recommendation_${item.status}`] ?? item.status}</span>
+                                </li>
+                            ))}
+                    </ul>
+                </section>
+            )}
         </div>
     );
 }
@@ -621,6 +840,39 @@ function ExperimentsSection({
                 )}
             </div>
 
+            {(metrics?.experiment_comparisons?.length ?? 0) > 0 && (
+                <section className="copilot-card border-border rounded-xl border p-4">
+                    <h3 className="mb-1 font-medium">{t.variant_comparisons ?? 'Observed variant comparison'}</h3>
+                    <p className="text-muted-foreground mb-3 text-xs">
+                        {t.experiment_caution ?? 'Rates are descriptive only. No winner is declared; validate assignment and sample size before drawing conclusions.'}
+                    </p>
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[36rem] text-left text-sm">
+                            <thead>
+                                <tr className="text-muted-foreground border-b border-neutral-800">
+                                    <th className="pb-2 pr-4 font-medium">{t.variant ?? 'Variant'}</th>
+                                    <th className="pb-2 pr-4 font-medium">{t.control ?? 'Unassigned baseline'}</th>
+                                    <th className="pb-2 pr-4 font-medium">{t.variant ?? 'Variant'} rate</th>
+                                    <th className="pb-2 pr-4 font-medium">{t.difference ?? 'Difference (pp)'}</th>
+                                    <th className="pb-2 font-medium">{t.sample_size ?? 'Sample'}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {metrics?.experiment_comparisons?.map((comparison) => (
+                                    <tr key={comparison.variant_id} className="border-b border-neutral-800/50">
+                                        <td className="py-2 pr-4">{comparison.variant_name}</td>
+                                        <td className="py-2 pr-4">{comparison.control_conversion_rate}% ({comparison.control_views})</td>
+                                        <td className="py-2 pr-4">{comparison.variant_conversion_rate}% ({comparison.variant_views})</td>
+                                        <td className="py-2 pr-4">{comparison.difference_percentage_points}</td>
+                                        <td className="py-2">{comparison.sample_sufficient ? t.sufficient ?? 'Sufficient' : t.insufficient_sample ?? 'Insufficient'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            )}
+
             {metrics && !metrics.sample_size_sufficient && (
                 <div className="copilot-card flex items-center gap-2 rounded-lg border border-yellow-800 bg-yellow-950/30 px-4 py-3 text-sm text-yellow-300">
                     <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -701,4 +953,3 @@ function HistorySection({
         </div>
     );
 }
-

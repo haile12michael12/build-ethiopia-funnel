@@ -99,6 +99,11 @@ class Funnel extends Model
         return $this->hasMany(CopilotAudit::class);
     }
 
+    public function copilotRecommendations(): HasMany
+    {
+        return $this->hasMany(CopilotRecommendation::class);
+    }
+
     public function incrementViews(): void
     {
         $this->increment('views');

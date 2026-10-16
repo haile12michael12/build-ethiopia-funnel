@@ -17,6 +17,7 @@ export function currentAttribution(): Record<string, string> {
         if (value) attribution[key] = value;
     }
     if (document.referrer) attribution.referrer = document.referrer;
+    attribution.device = window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
     return attribution;
 }
 
@@ -38,7 +39,10 @@ export function trackFunnelEvent(
             form_id: options.formId,
             variant_id: variantId,
             attribution: currentAttribution(),
-            metadata: options.metadata,
+            metadata: {
+                ...options.metadata,
+                device: window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop',
+            },
         }),
     }).catch(() => undefined);
 }

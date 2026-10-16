@@ -38,12 +38,20 @@ class FunnelOptimizationEngine
         $metrics = $this->computeMetrics($funnel, $dateFrom, $dateTo);
         $contentFindings = $this->analyzeContent($funnel->content ?? []);
         $analyticsFindings = $this->analyzeMetrics($metrics);
-        $variantFindings = $this->analyzeVariants($funnel, $dateFrom, $dateTo, $metrics);
+        [$variantFindings, $metrics] = $this->analyzeVariants($funnel, $dateFrom, $dateTo, $metrics);
 
         $recommendations = collect()
             ->merge($contentFindings)
             ->merge($analyticsFindings)
             ->merge($variantFindings)
+            ->map(fn (array $finding) => [
+                ...$finding,
+                'recommendation_type' => $finding['category'],
+                'evidence_type' => str_starts_with($finding['key'], 'variant_') || in_array($finding['category'], ['performance', 'conversion_tracking', 'experiment_opportunities'], true)
+                    ? 'measured'
+                    : 'content_review',
+                'supporting_metrics' => $this->supportingMetrics($finding['key'], $metrics),
+            ])
             ->sortByDesc('priority')
             ->values()
             ->all();
@@ -64,7 +72,7 @@ class FunnelOptimizationEngine
         $events = FunnelEvent::query()
             ->where('funnel_id', $funnel->id)
             ->whereBetween('occurred_at', [$dateFrom.' 00:00:00', $dateTo.' 23:59:59'])
-            ->get(['event_type', 'session_id', 'form_id', 'variant_id', 'occurred_at']);
+            ->get(['event_type', 'session_id', 'form_id', 'variant_id', 'metadata', 'attribution', 'occurred_at']);
 
         $views = $events->where('event_type', 'view')->count();
         $uniqueSessions = $events->where('event_type', 'view')->whereNotNull('session_id')->pluck('session_id')->unique()->count();
@@ -72,9 +80,22 @@ class FunnelOptimizationEngine
         $formStarts = $events->where('event_type', 'form_start')->count();
         $conversions = $events->where('event_type', 'conversion')->count();
 
-        $conversionRate = $views > 0 ? round(($conversions / $views) * 100, 2) : 0;
-        $ctaClickRate = $views > 0 ? round(($ctaClicks / $views) * 100, 2) : 0;
-        $formCompletionRate = $formStarts > 0 ? round(($conversions / $formStarts) * 100, 2) : 0;
+        $conversionRate = $views > 0 ? round(($conversions / $views) * 100, 2) : 0.0;
+        $ctaClickRate = $views > 0 ? round(($ctaClicks / $views) * 100, 2) : 0.0;
+        $formCompletionRate = $formStarts > 0 ? round(($conversions / $formStarts) * 100, 2) : 0.0;
+        $dataWarnings = [];
+        if ($conversions > $views) {
+            $dataWarnings[] = 'Conversion events exceed view events in this period.';
+        }
+        if ($ctaClicks > $views) {
+            $dataWarnings[] = 'CTA click events exceed view events in this period.';
+        }
+        if ($formStarts > $views) {
+            $dataWarnings[] = 'Form starts exceed view events in this period.';
+        }
+        if ($formStarts > 0 && $conversions > $formStarts) {
+            $dataWarnings[] = 'Conversion events exceed form starts in this period.';
+        }
 
         // Daily breakdown
         $daily = $events->groupBy(fn (FunnelEvent $e) => $e->occurred_at->toDateString())
@@ -87,6 +108,39 @@ class FunnelOptimizationEngine
             ->sortKeys()
             ->values()
             ->all();
+        $stepCounts = $events
+            ->where('event_type', 'form_step')
+            ->filter(fn (FunnelEvent $event) => ctype_digit((string) data_get($event->metadata, 'step')))
+            ->groupBy(fn (FunnelEvent $event) => ($event->form_id ?? 'unknown').':'.(int) data_get($event->metadata, 'step'))
+            ->map(function (Collection $stepEvents, string $key) {
+                [$formId, $step] = explode(':', $key, 2);
+                $sessions = $stepEvents->whereNotNull('session_id')->pluck('session_id')->unique()->count();
+
+                return [
+                    'form_id' => $formId,
+                    'step' => (int) $step,
+                    'sessions' => $sessions > 0 ? $sessions : $stepEvents->count(),
+                ];
+            })
+            ->values();
+        $formSteps = $stepCounts->groupBy('form_id')->flatMap(function (Collection $formStepCounts, string $formId) use (&$dataWarnings) {
+            $steps = $formStepCounts->keyBy('step')->sortKeys();
+
+            return $steps->map(function (array $step, int $stepNumber) use ($steps, $formId, &$dataWarnings) {
+                $nextCount = $steps->get($stepNumber + 1)['sessions'] ?? null;
+                if ($nextCount !== null && $nextCount > $step['sessions']) {
+                    $dataWarnings[] = "Form {$formId} has more sessions at step ".($stepNumber + 1).' than at step '.$stepNumber.'.';
+                }
+
+                return [
+                    'form_id' => $formId,
+                    'step' => $stepNumber,
+                    'sessions' => $step['sessions'],
+                    'next_step_sessions' => $nextCount,
+                    'drop_offs' => $nextCount === null ? null : max(0, $step['sessions'] - $nextCount),
+                ];
+            })->values();
+        })->values()->all();
 
         return [
             'date_from' => $dateFrom,
@@ -100,9 +154,71 @@ class FunnelOptimizationEngine
             'cta_click_rate' => $ctaClickRate,
             'form_completion_rate' => $formCompletionRate,
             'daily' => $daily,
+            'form_steps' => $formSteps,
+            'traffic_sources' => $this->breakdownBy($events, 'source'),
+            'devices' => $this->breakdownBy($events, 'device'),
+            'data_warnings' => array_values(array_unique($dataWarnings)),
             'sample_size_sufficient' => $views >= $this->thresholds['min_sample_size'],
-            'data_quality' => $this->assessDataQuality($views, $uniqueSessions, $ctaClicks, $formStarts, $conversions),
+            'data_quality' => $dataWarnings !== []
+                ? 'inconsistent'
+                : $this->assessDataQuality($views, $uniqueSessions, $ctaClicks, $formStarts, $conversions),
         ];
+    }
+
+    /**
+     * @return array<int, array{label: string, views: int, conversions: int, conversion_rate: float}>
+     */
+    private function breakdownBy(Collection $events, string $dimension): array
+    {
+        return $events
+            ->filter(fn (FunnelEvent $event) => in_array($event->event_type, ['view', 'conversion'], true))
+            ->groupBy(function (FunnelEvent $event) use ($dimension) {
+                $value = $dimension === 'source'
+                    ? data_get($event->attribution, 'utm_source')
+                    : (data_get($event->metadata, 'device') ?? data_get($event->attribution, 'device'));
+
+                return is_string($value) && trim($value) !== '' ? mb_substr(trim($value), 0, 100) : 'unknown';
+            })
+            ->map(function (Collection $dimensionEvents, string $label) {
+                $views = $dimensionEvents->where('event_type', 'view')->count();
+                $conversions = $dimensionEvents->where('event_type', 'conversion')->count();
+
+                return [
+                    'label' => $label,
+                    'views' => $views,
+                    'conversions' => $conversions,
+                    'conversion_rate' => $views > 0 ? round(($conversions / $views) * 100, 2) : 0.0,
+                ];
+            })
+            ->sortByDesc('views')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, int|float|string|null>
+     */
+    private function supportingMetrics(string $key, array $metrics): array
+    {
+        return match ($key) {
+            'low_conversion_rate', 'no_conversions' => [
+                'views' => $metrics['views'],
+                'conversions' => $metrics['conversions'],
+                'conversion_rate' => $metrics['conversion_rate'],
+            ],
+            'low_cta_ctr', 'no_cta_clicks' => [
+                'views' => $metrics['views'],
+                'cta_clicks' => $metrics['cta_clicks'],
+                'cta_click_rate' => $metrics['cta_click_rate'],
+            ],
+            'high_form_abandonment' => [
+                'form_starts' => $metrics['form_starts'],
+                'conversions' => $metrics['conversions'],
+                'form_completion_rate' => $metrics['form_completion_rate'],
+            ],
+            'low_sample_size' => ['views' => $metrics['views']],
+            default => [],
+        };
     }
 
     /**
@@ -316,7 +432,7 @@ class FunnelOptimizationEngine
         }
 
         // Missing conversion tracking
-        if ($metrics['conversions'] === 0 && $metrics['views'] > $this->thresholds['min_sample_size']) {
+        if ($metrics['conversions'] === 0 && $metrics['views'] >= $this->thresholds['min_sample_size']) {
             $findings[] = $this->finding(
                 'no_conversions',
                 'No Conversions Recorded',
@@ -331,7 +447,7 @@ class FunnelOptimizationEngine
         }
 
         // No CTA clicks tracked
-        if ($metrics['cta_clicks'] === 0 && $metrics['views'] > $this->thresholds['min_sample_size']) {
+        if ($metrics['cta_clicks'] === 0 && $metrics['views'] >= $this->thresholds['min_sample_size']) {
             $findings[] = $this->finding(
                 'no_cta_clicks',
                 'No CTA Clicks Tracked',
@@ -366,7 +482,7 @@ class FunnelOptimizationEngine
     /**
      * Analyze variant performance.
      *
-     * @return array<int, array<string, mixed>>
+     * @return array{0: array<int, array<string, mixed>>, 1: array<string, mixed>}
      */
     private function analyzeVariants(Funnel $funnel, string $dateFrom, string $dateTo, array $metrics): array
     {
@@ -387,8 +503,6 @@ class FunnelOptimizationEngine
                     'medium',
                 );
             }
-
-            return $findings;
         }
 
         foreach ($variants as $variant) {
@@ -400,7 +514,7 @@ class FunnelOptimizationEngine
 
             $variantViews = $variantEvents->where('event_type', 'view')->count();
             $variantConversions = $variantEvents->where('event_type', 'conversion')->count();
-            $variantRate = $variantViews > 0 ? round(($variantConversions / $variantViews) * 100, 2) : 0;
+            $variantRate = $variantViews > 0 ? round(($variantConversions / $variantViews) * 100, 2) : 0.0;
 
             if ($variantViews < $this->thresholds['min_experiment_sample']) {
                 $findings[] = $this->finding(
@@ -428,7 +542,7 @@ class FunnelOptimizationEngine
             ];
         }
 
-        // Control metrics (events without variant_id)
+        // Events without a variant are the observed baseline, not a randomized control unless traffic was assigned that way.
         $controlEvents = FunnelEvent::query()
             ->where('funnel_id', $funnel->id)
             ->whereNull('variant_id')
@@ -437,15 +551,29 @@ class FunnelOptimizationEngine
 
         $controlViews = $controlEvents->where('event_type', 'view')->count();
         $controlConversions = $controlEvents->where('event_type', 'conversion')->count();
-        $controlRate = $controlViews > 0 ? round(($controlConversions / $controlViews) * 100, 2) : 0;
+        $controlRate = $controlViews > 0 ? round(($controlConversions / $controlViews) * 100, 2) : 0.0;
 
         $metrics['control'] = [
             'views' => $controlViews,
             'conversions' => $controlConversions,
             'conversion_rate' => $controlRate,
+            'sample_sufficient' => $controlViews >= $this->thresholds['min_experiment_sample'],
         ];
+        $metrics['experiment_comparisons'] = collect($metrics['variants'] ?? [])
+            ->map(fn (array $variant) => [
+                'variant_id' => $variant['id'],
+                'variant_name' => $variant['name'],
+                'control_views' => $controlViews,
+                'variant_views' => $variant['views'],
+                'control_conversion_rate' => $controlRate,
+                'variant_conversion_rate' => $variant['conversion_rate'],
+                'difference_percentage_points' => round($variant['conversion_rate'] - $controlRate, 2),
+                'sample_sufficient' => $variant['sample_sufficient'] && $controlViews >= $this->thresholds['min_experiment_sample'],
+                'winner_declared' => false,
+            ])
+            ->all();
 
-        return $findings;
+        return [$findings, $metrics];
     }
 
     /**
@@ -471,7 +599,15 @@ class FunnelOptimizationEngine
             'suggested_action' => $suggestedAction,
             'priority' => $priority,
             'confidence' => $confidence,
+            'confidence_score' => match ($confidence) {
+                'high' => 85,
+                'medium' => 65,
+                default => 35,
+            },
+            'confidence_explanation' => 'This score estimates how strongly the available evidence supports the finding; it is not the probability of improving conversions.',
             'effort' => $effort,
+            'expected_outcome' => 'Test whether the suggested change addresses this finding; no conversion lift is assumed.',
+            'hypothesis' => "If the suggested action is tested, then the issue described in the evidence may improve.",
         ];
     }
 
@@ -500,4 +636,3 @@ class FunnelOptimizationEngine
         return 'good';
     }
 }
-

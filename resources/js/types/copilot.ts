@@ -11,9 +11,41 @@ export interface CopilotMetrics {
     form_completion_rate: number;
     daily: DailyMetric[];
     sample_size_sufficient: boolean;
-    data_quality: 'good' | 'partial' | 'insufficient' | 'no_data';
+    data_quality: 'good' | 'partial' | 'insufficient' | 'no_data' | 'inconsistent';
+    data_warnings?: string[];
+    form_steps?: FormStepMetric[];
+    traffic_sources?: BreakdownMetric[];
+    devices?: BreakdownMetric[];
     control?: VariantMetrics;
     variants?: VariantMetrics[];
+    experiment_comparisons?: ExperimentComparison[];
+}
+
+export interface FormStepMetric {
+    form_id: string;
+    step: number;
+    sessions: number;
+    next_step_sessions: number | null;
+    drop_offs: number | null;
+}
+
+export interface BreakdownMetric {
+    label: string;
+    views: number;
+    conversions: number;
+    conversion_rate: number;
+}
+
+export interface ExperimentComparison {
+    variant_id: number;
+    variant_name: string;
+    control_views: number;
+    variant_views: number;
+    control_conversion_rate: number;
+    variant_conversion_rate: number;
+    difference_percentage_points: number;
+    sample_sufficient: boolean;
+    winner_declared: false;
 }
 
 export interface DailyMetric {
@@ -44,15 +76,27 @@ export type RecommendationCategory =
     | 'performance';
 
 export interface Recommendation {
+    id?: number;
     key: string;
     title: string;
     category: RecommendationCategory;
+    recommendation_type?: string;
+    evidence_type?: 'measured' | 'content_review';
     evidence: string;
     explanation: string;
     suggested_action: string;
+    expected_outcome?: string;
+    hypothesis?: string;
     priority: number;
     confidence: 'high' | 'medium' | 'low';
+    confidence_score?: number;
+    confidence_explanation?: string;
     effort: 'low' | 'medium' | 'high' | 'n/a';
+    supporting_metrics?: Record<string, number | string | null>;
+    status?: 'pending' | 'accepted' | 'dismissed';
+    created_at?: string | null;
+    accepted_at?: string | null;
+    dismissed_at?: string | null;
 }
 
 export interface AiExplanation {
@@ -93,6 +137,7 @@ export interface CopilotAudit {
     ai_advice: AiAdvice | null;
     ai_provider: string | null;
     ai_model: string | null;
+    ai_error: string | null;
     error_message: string | null;
     has_ai_advice: boolean;
     created_at: string | null;
@@ -141,5 +186,5 @@ export interface CopilotPageProps {
     funnel: CopilotFunnel;
     latestAudit: CopilotAudit | null;
     auditHistory: AuditHistoryItem[];
+    recommendationHistory: Recommendation[];
 }
-

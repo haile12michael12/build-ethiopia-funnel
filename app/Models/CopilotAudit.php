@@ -20,6 +20,7 @@ class CopilotAudit extends Model
         'ai_advice',
         'ai_provider',
         'ai_model',
+        'ai_error',
         'error_message',
         'completed_at',
     ];
@@ -43,6 +44,11 @@ class CopilotAudit extends Model
         return $this->belongsTo(Funnel::class);
     }
 
+    public function savedRecommendations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CopilotRecommendation::class, 'audit_id');
+    }
+
     public function markCompleted(array $metrics, array $recommendations, ?array $aiAdvice = null): void
     {
         $this->update([
@@ -63,4 +69,3 @@ class CopilotAudit extends Model
         ]);
     }
 }
-
