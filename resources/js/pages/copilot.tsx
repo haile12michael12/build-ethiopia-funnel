@@ -9,7 +9,7 @@ import type {
     Recommendation,
     RecommendationCategory,
 } from '@/types/copilot';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import gsap from 'gsap';
 import {
     AlertTriangle,
@@ -17,7 +17,6 @@ import {
     BarChart3,
     BookOpen,
     Brain,
-    CalendarDays,
     CheckCircle2,
     ChevronDown,
     ChevronRight,
@@ -27,7 +26,6 @@ import {
     Lightbulb,
     Loader2,
     MousePointerClick,
-    RefreshCw,
     Sparkles,
     Target,
     TrendingUp,
@@ -35,11 +33,11 @@ import {
     XCircle,
     Zap,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export default function CopilotPage({ funnel, latestAudit, auditHistory, recommendationHistory: initialRecommendationHistory }: CopilotPageProps) {
     const { translations } = usePage<SharedData>().props;
-    const t = translations?.copilot ?? ({} as Record<string, string>);
+    const t = useMemo(() => translations?.copilot ?? ({} as Record<string, string>), [translations?.copilot]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Funnels', href: '/funnels' },
@@ -115,7 +113,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                 setCurrentAudit(data.audit);
                 setActiveTab('overview');
             } catch (loadError) {
-                setError(loadError instanceof Error ? loadError.message : t.error_generic ?? 'Something went wrong.');
+                setError(loadError instanceof Error ? loadError.message : (t.error_generic ?? 'Something went wrong.'));
             }
         },
         [funnel.id, t],
@@ -162,22 +160,26 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                         audit
                             ? {
                                   ...audit,
-                                  recommendations: audit.recommendations?.map((item) => (item.id === updatedRecommendation.id ? updatedRecommendation : item)) ?? null,
+                                  recommendations:
+                                      audit.recommendations?.map((item) => (item.id === updatedRecommendation.id ? updatedRecommendation : item)) ??
+                                      null,
                               }
                             : audit,
                     );
                     setActionNotice(
                         action === 'accept'
-                            ? t.recommendation_accepted_notice ?? 'Recommendation accepted.'
-                                : t.recommendation_dismissed_notice ?? 'Recommendation dismissed.',
+                            ? (t.recommendation_accepted_notice ?? 'Recommendation accepted.')
+                            : (t.recommendation_dismissed_notice ?? 'Recommendation dismissed.'),
                     );
                 }
                 if (data.variant) {
                     setDraftExperimentUrl(data.variant.editor_url);
-                    setActionNotice(t.experiment_draft_created ?? 'Inactive draft variant created. Review it in the funnel editor before activation.');
+                    setActionNotice(
+                        t.experiment_draft_created ?? 'Inactive draft variant created. Review it in the funnel editor before activation.',
+                    );
                 }
             } catch (actionError) {
-                setError(actionError instanceof Error ? actionError.message : t.error_generic ?? 'Something went wrong.');
+                setError(actionError instanceof Error ? actionError.message : (t.error_generic ?? 'Something went wrong.'));
             } finally {
                 setActionBusyId(null);
             }
@@ -206,34 +208,34 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                 <div className="copilot-card flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <div className="mb-1 flex items-center gap-2">
-                            <Link href="/funnels" className="text-muted-foreground hover:text-foreground transition">
+                            <Link href="/funnels" className="text-muted-foreground transition hover:text-foreground">
                                 <ArrowLeft className="h-4 w-4" />
                             </Link>
                             <h1 className="text-2xl font-bold">{t.title ?? 'Funnel Copilot'}</h1>
                             <Sparkles className="h-5 w-5 text-orange-400" />
                         </div>
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-sm text-muted-foreground">
                             {funnel.name} — {t.subtitle ?? 'AI-powered optimization & analytics'}
                         </p>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                         <div className="flex gap-2">
                             <div>
-                                <label className="text-muted-foreground mb-1 block text-xs">{t.date_from ?? 'From'}</label>
+                                <label className="mb-1 block text-xs text-muted-foreground">{t.date_from ?? 'From'}</label>
                                 <input
                                     type="date"
                                     value={dateFrom}
                                     onChange={(e) => setDateFrom(e.target.value)}
-                                    className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
+                                    className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
                                 />
                             </div>
                             <div>
-                                <label className="text-muted-foreground mb-1 block text-xs">{t.date_to ?? 'To'}</label>
+                                <label className="mb-1 block text-xs text-muted-foreground">{t.date_to ?? 'To'}</label>
                                 <input
                                     type="date"
                                     value={dateTo}
                                     onChange={(e) => setDateTo(e.target.value)}
-                                    className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
+                                    className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
                                 />
                             </div>
                         </div>
@@ -254,7 +256,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                                 className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
                             >
                                 {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                                {isRunning ? t.running ?? 'Analyzing...' : t.run_audit ?? 'Run Audit'}
+                                {isRunning ? (t.running ?? 'Analyzing...') : (t.run_audit ?? 'Run Audit')}
                             </button>
                         </div>
                     </div>
@@ -278,7 +280,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                 )}
 
                 {/* Tabs */}
-                <div className="copilot-card border-border flex gap-1 overflow-x-auto rounded-lg border p-1">
+                <div className="copilot-card flex gap-1 overflow-x-auto rounded-lg border border-border p-1">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
                         return (
@@ -287,14 +289,16 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                                 onClick={() => !tab.disabled && setActiveTab(tab.key)}
                                 disabled={tab.disabled}
                                 aria-pressed={activeTab === tab.key}
-                                className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition whitespace-nowrap ${
-                                    activeTab === tab.key ? 'bg-orange-500/20 text-orange-400' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition ${
+                                    activeTab === tab.key
+                                        ? 'bg-orange-500/20 text-orange-400'
+                                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                 } ${tab.disabled ? 'cursor-not-allowed opacity-40' : ''}`}
                             >
                                 <Icon className="h-4 w-4" />
                                 {tab.label}
                                 {tab.count !== undefined && tab.count > 0 && (
-                                    <span className="bg-muted rounded-full px-1.5 py-0.5 text-xs">{tab.count}</span>
+                                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs">{tab.count}</span>
                                 )}
                             </button>
                         );
@@ -303,9 +307,11 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
 
                 {/* No audit state */}
                 {!currentAudit && (
-                    <div className="copilot-card border-border flex flex-col items-center justify-center rounded-xl border py-16 text-center">
-                        <BarChart3 className="text-muted-foreground mb-4 h-12 w-12" />
-                        <p className="text-muted-foreground max-w-md text-sm">{t.no_audits ?? 'No audits yet. Run your first audit to get optimization recommendations.'}</p>
+                    <div className="copilot-card flex flex-col items-center justify-center rounded-xl border border-border py-16 text-center">
+                        <BarChart3 className="mb-4 h-12 w-12 text-muted-foreground" />
+                        <p className="max-w-md text-sm text-muted-foreground">
+                            {t.no_audits ?? 'No audits yet. Run your first audit to get optimization recommendations.'}
+                        </p>
                     </div>
                 )}
 
@@ -328,9 +334,11 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                 {/* AI Advisor Tab */}
                 {currentAudit && activeTab === 'ai' && aiAdvice && <AiAdviceSection advice={aiAdvice} t={t} />}
                 {currentAudit && activeTab === 'ai' && !aiAdvice && (
-                    <div className="copilot-card border-border flex flex-col items-center justify-center rounded-xl border py-12 text-center">
-                        <Sparkles className="text-muted-foreground mb-4 h-10 w-10" />
-                        <p className="text-muted-foreground text-sm">{currentAudit.ai_error ?? t.ai_unavailable ?? 'AI advisor is not configured.'}</p>
+                    <div className="copilot-card flex flex-col items-center justify-center rounded-xl border border-border py-12 text-center">
+                        <Sparkles className="mb-4 h-10 w-10 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                            {currentAudit.ai_error ?? t.ai_unavailable ?? 'AI advisor is not configured.'}
+                        </p>
                     </div>
                 )}
 
@@ -380,10 +388,10 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                 {kpis.map((kpi) => {
                     const Icon = kpi.icon;
                     return (
-                        <div key={kpi.label} className="copilot-card border-border rounded-xl border p-4">
+                        <div key={kpi.label} className="copilot-card rounded-xl border border-border p-4">
                             <div className="mb-2 flex items-center gap-2">
                                 <Icon className={`h-4 w-4 ${kpi.color}`} />
-                                <span className="text-muted-foreground text-xs">{kpi.label}</span>
+                                <span className="text-xs text-muted-foreground">{kpi.label}</span>
                             </div>
                             <p className="text-2xl font-bold">{kpi.value.toLocaleString()}</p>
                         </div>
@@ -394,8 +402,8 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
             {/* Rates */}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {rates.map((rate) => (
-                    <div key={rate.label} className="copilot-card border-border rounded-xl border p-4">
-                        <p className="text-muted-foreground mb-1 text-xs">{rate.label}</p>
+                    <div key={rate.label} className="copilot-card rounded-xl border border-border p-4">
+                        <p className="mb-1 text-xs text-muted-foreground">{rate.label}</p>
                         <p className={`text-3xl font-bold ${rate.highlight ? 'text-orange-400' : ''}`}>{rate.value}</p>
                     </div>
                 ))}
@@ -410,7 +418,9 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                 <div className="copilot-card rounded-lg border border-yellow-800 bg-yellow-950/30 px-4 py-3 text-sm text-yellow-200">
                     <p className="mb-2 font-medium">{t.data_limitations ?? 'Data limitations'}</p>
                     <ul className="list-inside list-disc space-y-1">
-                        {metrics.data_warnings?.map((warning) => <li key={warning}>{warning}</li>)}
+                        {metrics.data_warnings?.map((warning) => (
+                            <li key={warning}>{warning}</li>
+                        ))}
                     </ul>
                 </div>
             )}
@@ -421,17 +431,18 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                         { key: 'traffic_sources', title: t.traffic_sources ?? 'Traffic sources', rows: metrics.traffic_sources ?? [] },
                         { key: 'devices', title: t.devices ?? 'Devices', rows: metrics.devices ?? [] },
                     ].map(({ key, title, rows }) => (
-                        <section key={key} className="copilot-card border-border rounded-xl border p-4">
+                        <section key={key} className="copilot-card rounded-xl border border-border p-4">
                             <h3 className="mb-3 font-medium">{title}</h3>
                             {rows.length === 0 ? (
-                                <p className="text-muted-foreground text-sm">{t.metrics_unavailable ?? 'No data recorded for this breakdown.'}</p>
+                                <p className="text-sm text-muted-foreground">{t.metrics_unavailable ?? 'No data recorded for this breakdown.'}</p>
                             ) : (
                                 <ul className="space-y-2">
                                     {rows.map((row) => (
                                         <li key={row.label} className="flex items-center justify-between gap-3 text-sm">
                                             <span className="truncate">{row.label}</span>
                                             <span className="shrink-0 text-muted-foreground">
-                                                {row.views} {t.views ?? 'views'} · {row.conversions} {t.conversions ?? 'conversions'} · {row.conversion_rate}%
+                                                {row.views} {t.views ?? 'views'} · {row.conversions} {t.conversions ?? 'conversions'} ·{' '}
+                                                {row.conversion_rate}%
                                             </span>
                                         </li>
                                     ))}
@@ -441,19 +452,21 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                     ))}
                 </div>
             ) : (
-                <p className="text-muted-foreground px-1 text-xs">{t.metrics_unavailable ?? 'Traffic-source and device breakdowns are unavailable for this period.'}</p>
+                <p className="px-1 text-xs text-muted-foreground">
+                    {t.metrics_unavailable ?? 'Traffic-source and device breakdowns are unavailable for this period.'}
+                </p>
             )}
 
             {(metrics.form_steps?.length ?? 0) > 0 && (
-                <section className="copilot-card border-border rounded-xl border p-4">
+                <section className="copilot-card rounded-xl border border-border p-4">
                     <h3 className="mb-3 font-medium">{t.form_step_dropoffs ?? 'Form-step progression'}</h3>
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[32rem] text-left text-sm">
                             <thead>
-                                <tr className="text-muted-foreground border-b border-neutral-800">
-                                    <th className="pb-2 pr-4 font-medium">{t.form ?? 'Form'}</th>
-                                    <th className="pb-2 pr-4 font-medium">{t.step ?? 'Step'}</th>
-                                    <th className="pb-2 pr-4 font-medium">{t.sessions ?? 'Sessions'}</th>
+                                <tr className="border-b border-neutral-800 text-muted-foreground">
+                                    <th className="pr-4 pb-2 font-medium">{t.form ?? 'Form'}</th>
+                                    <th className="pr-4 pb-2 font-medium">{t.step ?? 'Step'}</th>
+                                    <th className="pr-4 pb-2 font-medium">{t.sessions ?? 'Sessions'}</th>
                                     <th className="pb-2 font-medium">{t.drop_offs ?? 'Drop-offs before next step'}</th>
                                 </tr>
                             </thead>
@@ -474,19 +487,26 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
 
             {/* Daily Chart */}
             {metrics.daily.length > 0 && (
-                <div className="copilot-card border-border rounded-xl border p-4">
+                <div className="copilot-card rounded-xl border border-border p-4">
                     <h3 className="mb-4 text-sm font-medium">{t.daily_performance ?? 'Daily Performance'}</h3>
                     <div className="flex items-end gap-1" style={{ height: 120 }}>
                         {metrics.daily.map((day) => (
-                            <div key={day.date} className="flex flex-1 flex-col items-center gap-1" title={`${day.date}: ${day.views} views, ${day.conversions} conversions`}>
+                            <div
+                                key={day.date}
+                                className="flex flex-1 flex-col items-center gap-1"
+                                title={`${day.date}: ${day.views} views, ${day.conversions} conversions`}
+                            >
                                 <div className="flex w-full gap-px" style={{ height: 100 }}>
-                                    <div className="flex-1 rounded-t bg-blue-500/60" style={{ height: `${(day.views / maxViews) * 100}%`, marginTop: 'auto' }} />
+                                    <div
+                                        className="flex-1 rounded-t bg-blue-500/60"
+                                        style={{ height: `${(day.views / maxViews) * 100}%`, marginTop: 'auto' }}
+                                    />
                                     <div
                                         className="flex-1 rounded-t bg-green-500/60"
                                         style={{ height: `${maxViews > 0 ? (day.conversions / maxViews) * 100 : 0}%`, marginTop: 'auto' }}
                                     />
                                 </div>
-                                <span className="text-muted-foreground w-full truncate text-center text-[9px]">
+                                <span className="w-full truncate text-center text-[9px] text-muted-foreground">
                                     {new Date(day.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 </span>
                             </div>
@@ -505,15 +525,15 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
 
             {/* Variant breakdown */}
             {metrics.variants && metrics.variants.length > 0 && (
-                <div className="copilot-card border-border rounded-xl border p-4">
+                <div className="copilot-card rounded-xl border border-border p-4">
                     <h3 className="mb-3 text-sm font-medium">{t.experiments ?? 'Experiment Variants'}</h3>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                             <thead>
-                                <tr className="text-muted-foreground border-b border-neutral-800">
-                                    <th className="pb-2 pr-4 font-medium">{t.variant ?? 'Variant'}</th>
-                                    <th className="pb-2 pr-4 font-medium">{t.views ?? 'Views'}</th>
-                                    <th className="pb-2 pr-4 font-medium">{t.conversions ?? 'Conversions'}</th>
+                                <tr className="border-b border-neutral-800 text-muted-foreground">
+                                    <th className="pr-4 pb-2 font-medium">{t.variant ?? 'Variant'}</th>
+                                    <th className="pr-4 pb-2 font-medium">{t.views ?? 'Views'}</th>
+                                    <th className="pr-4 pb-2 font-medium">{t.conversions ?? 'Conversions'}</th>
                                     <th className="pb-2 font-medium">{t.conversion_rate ?? 'Rate'}</th>
                                 </tr>
                             </thead>
@@ -533,7 +553,7 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                                         <td className="py-2 pr-4">{v.conversions}</td>
                                         <td className="py-2">
                                             {v.conversion_rate}%
-                                            {!v.sample_sufficient && <span className="text-muted-foreground ml-1 text-xs">⚠</span>}
+                                            {!v.sample_sufficient && <span className="ml-1 text-xs text-muted-foreground">⚠</span>}
                                         </td>
                                     </tr>
                                 ))}
@@ -566,15 +586,16 @@ function RecommendationsSection({
 }) {
     const [experimentCopy, setExperimentCopy] = useState<Record<number, string>>({});
     const categoryKey = (cat: RecommendationCategory) => `category_${cat}` as keyof typeof t;
-    const priorityColor = (p: number) => (p >= 80 ? 'bg-red-500/20 text-red-400' : p >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400');
+    const priorityColor = (p: number) =>
+        p >= 80 ? 'bg-red-500/20 text-red-400' : p >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400';
     const confidenceBadge = (c: string) => (c === 'high' ? 'text-green-400' : c === 'medium' ? 'text-yellow-400' : 'text-neutral-400');
 
     return (
         <div className="space-y-3">
             {recommendations.length === 0 ? (
-                <div className="copilot-card border-border flex flex-col items-center justify-center rounded-xl border py-12 text-center">
+                <div className="copilot-card flex flex-col items-center justify-center rounded-xl border border-border py-12 text-center">
                     <CheckCircle2 className="mb-4 h-10 w-10 text-green-400" />
-                    <p className="text-muted-foreground text-sm">{t.no_recommendations ?? 'No issues found. Your funnel looks well-structured.'}</p>
+                    <p className="text-sm text-muted-foreground">{t.no_recommendations ?? 'No issues found. Your funnel looks well-structured.'}</p>
                 </div>
             ) : (
                 recommendations.map((rec) => {
@@ -582,7 +603,7 @@ function RecommendationsSection({
                     const recommendationId = rec.id;
                     const isBusy = recommendationId !== undefined && actionBusyId === recommendationId;
                     return (
-                        <div key={rec.id ?? rec.key} className="copilot-card border-border overflow-hidden rounded-xl border">
+                        <div key={rec.id ?? rec.key} className="copilot-card overflow-hidden rounded-xl border border-border">
                             <button
                                 onClick={() => setExpandedRec(isOpen ? null : rec.key)}
                                 aria-expanded={isOpen}
@@ -593,26 +614,32 @@ function RecommendationsSection({
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate font-medium">{rec.title}</p>
-                                    <p className="text-muted-foreground truncate text-xs">{t[categoryKey(rec.category)] ?? rec.category}</p>
+                                    <p className="truncate text-xs text-muted-foreground">{t[categoryKey(rec.category)] ?? rec.category}</p>
                                 </div>
                                 <span className={`text-xs ${confidenceBadge(rec.confidence)}`}>
                                     {rec.confidence_score ?? rec.confidence} {rec.confidence_score !== undefined ? '/100' : ''}
                                 </span>
                                 {rec.status && rec.status !== 'pending' && (
-                                    <span className="rounded-full bg-neutral-700 px-2 py-0.5 text-xs">{t[`recommendation_${rec.status}`] ?? rec.status}</span>
+                                    <span className="rounded-full bg-neutral-700 px-2 py-0.5 text-xs">
+                                        {t[`recommendation_${rec.status}`] ?? rec.status}
+                                    </span>
                                 )}
                                 {isOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
                             </button>
                             {isOpen && (
-                                <div className="space-y-3 border-t border-neutral-800 px-4 pb-4 pt-3 text-sm">
+                                <div className="space-y-3 border-t border-neutral-800 px-4 pt-3 pb-4 text-sm">
                                     <div className="flex flex-wrap gap-2 text-xs">
                                         <span className="rounded bg-neutral-800 px-2 py-1">
-                                            {rec.evidence_type === 'measured' ? t.measured_evidence ?? 'Measured evidence' : t.content_evidence ?? 'Content review'}
+                                            {rec.evidence_type === 'measured'
+                                                ? (t.measured_evidence ?? 'Measured evidence')
+                                                : (t.content_evidence ?? 'Content review')}
                                         </span>
-                                        {rec.created_at && <span className="text-muted-foreground py-1">{new Date(rec.created_at).toLocaleString()}</span>}
+                                        {rec.created_at && (
+                                            <span className="py-1 text-muted-foreground">{new Date(rec.created_at).toLocaleString()}</span>
+                                        )}
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground mb-1 text-xs font-medium">{t.evidence ?? 'Evidence'}</p>
+                                        <p className="mb-1 text-xs font-medium text-muted-foreground">{t.evidence ?? 'Evidence'}</p>
                                         <p>{rec.evidence}</p>
                                         {rec.supporting_metrics && Object.keys(rec.supporting_metrics).length > 0 && (
                                             <dl className="mt-2 flex flex-wrap gap-2">
@@ -626,21 +653,21 @@ function RecommendationsSection({
                                         )}
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground mb-1 text-xs font-medium">{t.explanation ?? 'Why this matters'}</p>
+                                        <p className="mb-1 text-xs font-medium text-muted-foreground">{t.explanation ?? 'Why this matters'}</p>
                                         <p>{rec.explanation}</p>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground mb-1 text-xs font-medium">{t.suggested_action ?? 'Suggested Action'}</p>
+                                        <p className="mb-1 text-xs font-medium text-muted-foreground">{t.suggested_action ?? 'Suggested Action'}</p>
                                         <p className="text-orange-300">{rec.suggested_action}</p>
                                     </div>
                                     {rec.hypothesis && (
                                         <div>
-                                            <p className="text-muted-foreground mb-1 text-xs font-medium">{t.hypothesis ?? 'Testable hypothesis'}</p>
+                                            <p className="mb-1 text-xs font-medium text-muted-foreground">{t.hypothesis ?? 'Testable hypothesis'}</p>
                                             <p>{rec.hypothesis}</p>
                                         </div>
                                     )}
-                                    {rec.expected_outcome && <p className="text-muted-foreground text-xs">{rec.expected_outcome}</p>}
-                                    <p className="text-muted-foreground text-xs">
+                                    {rec.expected_outcome && <p className="text-xs text-muted-foreground">{rec.expected_outcome}</p>}
+                                    <p className="text-xs text-muted-foreground">
                                         {t.confidence ?? 'Confidence'}: {rec.confidence_score ?? rec.confidence}
                                         {rec.confidence_explanation && ` — ${rec.confidence_explanation}`}
                                     </p>
@@ -653,7 +680,7 @@ function RecommendationsSection({
                                                     disabled={isBusy}
                                                     className="rounded-md bg-orange-500/20 px-3 py-1.5 text-xs font-medium text-orange-300 hover:bg-orange-500/30 disabled:opacity-50"
                                                 >
-                                                    {isBusy ? t.saving ?? 'Saving…' : t.accept ?? 'Accept'}
+                                                    {isBusy ? (t.saving ?? 'Saving…') : (t.accept ?? 'Accept')}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -665,22 +692,28 @@ function RecommendationsSection({
                                                 </button>
                                             </>
                                         )}
-                                        {rec.status === 'accepted' && (
-                                            recommendationId !== undefined && ['content_clarity', 'cta_optimization'].includes(rec.category) && (
+                                        {rec.status === 'accepted' &&
+                                            recommendationId !== undefined &&
+                                            ['content_clarity', 'cta_optimization'].includes(rec.category) && (
                                                 <div className="w-full space-y-2 rounded-lg border border-neutral-800 p-3">
                                                     <label className="block text-xs font-medium" htmlFor={`experiment-copy-${recommendationId}`}>
-                                                        {rec.category === 'cta_optimization' ? t.proposed_cta_copy ?? 'Proposed CTA text' : t.proposed_headline ?? 'Proposed headline'}
+                                                        {rec.category === 'cta_optimization'
+                                                            ? (t.proposed_cta_copy ?? 'Proposed CTA text')
+                                                            : (t.proposed_headline ?? 'Proposed headline')}
                                                     </label>
                                                     <input
                                                         id={`experiment-copy-${recommendationId}`}
                                                         value={experimentCopy[recommendationId] ?? ''}
-                                                        onChange={(event) => setExperimentCopy((current) => ({ ...current, [recommendationId]: event.target.value }))}
+                                                        onChange={(event) =>
+                                                            setExperimentCopy((current) => ({ ...current, [recommendationId]: event.target.value }))
+                                                        }
                                                         maxLength={255}
-                                                        className="border-border bg-background w-full rounded-md border px-3 py-2 text-sm"
+                                                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                                                         placeholder={t.proposed_copy_placeholder ?? 'Enter the proposed copy to test'}
                                                     />
-                                                    <p className="text-muted-foreground text-xs">
-                                                        {t.experiment_copy_note ?? 'Creates an inactive variant by replacing the first matching headline or CTA. Review it before activation.'}
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {t.experiment_copy_note ??
+                                                            'Creates an inactive variant by replacing the first matching headline or CTA. Review it before activation.'}
                                                     </p>
                                                     <button
                                                         type="button"
@@ -688,11 +721,10 @@ function RecommendationsSection({
                                                         disabled={isBusy || !(experimentCopy[recommendationId] ?? '').trim()}
                                                         className="rounded-md bg-purple-500/20 px-3 py-1.5 text-xs font-medium text-purple-300 hover:bg-purple-500/30 disabled:opacity-50"
                                                     >
-                                                        {isBusy ? t.saving ?? 'Saving…' : t.draft_experiment ?? 'Create inactive draft variant'}
+                                                        {isBusy ? (t.saving ?? 'Saving…') : (t.draft_experiment ?? 'Create inactive draft variant')}
                                                     </button>
                                                 </div>
-                                            )
-                                        )}
+                                            )}
                                     </div>
                                 </div>
                             )}
@@ -702,15 +734,19 @@ function RecommendationsSection({
             )}
 
             {history.some((item) => item.status !== 'pending') && (
-                <section className="copilot-card border-border rounded-xl border p-4" aria-labelledby="recommendation-history-heading">
-                    <h3 id="recommendation-history-heading" className="mb-3 font-medium">{t.recommendation_history ?? 'Reviewed recommendations'}</h3>
+                <section className="copilot-card rounded-xl border border-border p-4" aria-labelledby="recommendation-history-heading">
+                    <h3 id="recommendation-history-heading" className="mb-3 font-medium">
+                        {t.recommendation_history ?? 'Reviewed recommendations'}
+                    </h3>
                     <ul className="space-y-2">
                         {history
                             .filter((item) => item.status !== 'pending')
                             .map((item) => (
                                 <li key={item.id ?? item.key} className="flex items-center justify-between gap-3 text-sm">
                                     <span className="truncate">{item.title}</span>
-                                    <span className="shrink-0 rounded-full bg-neutral-800 px-2 py-0.5 text-xs">{t[`recommendation_${item.status}`] ?? item.status}</span>
+                                    <span className="shrink-0 rounded-full bg-neutral-800 px-2 py-0.5 text-xs">
+                                        {t[`recommendation_${item.status}`] ?? item.status}
+                                    </span>
                                 </li>
                             ))}
                     </ul>
@@ -726,14 +762,14 @@ function AiAdviceSection({ advice, t }: { advice: AiAdvice; t: Record<string, st
         <div className="space-y-4">
             {/* Explanations */}
             {advice.explanations.length > 0 && (
-                <div className="copilot-card border-border rounded-xl border p-4">
+                <div className="copilot-card rounded-xl border border-border p-4">
                     <h3 className="mb-3 flex items-center gap-2 font-medium">
                         <Lightbulb className="h-4 w-4 text-yellow-400" /> {t.ai_explanations ?? 'Insights'}
                     </h3>
                     <div className="space-y-3">
                         {advice.explanations.map((ex, i) => (
                             <div key={i} className="rounded-lg bg-neutral-800/30 p-3 text-sm">
-                                <p className="text-muted-foreground mb-1 text-xs font-medium">{ex.key}</p>
+                                <p className="mb-1 text-xs font-medium text-muted-foreground">{ex.key}</p>
                                 <p>{ex.explanation}</p>
                             </div>
                         ))}
@@ -743,19 +779,19 @@ function AiAdviceSection({ advice, t }: { advice: AiAdvice; t: Record<string, st
 
             {/* Copy Suggestions */}
             {advice.copy_suggestions.length > 0 && (
-                <div className="copilot-card border-border rounded-xl border p-4">
+                <div className="copilot-card rounded-xl border border-border p-4">
                     <h3 className="mb-3 flex items-center gap-2 font-medium">
                         <BookOpen className="h-4 w-4 text-cyan-400" /> {t.ai_copy_suggestions ?? 'Copy Suggestions'}
                     </h3>
                     <div className="space-y-4">
                         {advice.copy_suggestions.map((sug, i) => (
                             <div key={i} className="rounded-lg bg-neutral-800/30 p-3 text-sm">
-                                <div className="text-muted-foreground mb-2 flex items-center gap-2 text-xs">
+                                <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
                                     <span className="rounded bg-neutral-700 px-1.5 py-0.5">{sug.type}</span>
                                 </div>
                                 {sug.original && (
                                     <div className="mb-2">
-                                        <p className="text-muted-foreground text-xs">{t.original ?? 'Original'}:</p>
+                                        <p className="text-xs text-muted-foreground">{t.original ?? 'Original'}:</p>
                                         <p className="text-neutral-400">{sug.original}</p>
                                     </div>
                                 )}
@@ -764,7 +800,7 @@ function AiAdviceSection({ advice, t }: { advice: AiAdvice; t: Record<string, st
                                     <p className="font-medium">{sug.suggestion}</p>
                                 </div>
                                 {sug.rationale && (
-                                    <p className="text-muted-foreground text-xs">
+                                    <p className="text-xs text-muted-foreground">
                                         {t.rationale ?? 'Rationale'}: {sug.rationale}
                                     </p>
                                 )}
@@ -776,7 +812,7 @@ function AiAdviceSection({ advice, t }: { advice: AiAdvice; t: Record<string, st
 
             {/* Experiment Hypotheses */}
             {advice.experiment_hypotheses.length > 0 && (
-                <div className="copilot-card border-border rounded-xl border p-4">
+                <div className="copilot-card rounded-xl border border-border p-4">
                     <h3 className="mb-3 flex items-center gap-2 font-medium">
                         <Target className="h-4 w-4 text-purple-400" /> {t.ai_experiment_hypotheses ?? 'Experiment Ideas'}
                     </h3>
@@ -784,12 +820,12 @@ function AiAdviceSection({ advice, t }: { advice: AiAdvice; t: Record<string, st
                         {advice.experiment_hypotheses.map((hyp, i) => (
                             <div key={i} className="rounded-lg bg-neutral-800/30 p-3 text-sm">
                                 <p className="mb-1 font-medium">{hyp.hypothesis}</p>
-                                <div className="text-muted-foreground flex gap-4 text-xs">
+                                <div className="flex gap-4 text-xs text-muted-foreground">
                                     <span>
                                         {t.primary_metric ?? 'Metric'}: {hyp.primary_metric}
                                     </span>
                                 </div>
-                                {hyp.variant_description && <p className="text-muted-foreground mt-1 text-xs">{hyp.variant_description}</p>}
+                                {hyp.variant_description && <p className="mt-1 text-xs text-muted-foreground">{hyp.variant_description}</p>}
                             </div>
                         ))}
                     </div>
@@ -798,7 +834,7 @@ function AiAdviceSection({ advice, t }: { advice: AiAdvice; t: Record<string, st
 
             {/* Next Steps */}
             {advice.next_steps.length > 0 && (
-                <div className="copilot-card border-border rounded-xl border p-4">
+                <div className="copilot-card rounded-xl border border-border p-4">
                     <h3 className="mb-3 flex items-center gap-2 font-medium">
                         <TrendingUp className="h-4 w-4 text-orange-400" /> {t.ai_next_steps ?? 'Next Steps'}
                     </h3>
@@ -827,7 +863,7 @@ function ExperimentsSection({
 
     return (
         <div className="space-y-4">
-            <div className="copilot-card border-border rounded-xl border p-4">
+            <div className="copilot-card rounded-xl border border-border p-4">
                 <div className="mb-4 flex items-center justify-between">
                     <h3 className="flex items-center gap-2 font-medium">
                         <Target className="h-4 w-4 text-purple-400" /> {t.experiments ?? 'Experiments'}
@@ -841,16 +877,18 @@ function ExperimentsSection({
                 </div>
 
                 {variants.length === 0 ? (
-                    <p className="text-muted-foreground py-6 text-center text-sm">No active variants. Create an A/B test variant in the funnel editor.</p>
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                        No active variants. Create an A/B test variant in the funnel editor.
+                    </p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                             <thead>
-                                <tr className="text-muted-foreground border-b border-neutral-800">
-                                    <th className="pb-2 pr-4 font-medium">{t.variant ?? 'Variant'}</th>
-                                    <th className="pb-2 pr-4 font-medium">Weight</th>
-                                    <th className="pb-2 pr-4 font-medium">Active</th>
-                                    <th className="pb-2 pr-4 font-medium">{t.views ?? 'Views'}</th>
+                                <tr className="border-b border-neutral-800 text-muted-foreground">
+                                    <th className="pr-4 pb-2 font-medium">{t.variant ?? 'Variant'}</th>
+                                    <th className="pr-4 pb-2 font-medium">Weight</th>
+                                    <th className="pr-4 pb-2 font-medium">Active</th>
+                                    <th className="pr-4 pb-2 font-medium">{t.views ?? 'Views'}</th>
                                     <th className="pb-2 font-medium">{t.conversions ?? 'Conversions'}</th>
                                 </tr>
                             </thead>
@@ -860,7 +898,11 @@ function ExperimentsSection({
                                         <td className="py-2 pr-4 font-medium">{v.name}</td>
                                         <td className="py-2 pr-4">{v.weight}%</td>
                                         <td className="py-2 pr-4">
-                                            {v.is_active ? <CheckCircle2 className="h-4 w-4 text-green-400" /> : <XCircle className="text-muted-foreground h-4 w-4" />}
+                                            {v.is_active ? (
+                                                <CheckCircle2 className="h-4 w-4 text-green-400" />
+                                            ) : (
+                                                <XCircle className="h-4 w-4 text-muted-foreground" />
+                                            )}
                                         </td>
                                         <td className="py-2 pr-4">{v.views}</td>
                                         <td className="py-2">{v.conversions}</td>
@@ -873,19 +915,20 @@ function ExperimentsSection({
             </div>
 
             {(metrics?.experiment_comparisons?.length ?? 0) > 0 && (
-                <section className="copilot-card border-border rounded-xl border p-4">
+                <section className="copilot-card rounded-xl border border-border p-4">
                     <h3 className="mb-1 font-medium">{t.variant_comparisons ?? 'Observed variant comparison'}</h3>
-                    <p className="text-muted-foreground mb-3 text-xs">
-                        {t.experiment_caution ?? 'Rates are descriptive only. No winner is declared; validate assignment and sample size before drawing conclusions.'}
+                    <p className="mb-3 text-xs text-muted-foreground">
+                        {t.experiment_caution ??
+                            'Rates are descriptive only. No winner is declared; validate assignment and sample size before drawing conclusions.'}
                     </p>
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[36rem] text-left text-sm">
                             <thead>
-                                <tr className="text-muted-foreground border-b border-neutral-800">
-                                    <th className="pb-2 pr-4 font-medium">{t.variant ?? 'Variant'}</th>
-                                    <th className="pb-2 pr-4 font-medium">{t.control ?? 'Unassigned baseline'}</th>
-                                    <th className="pb-2 pr-4 font-medium">{t.variant ?? 'Variant'} rate</th>
-                                    <th className="pb-2 pr-4 font-medium">{t.difference ?? 'Difference (pp)'}</th>
+                                <tr className="border-b border-neutral-800 text-muted-foreground">
+                                    <th className="pr-4 pb-2 font-medium">{t.variant ?? 'Variant'}</th>
+                                    <th className="pr-4 pb-2 font-medium">{t.control ?? 'Unassigned baseline'}</th>
+                                    <th className="pr-4 pb-2 font-medium">{t.variant ?? 'Variant'} rate</th>
+                                    <th className="pr-4 pb-2 font-medium">{t.difference ?? 'Difference (pp)'}</th>
                                     <th className="pb-2 font-medium">{t.sample_size ?? 'Sample'}</th>
                                 </tr>
                             </thead>
@@ -893,10 +936,18 @@ function ExperimentsSection({
                                 {metrics?.experiment_comparisons?.map((comparison) => (
                                     <tr key={comparison.variant_id} className="border-b border-neutral-800/50">
                                         <td className="py-2 pr-4">{comparison.variant_name}</td>
-                                        <td className="py-2 pr-4">{comparison.control_conversion_rate}% ({comparison.control_views})</td>
-                                        <td className="py-2 pr-4">{comparison.variant_conversion_rate}% ({comparison.variant_views})</td>
+                                        <td className="py-2 pr-4">
+                                            {comparison.control_conversion_rate}% ({comparison.control_views})
+                                        </td>
+                                        <td className="py-2 pr-4">
+                                            {comparison.variant_conversion_rate}% ({comparison.variant_views})
+                                        </td>
                                         <td className="py-2 pr-4">{comparison.difference_percentage_points}</td>
-                                        <td className="py-2">{comparison.sample_sufficient ? t.sufficient ?? 'Sufficient' : t.insufficient_sample ?? 'Insufficient'}</td>
+                                        <td className="py-2">
+                                            {comparison.sample_sufficient
+                                                ? (t.sufficient ?? 'Sufficient')
+                                                : (t.insufficient_sample ?? 'Insufficient')}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -936,16 +987,16 @@ function HistorySection({
             case 'running':
                 return <Loader2 className="h-4 w-4 animate-spin text-orange-400" />;
             default:
-                return <Clock className="text-muted-foreground h-4 w-4" />;
+                return <Clock className="h-4 w-4 text-muted-foreground" />;
         }
     };
     const statusKey = (s: string) => `status_${s}` as keyof typeof t;
 
     if (history.length === 0) {
         return (
-            <div className="copilot-card border-border flex flex-col items-center justify-center rounded-xl border py-12 text-center">
-                <Clock className="text-muted-foreground mb-4 h-10 w-10" />
-                <p className="text-muted-foreground text-sm">{t.no_audits ?? 'No audits yet.'}</p>
+            <div className="copilot-card flex flex-col items-center justify-center rounded-xl border border-border py-12 text-center">
+                <Clock className="mb-4 h-10 w-10 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">{t.no_audits ?? 'No audits yet.'}</p>
             </div>
         );
     }
@@ -956,28 +1007,29 @@ function HistorySection({
                 <button
                     key={item.id}
                     onClick={() => onLoad(item.id)}
-                    className={`copilot-card border-border flex w-full items-center gap-3 rounded-xl border p-4 text-left transition hover:bg-neutral-800/30 ${
+                    className={`copilot-card flex w-full items-center gap-3 rounded-xl border border-border p-4 text-left transition hover:bg-neutral-800/30 ${
                         currentId === item.id ? 'ring-1 ring-orange-500/50' : ''
                     }`}
                 >
                     {statusIcon(item.status)}
                     <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">
-                            {item.date_from && item.date_to ? `${item.date_from} — ${item.date_to}` : t[statusKey(item.status)] ?? item.status}
+                            {item.date_from && item.date_to ? `${item.date_from} — ${item.date_to}` : (t[statusKey(item.status)] ?? item.status)}
                         </p>
                         {item.metrics_summary && (
-                            <p className="text-muted-foreground text-xs">
-                                {item.metrics_summary.views} views · {item.metrics_summary.conversions} conversions · {item.metrics_summary.conversion_rate}%
+                            <p className="text-xs text-muted-foreground">
+                                {item.metrics_summary.views} views · {item.metrics_summary.conversions} conversions ·{' '}
+                                {item.metrics_summary.conversion_rate}%
                             </p>
                         )}
                     </div>
                     <div className="text-right">
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-xs text-muted-foreground">
                             {item.recommendation_count} {(t.recommendations ?? 'recs').toLowerCase()}
                         </p>
                         {item.has_ai_advice && <Sparkles className="mt-1 inline h-3 w-3 text-orange-400" />}
                     </div>
-                    <p className="text-muted-foreground whitespace-nowrap text-xs">
+                    <p className="text-xs whitespace-nowrap text-muted-foreground">
                         {item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}
                     </p>
                 </button>
