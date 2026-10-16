@@ -108,6 +108,17 @@ class ClientAcquisitionController extends Controller
                 'budget' => $project['budget'] ?? null,
                 'timeline' => $project['timeline'] ?? null,
             ],
+            'labels' => [
+                'services' => collect($settings['services'])->mapWithKeys(fn (array $option) => [
+                    $option['key'] => app()->getLocale() === 'am' ? ($option['label_am'] ?: $option['label_en']) : $option['label_en'],
+                ]),
+                'budgets' => collect($settings['budgets'])->mapWithKeys(fn (array $option) => [
+                    $option['key'] => app()->getLocale() === 'am' ? ($option['label_am'] ?: $option['label_en']) : $option['label_en'],
+                ]),
+                'timelines' => collect($settings['timelines'])->mapWithKeys(fn (array $option) => [
+                    $option['key'] => app()->getLocale() === 'am' ? ($option['label_am'] ?: $option['label_en']) : $option['label_en'],
+                ]),
+            ],
             'nextSteps' => [
                 'response_time_hours' => $settings['response_time_hours'],
                 'response_email' => $settings['response_email'],

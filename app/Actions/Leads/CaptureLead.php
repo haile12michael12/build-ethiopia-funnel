@@ -8,6 +8,7 @@ use App\Models\ContactSubmission;
 use App\Models\Funnel;
 use App\Models\FunnelEvent;
 use App\Models\User;
+use App\Jobs\SendLeadCaptureNotifications;
 use App\Services\Automation\AutomationEventRecorder;
 use App\Services\ClientAcquisitionConfiguration;
 use App\Services\EthiopianPhoneNormalizer;
@@ -16,7 +17,6 @@ use App\Services\OpportunityAutomationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Throwable;
-use App\Jobs\SendLeadCaptureNotifications;
 
 class CaptureLead
 {
@@ -128,6 +128,16 @@ class CaptureLead
                 'marketing_consent' => (bool) ($validated['marketing_consent'] ?? false),
                 'attribution' => $validated['attribution'] ?? [],
             ];
+            $serviceLabels = collect($settings['services'])
+                ->filter(fn (array $service) => in_array($service['key'], $project['service_interests'], true))
+                ->pluck('label_en')
+                ->values()
+                ->all();
+            $budgetLabel = collect($settings['budgets'])->firstWhere('key', $project['budget'])['label_en'] ?? $project['budget'];
+            $timelineLabel = collect($settings['timelines'])->firstWhere('key', $project['timeline'])['label_en'] ?? $project['timeline'];
+            $project['service_labels'] = $serviceLabels;
+            $project['budget_label'] = $budgetLabel;
+            $project['timeline_label'] = $timelineLabel;
             $score = $this->scoring->scoreClientProject($project, $settings);
             $submissionCount = (int) data_get($contact->metadata, 'submission_count', 0) + 1;
             $phone = trim((string) ($validated['phone'] ?? ''));
