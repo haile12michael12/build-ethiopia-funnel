@@ -106,6 +106,11 @@ class User extends Authenticatable
         return $this->hasMany(SiteContent::class);
     }
 
+    public function clientAcquisitionSettings(): HasMany
+    {
+        return $this->hasMany(ClientAcquisitionSettings::class);
+    }
+
     public function copilotAudits(): HasMany
     {
         return $this->hasMany(CopilotAudit::class);

@@ -23,8 +23,10 @@ class Contact extends Model
         'user_agent',
         'last_submitted_at',
         'business_audit',
+        'client_project',
         'lead_score',
         'lead_score_breakdown',
+        'lead_score_reasons',
     ];
 
     protected $casts = [
@@ -32,8 +34,10 @@ class Contact extends Model
         'metadata' => 'array',
         'last_submitted_at' => 'datetime',
         'business_audit' => 'array',
+        'client_project' => 'array',
         'lead_score' => 'integer',
         'lead_score_breakdown' => 'array',
+        'lead_score_reasons' => 'array',
     ];
 
     protected static function booted(): void
