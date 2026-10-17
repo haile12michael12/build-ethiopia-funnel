@@ -13,6 +13,7 @@ class MarketplaceTemplate extends Model
 
     protected $fillable = [
         'owner_id',
+        'workspace_id',
         'slug',
         'type',
         'name',
@@ -44,6 +45,11 @@ class MarketplaceTemplate extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
     }
 
     public function purchases(): HasMany

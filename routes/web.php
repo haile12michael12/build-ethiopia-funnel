@@ -11,6 +11,8 @@ use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\CopilotController;
 use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DeveloperFunnelController;
+use App\Http\Controllers\DeveloperAiRecommendationController;
+use App\Http\Controllers\DeveloperFunnelAnalyticsController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\EmailPreferenceController;
 use App\Http\Controllers\FunnelAnalyticsController;
@@ -31,6 +33,7 @@ use App\Http\Controllers\PipelineStageController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SiteContentController;
+use App\Http\Controllers\WorkspaceController;
 use App\Models\Domain;
 use App\Models\FunnelEvent;
 use App\Services\FunnelPublicUrlResolver;
@@ -114,6 +117,18 @@ Route::domain($appDomain)->group(function () {
             ->name('marketplace.review.index');
         Route::put('marketplace/manage/review/{template}', [MarketplaceController::class, 'review'])
             ->name('marketplace.review.update');
+        Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
+        Route::post('workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
+        Route::post('workspaces/{workspace}/invitations', [WorkspaceController::class, 'invite'])->name('workspaces.invitations.store');
+        Route::post('workspace-invitations/{token}/accept', [WorkspaceController::class, 'accept'])
+            ->where('token', '[A-Za-z0-9]+')
+            ->name('workspaces.invitations.accept');
+        Route::get('developer-analytics', [DeveloperFunnelAnalyticsController::class, 'index'])->name('developer-analytics.index');
+        Route::post('contacts/{contact}/developer-ai-recommendations', [DeveloperAiRecommendationController::class, 'store'])
+            ->middleware('throttle:5,60')
+            ->name('contacts.developer-ai-recommendations.store');
+        Route::patch('contacts/{contact}/developer-ai-recommendations/{recommendation}', [DeveloperAiRecommendationController::class, 'review'])
+            ->name('contacts.developer-ai-recommendations.review');
 
         Route::get('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'edit'])->name('client-acquisition.settings.edit');
         Route::put('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'update'])->name('client-acquisition.settings.update');

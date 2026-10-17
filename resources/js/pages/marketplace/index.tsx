@@ -31,6 +31,7 @@ interface MarketplacePageProps {
     canReview: boolean;
     authenticated: boolean;
     mySubmissions: Submission[];
+    workspaces: Array<{ id: number; name: string }>;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Marketplace', href: route('marketplace.index') }];
@@ -42,7 +43,7 @@ function priceLabel(product: MarketplaceProduct): string {
     return `${product.currency} ${(product.amount_minor / 100).toFixed(2)}`;
 }
 
-export default function MarketplaceIndex({ products, canReview, authenticated, mySubmissions }: MarketplacePageProps) {
+export default function MarketplaceIndex({ products, canReview, authenticated, mySubmissions, workspaces }: MarketplacePageProps) {
     const [submitting, setSubmitting] = useState(false);
 
     const submitTemplate = (event: FormEvent<HTMLFormElement>) => {
@@ -66,6 +67,7 @@ export default function MarketplaceIndex({ products, canReview, authenticated, m
                 version: form.get('version'),
                 changelog: form.get('changelog'),
                 license: form.get('license'),
+                workspace_id: form.get('workspace_id') || null,
             },
             { onFinish: () => setSubmitting(false) },
         );
@@ -162,6 +164,19 @@ export default function MarketplaceIndex({ products, canReview, authenticated, m
                                     Name
                                     <input name="name" required maxLength={150} className="rounded-md border border-border bg-background px-3 py-2" />
                                 </label>
+                                {workspaces.length > 0 && (
+                                    <label className="grid gap-1 text-sm font-medium">
+                                        Submit for workspace
+                                        <select name="workspace_id" className="rounded-md border border-border bg-background px-3 py-2">
+                                            <option value="">My own submission</option>
+                                            {workspaces.map((workspace) => (
+                                                <option key={workspace.id} value={workspace.id}>
+                                                    {workspace.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                )}
                                 <label className="grid gap-1 text-sm font-medium md:col-span-2">
                                     Description
                                     <textarea

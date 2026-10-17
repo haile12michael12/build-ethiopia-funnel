@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MarketplacePurchase;
 use App\Models\MarketplaceTemplate;
 use App\Models\User;
+use App\Models\Workspace;
 use App\Services\Marketplace\ChapaPaymentGateway;
 use App\Services\Marketplace\MarketplaceAccessService;
 use App\Services\Marketplace\MarketplacePurchaseService;
@@ -41,6 +42,14 @@ class MarketplaceController extends Controller
                     'type' => $product->type,
                 ])
                 : [],
+            'workspaces' => $request->user()
+                ? Workspace::query()
+                    ->where('owner_id', $request->user()->id)
+                    ->orWhereHas('members', fn ($query) => $query->whereKey($request->user()->id)
+                        ->whereIn('workspace_members.role', ['owner', 'admin', 'editor']))
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                : [],
         ]);
     }
 
@@ -76,7 +85,15 @@ class MarketplaceController extends Controller
             'version' => ['required', 'string', 'max:50'],
             'changelog' => ['nullable', 'string', 'max:5000'],
             'license' => ['required', 'string', 'max:100'],
+            'workspace_id' => ['nullable', 'integer', 'exists:workspaces,id'],
         ]);
+
+        $workspace = isset($validated['workspace_id'])
+            ? Workspace::query()->findOrFail($validated['workspace_id'])
+            : null;
+        if ($workspace) {
+            abort_unless(in_array($workspace->roleFor($request->user()), ['owner', 'admin', 'editor'], true), 403);
+        }
 
         $slug = Str::slug($validated['name']);
         if (MarketplaceTemplate::query()->where('slug', $slug)->exists()) {
@@ -85,6 +102,7 @@ class MarketplaceController extends Controller
 
         $request->user()->marketplaceTemplates()->create([
             ...$validated,
+            'workspace_id' => $workspace?->id,
             'slug' => $slug,
             'currency' => 'ETB',
             'status' => 'pending_review',

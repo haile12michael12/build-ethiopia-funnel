@@ -1,9 +1,9 @@
-import AppLayout from '@/layouts/app-layout';
 import { BusinessAuditSummary } from '@/components/crm/BusinessAuditSummary';
 import { LeadScoreBadge } from '@/components/crm/LeadScoreBadge';
 import { LeadScoreBreakdown } from '@/components/crm/LeadScoreBreakdown';
-import { type BusinessAuditData } from '@/types/business-audit';
+import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
+import { type BusinessAuditData } from '@/types/business-audit';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, BriefcaseBusiness, Clock, Mail, MessageSquare, Phone, Plus, Send, UserRound, Workflow } from 'lucide-react';
 
@@ -91,6 +91,17 @@ interface ContactDetailProps {
                 name: string;
             };
         }>;
+        developer_ai_recommendations: Array<{
+            id: number;
+            status: string;
+            recommendations: {
+                next_steps?: string[];
+                experiment_hypotheses?: Array<{ hypothesis: string; primary_metric: string; variant_description: string }>;
+                copy_suggestions?: Array<{ type: string; suggestion: string; rationale: string }>;
+            } | null;
+            error_message: string | null;
+            created_at: string;
+        }>;
     };
     statusOptions: string[];
 }
@@ -140,7 +151,13 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                         <div>
                             <h1 className="text-2xl font-bold text-foreground">{contact.name || contact.email}</h1>
                             <p className="text-muted-foreground">
-                                Captured from {contact.funnel?.name || (contact.source === 'business_audit' ? 'Business growth audit' : contact.source === 'client_acquisition' ? 'Client project request' : contact.source)}
+                                Captured from{' '}
+                                {contact.funnel?.name ||
+                                    (contact.source === 'business_audit'
+                                        ? 'Business growth audit'
+                                        : contact.source === 'client_acquisition'
+                                          ? 'Client project request'
+                                          : contact.source)}
                             </p>
                         </div>
                     </div>
@@ -211,22 +228,96 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                     Project request
                                 </h2>
                                 <dl className="space-y-3 text-sm">
-                                    {contact.client_project.business_name && <div><dt className="text-muted-foreground">Business</dt><dd className="text-foreground">{contact.client_project.business_name}</dd></div>}
-                                    <div><dt className="text-muted-foreground">Market</dt><dd className="capitalize text-foreground">{contact.client_project.market} · {contact.client_project.country}</dd></div>
-                                    <div><dt className="text-muted-foreground">Services</dt><dd className="text-foreground">{contact.client_project.service_labels.join(', ') || contact.client_project.service_interests.join(', ')}</dd></div>
-                                    <div><dt className="text-muted-foreground">Budget range</dt><dd className="text-foreground">{contact.client_project.budget_label}</dd></div>
-                                    <div><dt className="text-muted-foreground">Timeline</dt><dd className="text-foreground">{contact.client_project.timeline_label}</dd></div>
-                                    <div><dt className="text-muted-foreground">Project details</dt><dd className="whitespace-pre-wrap text-foreground">{contact.client_project.project_description}</dd></div>
-                                    {contact.client_project.additional_requirements && <div><dt className="text-muted-foreground">Additional requirements</dt><dd className="whitespace-pre-wrap text-foreground">{contact.client_project.additional_requirements}</dd></div>}
-                                    {contact.client_project.website && <div><dt className="text-muted-foreground">Website</dt><dd><a href={contact.client_project.website} target="_blank" rel="noreferrer" className="text-primary underline">{contact.client_project.website}</a></dd></div>}
-                                    {contact.client_project.social_links.length > 0 && <div><dt className="text-muted-foreground">Social links</dt><dd className="flex flex-col">{contact.client_project.social_links.map((url) => <a key={url} href={url} target="_blank" rel="noreferrer" className="truncate text-primary underline">{url}</a>)}</dd></div>}
-                                    <div><dt className="text-muted-foreground">Preferred contact</dt><dd className="capitalize text-foreground">{contact.client_project.preferred_contact}</dd></div>
-                                    <div><dt className="text-muted-foreground">Marketing consent</dt><dd className="text-foreground">{contact.client_project.marketing_consent ? 'Granted' : 'Not granted'}</dd></div>
+                                    {contact.client_project.business_name && (
+                                        <div>
+                                            <dt className="text-muted-foreground">Business</dt>
+                                            <dd className="text-foreground">{contact.client_project.business_name}</dd>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <dt className="text-muted-foreground">Market</dt>
+                                        <dd className="text-foreground capitalize">
+                                            {contact.client_project.market} · {contact.client_project.country}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-muted-foreground">Services</dt>
+                                        <dd className="text-foreground">
+                                            {contact.client_project.service_labels.join(', ') || contact.client_project.service_interests.join(', ')}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-muted-foreground">Budget range</dt>
+                                        <dd className="text-foreground">{contact.client_project.budget_label}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-muted-foreground">Timeline</dt>
+                                        <dd className="text-foreground">{contact.client_project.timeline_label}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-muted-foreground">Project details</dt>
+                                        <dd className="whitespace-pre-wrap text-foreground">{contact.client_project.project_description}</dd>
+                                    </div>
+                                    {contact.client_project.additional_requirements && (
+                                        <div>
+                                            <dt className="text-muted-foreground">Additional requirements</dt>
+                                            <dd className="whitespace-pre-wrap text-foreground">{contact.client_project.additional_requirements}</dd>
+                                        </div>
+                                    )}
+                                    {contact.client_project.website && (
+                                        <div>
+                                            <dt className="text-muted-foreground">Website</dt>
+                                            <dd>
+                                                <a
+                                                    href={contact.client_project.website}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-primary underline"
+                                                >
+                                                    {contact.client_project.website}
+                                                </a>
+                                            </dd>
+                                        </div>
+                                    )}
+                                    {contact.client_project.social_links.length > 0 && (
+                                        <div>
+                                            <dt className="text-muted-foreground">Social links</dt>
+                                            <dd className="flex flex-col">
+                                                {contact.client_project.social_links.map((url) => (
+                                                    <a
+                                                        key={url}
+                                                        href={url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="truncate text-primary underline"
+                                                    >
+                                                        {url}
+                                                    </a>
+                                                ))}
+                                            </dd>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <dt className="text-muted-foreground">Preferred contact</dt>
+                                        <dd className="text-foreground capitalize">{contact.client_project.preferred_contact}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-muted-foreground">Marketing consent</dt>
+                                        <dd className="text-foreground">{contact.client_project.marketing_consent ? 'Granted' : 'Not granted'}</dd>
+                                    </div>
                                 </dl>
                                 <div className="mt-5 border-t border-border pt-4">
                                     <h3 className="mb-3 font-medium text-foreground">Lead score rationale</h3>
                                     <LeadScoreBreakdown breakdown={contact.lead_score_breakdown} />
-                                    {contact.lead_score_reasons.length > 0 && <ul className="mt-3 space-y-2 text-xs text-muted-foreground">{contact.lead_score_reasons.map((item) => <li key={item.key}><span className="font-medium text-foreground">{item.points} points:</span> {item.reason}</li>)}</ul>}
+                                    {contact.lead_score_reasons.length > 0 && (
+                                        <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
+                                            {contact.lead_score_reasons.map((item) => (
+                                                <li key={item.key}>
+                                                    <span className="font-medium text-foreground">{item.points} points:</span> {item.reason}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                             </section>
                         )}
@@ -236,6 +327,86 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                 <LeadScoreBreakdown breakdown={contact.lead_score_breakdown} />
                             </div>
                         )}
+                        <section className="rounded-xl border border-border bg-card p-5">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h2 className="font-semibold text-foreground">AI developer recommendations</h2>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Generated asynchronously from minimized profile signals. Review suggestions before using them.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        router.post(route('contacts.developer-ai-recommendations.store', contact.id), {}, { preserveScroll: true })
+                                    }
+                                    disabled={contact.developer_ai_recommendations.some((item) =>
+                                        ['queued', 'processing', 'pending_review'].includes(item.status),
+                                    )}
+                                    className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                                >
+                                    Queue recommendations
+                                </button>
+                            </div>
+                            <div className="mt-4 space-y-4">
+                                {contact.developer_ai_recommendations.map((item) => (
+                                    <div key={item.id} className="rounded-lg border border-border p-4">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <span className="text-sm font-medium text-foreground capitalize">{item.status.replace('_', ' ')}</span>
+                                            <span className="text-xs text-muted-foreground">{item.created_at}</span>
+                                        </div>
+                                        {item.error_message && <p className="mt-2 text-sm text-destructive">{item.error_message}</p>}
+                                        {item.recommendations && (
+                                            <>
+                                                {item.recommendations.next_steps && (
+                                                    <ul className="mt-3 list-inside list-disc space-y-1 text-sm text-foreground">
+                                                        {item.recommendations.next_steps.map((step, index) => (
+                                                            <li key={index}>{step}</li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                                {item.recommendations.experiment_hypotheses?.map((experiment, index) => (
+                                                    <p key={index} className="mt-3 text-sm text-muted-foreground">
+                                                        {experiment.hypothesis} · Metric: {experiment.primary_metric}
+                                                    </p>
+                                                ))}
+                                                {item.recommendations.copy_suggestions?.map((suggestion, index) => (
+                                                    <p key={index} className="mt-2 text-sm text-muted-foreground">
+                                                        {suggestion.suggestion} — {suggestion.rationale}
+                                                    </p>
+                                                ))}
+                                            </>
+                                        )}
+                                        {item.status === 'pending_review' && (
+                                            <div className="mt-3 flex gap-2">
+                                                {(['accepted', 'dismissed'] as const).map((decision) => (
+                                                    <button
+                                                        key={decision}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            router.patch(
+                                                                route('contacts.developer-ai-recommendations.review', {
+                                                                    contact: contact.id,
+                                                                    recommendation: item.id,
+                                                                }),
+                                                                { decision },
+                                                                { preserveScroll: true },
+                                                            )
+                                                        }
+                                                        className="rounded border border-border px-3 py-1.5 text-xs font-medium capitalize hover:bg-muted"
+                                                    >
+                                                        {decision}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                                {contact.developer_ai_recommendations.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">No AI recommendations have been requested.</p>
+                                )}
+                            </div>
+                        </section>
 
                         <div className="rounded-xl border border-border bg-card p-5">
                             <h2 className="flex items-center gap-2 font-semibold">
@@ -359,7 +530,8 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                     <div className="mb-3 flex items-start justify-between gap-4">
                                         <div>
                                             <div className="font-medium text-foreground">
-                                                {submission.funnel?.name || (submission.source === 'business_audit' ? 'Business growth audit' : 'Unknown funnel')}
+                                                {submission.funnel?.name ||
+                                                    (submission.source === 'business_audit' ? 'Business growth audit' : 'Unknown funnel')}
                                             </div>
                                             <div className="text-sm text-muted-foreground">
                                                 {submission.source} {submission.form_id ? `| ${submission.form_id}` : ''}

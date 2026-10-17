@@ -126,6 +126,7 @@ class ContactController extends Controller
             'funnel:id,name,slug',
             'emailPreference:id,contact_id,status,source,consented_at,unsubscribed_at',
             'submissions' => fn ($query) => $query->with('funnel:id,name,slug')->latest(),
+            'developerAiRecommendations' => fn ($query) => $query->latest()->limit(5),
             'opportunities' => fn ($query) => $query
                 ->with(['pipeline:id,name,currency', 'stage:id,name'])
                 ->latest(),
@@ -199,6 +200,13 @@ class ContactController extends Controller
                         'id' => $opportunity->stage->id,
                         'name' => $opportunity->stage->name,
                     ],
+                ]),
+                'developer_ai_recommendations' => $contact->developerAiRecommendations->map(fn ($recommendation) => [
+                    'id' => $recommendation->id,
+                    'status' => $recommendation->status,
+                    'recommendations' => $recommendation->recommendations,
+                    'error_message' => $recommendation->error_message,
+                    'created_at' => $recommendation->created_at->format('M j, Y g:i A'),
                 ]),
             ],
             'statusOptions' => ['new', 'contacted', 'qualified', 'won', 'lost'],

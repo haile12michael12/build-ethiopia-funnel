@@ -4,6 +4,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import {
+    BarChart3,
     BookOpen,
     BriefcaseBusiness,
     ClipboardCheck,
@@ -14,6 +15,7 @@ import {
     Plus,
     ShoppingBag,
     Users,
+    UsersRound,
     Workflow,
     Wrench,
     Zap,
@@ -35,6 +37,16 @@ const mainNavItems: NavItem[] = [
         title: 'Marketplace',
         href: '/marketplace',
         icon: ShoppingBag,
+    },
+    {
+        title: 'Developer analytics',
+        href: '/developer-analytics',
+        icon: BarChart3,
+    },
+    {
+        title: 'Workspaces',
+        href: '/workspaces',
+        icon: UsersRound,
     },
     {
         title: 'Projects',

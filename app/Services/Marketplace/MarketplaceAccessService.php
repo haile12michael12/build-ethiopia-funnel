@@ -13,6 +13,10 @@ class MarketplaceAccessService
             return true;
         }
 
+        if ($template->workspace_id && $template->workspace?->members()->whereKey($user->id)->exists()) {
+            return true;
+        }
+
         if ($template->amount_minor === 0) {
             return true;
         }

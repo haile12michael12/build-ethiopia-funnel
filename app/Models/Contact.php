@@ -82,6 +82,11 @@ class Contact extends Model
         return $this->hasOne(DeveloperProfile::class);
     }
 
+    public function developerAiRecommendations(): HasMany
+    {
+        return $this->hasMany(DeveloperAiRecommendation::class);
+    }
+
     public function automationRuns(): HasMany
     {
         return $this->hasMany(AutomationRun::class);

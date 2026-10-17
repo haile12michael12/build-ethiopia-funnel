@@ -163,7 +163,12 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
     };
 
     useEffect(() => {
-        if (!previewMode) trackFunnelEvent(funnel.id, 'view', {}, funnel.variant_id);
+        if (!previewMode) {
+            trackFunnelEvent(funnel.id, 'view', {}, funnel.variant_id);
+            if (['mern-boilerplate', 'mern-course', 'code-review'].includes(funnel.slug)) {
+                trackFunnelEvent(funnel.id, 'offer_viewed', {}, funnel.variant_id);
+            }
+        }
     }, [funnel.id, funnel.variant_id, previewMode]);
 
     const renderBlock = (block: Block) => (
