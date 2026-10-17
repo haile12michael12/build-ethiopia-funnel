@@ -26,7 +26,7 @@ export default function DeveloperAuditReportPage({ report }: { report: AuditRepo
             <main className="px-4 py-12 sm:px-6">
                 <div className="mx-auto max-w-4xl space-y-6">
                     <header className="rounded-2xl border border-border bg-card p-6 sm:p-8">
-                        <p className="text-sm font-semibold uppercase tracking-wide text-primary">Static analysis summary</p>
+                        <p className="text-sm font-semibold tracking-wide text-primary uppercase">Static analysis summary</p>
                         <h1 className="mt-2 text-3xl font-bold">Code audit report</h1>
                         <p className="mt-3 text-muted-foreground">
                             {report.files_analyzed} text files analyzed · {report.files_skipped} files skipped · Report available until{' '}
@@ -49,8 +49,9 @@ export default function DeveloperAuditReportPage({ report }: { report: AuditRepo
                                             <h3 className="font-semibold">{finding.title}</h3>
                                             <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{finding.severity}</span>
                                         </div>
-                                        <p className="mt-2 break-all font-mono text-xs text-muted-foreground">
-                                            {finding.path}{finding.line ? `:${finding.line}` : ''}
+                                        <p className="mt-2 font-mono text-xs break-all text-muted-foreground">
+                                            {finding.path}
+                                            {finding.line ? `:${finding.line}` : ''}
                                         </p>
                                         <p className="mt-2 text-sm text-muted-foreground">{finding.detail}</p>
                                     </li>
@@ -66,7 +67,9 @@ export default function DeveloperAuditReportPage({ report }: { report: AuditRepo
                     <section className="rounded-2xl border border-border bg-card p-6 sm:p-8">
                         <h2 className="text-xl font-semibold">Limitations</h2>
                         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-                            {report.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}
+                            {report.limitations.map((limitation) => (
+                                <li key={limitation}>{limitation}</li>
+                            ))}
                         </ul>
                         <p className="mt-4 text-xs text-muted-foreground">
                             The report stores findings and paths, not source file contents. It is deleted according to the stated expiry policy.

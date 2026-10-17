@@ -126,3 +126,19 @@ test('public analytics clients cannot report privileged purchase events', functi
         'session_id' => 'b59e20af-b3a8-445c-8a66-23a4a9301f62',
     ])->assertForbidden();
 });
+
+test('public analytics clients cannot report server-owned developer product events', function () {
+    $funnel = scoreableFunnel(User::factory()->create());
+
+    foreach ([
+        'code_audit_completed',
+        'code_audit_report_unlocked',
+        'playground_simulated',
+        'starter_exported',
+    ] as $eventType) {
+        $this->postJson(route('funnels.events.store', $funnel), [
+            'event_type' => $eventType,
+            'session_id' => 'b59e20af-b3a8-445c-8a66-23a4a9301f62',
+        ])->assertForbidden();
+    }
+});

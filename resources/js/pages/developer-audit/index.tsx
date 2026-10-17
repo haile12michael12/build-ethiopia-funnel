@@ -20,7 +20,7 @@ export default function DeveloperAuditIndex() {
                         <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                             <ShieldCheck className="size-6" />
                         </div>
-                        <p className="text-sm font-semibold uppercase tracking-wide text-primary">Bounded static analysis</p>
+                        <p className="text-sm font-semibold tracking-wide text-primary uppercase">Bounded static analysis</p>
                         <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Review a code ZIP for common risks</h1>
                         <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
                             Get a limited, pattern-based report. This tool does not run code, install packages, or fetch repository resources.
@@ -39,7 +39,11 @@ export default function DeveloperAuditIndex() {
                                 onChange={(event) => form.setData('email', event.target.value)}
                                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                             />
-                            {form.errors.email && <span role="alert" className="text-sm text-destructive">{form.errors.email}</span>}
+                            {form.errors.email && (
+                                <span role="alert" className="text-sm text-destructive">
+                                    {form.errors.email}
+                                </span>
+                            )}
                         </label>
 
                         <label className="block space-y-2">
@@ -54,10 +58,18 @@ export default function DeveloperAuditIndex() {
                                     className="min-w-0 flex-1 file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-primary-foreground"
                                 />
                             </span>
-                            {form.errors.archive && <span role="alert" className="text-sm text-destructive">{form.errors.archive}</span>}
+                            {form.errors.archive && (
+                                <span role="alert" className="text-sm text-destructive">
+                                    {form.errors.archive}
+                                </span>
+                            )}
                         </label>
 
-                        {form.hasErrors && <p role="alert" className="text-sm text-destructive">Please correct the fields above and try again.</p>}
+                        {form.hasErrors && (
+                            <p role="alert" className="text-sm text-destructive">
+                                Please correct the fields above and try again.
+                            </p>
+                        )}
                         <button
                             type="submit"
                             disabled={form.processing}

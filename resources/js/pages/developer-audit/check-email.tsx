@@ -11,8 +11,8 @@ export default function DeveloperAuditCheckEmail() {
                     <MailCheck className="mx-auto size-10 text-primary" />
                     <h1 className="mt-4 text-2xl font-bold">Check your inbox</h1>
                     <p className="mt-3 text-muted-foreground">
-                        If the ZIP passed validation, a time-limited private link will arrive at the email address you provided. The report link expires
-                        after seven days.
+                        If the ZIP passed validation, a time-limited private link will arrive at the email address you provided. The report link
+                        expires after seven days.
                     </p>
                     <p className="mt-4 text-sm text-muted-foreground">
                         Email delivery depends on the application’s mail and queue configuration. Check your spam folder if it does not arrive.

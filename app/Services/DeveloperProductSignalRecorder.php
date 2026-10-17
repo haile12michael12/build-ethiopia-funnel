@@ -23,6 +23,8 @@ class DeveloperProductSignalRecorder
         }
 
         $event = DB::transaction(function () use ($contact, $eventType, $reportId): ?FunnelEvent {
+            Contact::query()->lockForUpdate()->findOrFail($contact->id);
+
             $existing = FunnelEvent::query()
                 ->where('contact_id', $contact->id)
                 ->where('event_type', $eventType)

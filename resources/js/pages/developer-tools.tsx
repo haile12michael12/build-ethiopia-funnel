@@ -1,5 +1,5 @@
-import PublicLayout from '@/layouts/public-layout';
 import { Button } from '@/components/ui/button';
+import PublicLayout from '@/layouts/public-layout';
 import { Head } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 
@@ -24,17 +24,20 @@ const featureOptions: Array<{ value: Feature; label: string }> = [
 function isSimulation(value: unknown): value is { simulation: Simulation } {
     if (typeof value !== 'object' || value === null || !('simulation' in value)) return false;
     const simulation = value.simulation;
-    return typeof simulation === 'object'
-        && simulation !== null
-        && 'stack' in simulation
-        && (simulation.stack === 'mern' || simulation.stack === 'laravel-react')
-        && 'selected_features' in simulation
-        && Array.isArray(simulation.selected_features)
-        && 'steps' in simulation
-        && Array.isArray(simulation.steps)
-        && simulation.steps.every((step: unknown) => typeof step === 'string')
-        && 'status' in simulation
-        && simulation.status === 'simulation_only';
+    return (
+        typeof simulation === 'object' &&
+        simulation !== null &&
+        'stack' in simulation &&
+        (simulation.stack === 'mern' || simulation.stack === 'laravel-react') &&
+        'selected_features' in simulation &&
+        Array.isArray(simulation.selected_features) &&
+        simulation.selected_features.every((feature: unknown) => featureOptions.some((option) => option.value === feature)) &&
+        'steps' in simulation &&
+        Array.isArray(simulation.steps) &&
+        simulation.steps.every((step: unknown) => typeof step === 'string') &&
+        'status' in simulation &&
+        simulation.status === 'simulation_only'
+    );
 }
 
 export default function DeveloperTools({ playgroundUrl, exportUrl }: { playgroundUrl: string; exportUrl: string }) {
@@ -43,10 +46,14 @@ export default function DeveloperTools({ playgroundUrl, exportUrl }: { playgroun
     const [simulation, setSimulation] = useState<Simulation | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const csrfToken = typeof document === 'undefined' ? null : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? null;
+    const csrfToken = typeof document === 'undefined' ? null : (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? null);
 
     const toggleFeature = (feature: Feature) => {
-        setFeatures((current) => current.includes(feature) ? current.filter((item) => item !== feature) : [...current, feature]);
+        setFeatures((current) => (current.includes(feature) ? current.filter((item) => item !== feature) : [...current, feature]));
+    };
+
+    const updateStack = (value: string) => {
+        if (value === 'mern' || value === 'laravel-react') setStack(value);
     };
 
     const runSimulation = async () => {
@@ -81,10 +88,11 @@ export default function DeveloperTools({ playgroundUrl, exportUrl }: { playgroun
             <main className="px-4 py-12 sm:px-6">
                 <div className="mx-auto max-w-4xl space-y-8">
                     <header>
-                        <p className="text-sm font-semibold uppercase tracking-wide text-primary">Developer tools</p>
+                        <p className="text-sm font-semibold tracking-wide text-primary uppercase">Developer tools</p>
                         <h1 className="mt-2 text-3xl font-bold sm:text-4xl">Plan a starter without running code</h1>
                         <p className="mt-3 max-w-2xl text-muted-foreground">
-                            Preview a deterministic setup simulation, or download a ZIP containing scaffold files, selected guidance, and placeholder-only configuration.
+                            Preview a deterministic setup simulation, or download a ZIP containing scaffold files, selected guidance, and
+                            placeholder-only configuration.
                         </p>
                     </header>
 
@@ -93,7 +101,11 @@ export default function DeveloperTools({ playgroundUrl, exportUrl }: { playgroun
                         <form onSubmit={submitSimulation} className="mt-5 space-y-5">
                             <label className="block max-w-sm space-y-2">
                                 <span className="text-sm font-medium">Starter stack</span>
-                                <select value={stack} onChange={(event) => setStack(event.target.value as Stack)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                                <select
+                                    value={stack}
+                                    onChange={(event) => updateStack(event.target.value)}
+                                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                                >
                                     <option value="mern">MERN</option>
                                     <option value="laravel-react">Laravel + React</option>
                                 </select>
@@ -103,20 +115,32 @@ export default function DeveloperTools({ playgroundUrl, exportUrl }: { playgroun
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     {featureOptions.map((option) => (
                                         <label key={option.value} className="flex items-center gap-2 text-sm">
-                                            <input type="checkbox" checked={features.includes(option.value)} onChange={() => toggleFeature(option.value)} />
+                                            <input
+                                                type="checkbox"
+                                                checked={features.includes(option.value)}
+                                                onChange={() => toggleFeature(option.value)}
+                                            />
                                             {option.label}
                                         </label>
                                     ))}
                                 </div>
                             </fieldset>
-                            <Button type="submit" disabled={loading}>{loading ? 'Simulating…' : 'Run simulation'}</Button>
+                            <Button type="submit" disabled={loading}>
+                                {loading ? 'Simulating…' : 'Run simulation'}
+                            </Button>
                         </form>
-                        {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
+                        {error && (
+                            <p role="alert" className="mt-4 text-sm text-destructive">
+                                {error}
+                            </p>
+                        )}
                         {simulation && (
                             <div className="mt-5 rounded-xl bg-muted/50 p-4">
                                 <p className="font-semibold">Simulation only · {simulation.stack === 'mern' ? 'MERN' : 'Laravel + React'}</p>
                                 <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-                                    {simulation.steps.map((step) => <li key={step}>{step}</li>)}
+                                    {simulation.steps.map((step) => (
+                                        <li key={step}>{step}</li>
+                                    ))}
                                 </ol>
                             </div>
                         )}
@@ -131,7 +155,12 @@ export default function DeveloperTools({ playgroundUrl, exportUrl }: { playgroun
                             <input type="hidden" name="_token" value={csrfToken ?? ''} />
                             <label className="block max-w-sm space-y-2">
                                 <span className="text-sm font-medium">Starter stack</span>
-                                <select name="stack" value={stack} onChange={(event) => setStack(event.target.value as Stack)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                                <select
+                                    name="stack"
+                                    value={stack}
+                                    onChange={(event) => updateStack(event.target.value)}
+                                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                                >
                                     <option value="mern">MERN</option>
                                     <option value="laravel-react">Laravel + React</option>
                                 </select>
@@ -141,13 +170,21 @@ export default function DeveloperTools({ playgroundUrl, exportUrl }: { playgroun
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     {featureOptions.map((option) => (
                                         <label key={option.value} className="flex items-center gap-2 text-sm">
-                                            <input type="checkbox" name="features[]" value={option.value} checked={features.includes(option.value)} onChange={() => toggleFeature(option.value)} />
+                                            <input
+                                                type="checkbox"
+                                                name="features[]"
+                                                value={option.value}
+                                                checked={features.includes(option.value)}
+                                                onChange={() => toggleFeature(option.value)}
+                                            />
                                             {option.label}
                                         </label>
                                     ))}
                                 </div>
                             </fieldset>
-                            <Button type="submit" disabled={!csrfToken}>Download starter ZIP</Button>
+                            <Button type="submit" disabled={!csrfToken}>
+                                Download starter ZIP
+                            </Button>
                         </form>
                     </section>
                 </div>

@@ -11,9 +11,7 @@ use App\Services\DeveloperStarterExportService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
-use ZipArchive;
 
 uses(RefreshDatabase::class);
 
@@ -105,6 +103,9 @@ test('email unlock grants only a session-bound report view and expires after sev
 
     expect($unlockUrl)->toBeString();
     $this->get($unlockUrl)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('developer-audit/confirm-unlock'));
+    $this->post($unlockUrl)
         ->assertRedirect(route('developer-audit.report', ['audit' => $report->public_id]));
     $this->get(route('developer-audit.report', ['audit' => $report->public_id]))
         ->assertOk()
@@ -117,7 +118,7 @@ test('email unlock grants only a session-bound report view and expires after sev
     $this->get(route('developer-audit.report', ['audit' => $report->public_id]))->assertNotFound();
 });
 
-test('audit rejects ZIP traversal paths and invalid archives without storing a report', function () {
+test('audit rejects ZIP traversal paths without storing a report', function () {
     configuredAuditOwner();
     $upload = developerAuditZip([
         '../outside.php' => '<?php echo "unsafe";',
@@ -176,4 +177,46 @@ test('playground is deterministic simulation and starter export contains only co
         ->and($files)->not->toHaveKey('docs/auth.md')
         ->and($files['.env.example'])->toContain('replace-with-your-own-secret')
         ->and($files['.env.example'])->not->toContain('sk_live_');
+});
+
+test('starter export endpoint streams a ZIP with selected options', function () {
+    $this->withoutVite();
+    $response = $this->post(route('developer-tools.export'), [
+        'stack' => 'mern',
+        'features' => ['tests'],
+    ])->assertDownload('hailab-mern-starter.zip');
+
+    $archivePath = $response->baseResponse->getFile()->getPathname();
+    $zip = new ZipArchive;
+    expect($zip->open($archivePath))->toBeTrue();
+    $manifest = $zip->getFromName('starter.json');
+    $exampleEnvironment = $zip->getFromName('.env.example');
+    $zip->close();
+    @unlink($archivePath);
+
+    expect($manifest)->toContain('"stack": "mern"')
+        ->and($manifest)->toContain('"tests"')
+        ->and($exampleEnvironment)->toContain('replace-with-your-own-secret')
+        ->and($exampleEnvironment)->not->toContain('sk_live_');
+});
+
+test('product event points preserve existing score bands', function () {
+    $owner = configuredAuditOwner();
+    $contact = $owner->contacts()->create([
+        'email' => 'band@example.com',
+        'source' => 'developer_code_audit',
+        'status' => 'new',
+        'lead_score' => 79,
+    ]);
+    $event = FunnelEvent::query()->create([
+        'contact_id' => $contact->id,
+        'event_type' => 'code_audit_report_unlocked',
+        'metadata' => ['report_id' => 99],
+        'occurred_at' => now(),
+    ]);
+
+    (new CalculateLeadScore($event->id))->handle(app(App\Services\Automation\AutomationEventRecorder::class));
+
+    expect($contact->fresh()->lead_score)->toBe(89)
+        ->and($contact->fresh()->metadata['lead_score_band'])->toBe('consulting');
 });

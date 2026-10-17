@@ -85,6 +85,16 @@ class DeveloperAuditController extends Controller
         return Inertia::render('developer-audit/check-email');
     }
 
+    public function confirmUnlock(Request $request, DeveloperAuditReport $audit, string $token): Response
+    {
+        abort_unless($audit->expires_at->isFuture(), 404);
+        abort_unless(hash_equals($audit->token_hash, hash('sha256', $token)), 404);
+
+        return Inertia::render('developer-audit/confirm-unlock', [
+            'confirmationUrl' => $request->fullUrl(),
+        ]);
+    }
+
     public function unlock(
         Request $request,
         DeveloperAuditReport $audit,
