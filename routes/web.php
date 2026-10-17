@@ -11,8 +11,10 @@ use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\CopilotController;
 use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DeveloperAiRecommendationController;
+use App\Http\Controllers\DeveloperAuditController;
 use App\Http\Controllers\DeveloperFunnelAnalyticsController;
 use App\Http\Controllers\DeveloperFunnelController;
+use App\Http\Controllers\DeveloperToolsController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\EmailPreferenceController;
 use App\Http\Controllers\FunnelAnalyticsController;
@@ -67,6 +69,22 @@ Route::domain($appDomain)->group(function () {
     Route::post('/business-growth-audit', [AuditFunnelController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('business-audit.store');
+    Route::get('/developer-audit', [DeveloperAuditController::class, 'index'])->name('developer-audit.index');
+    Route::post('/developer-audit', [DeveloperAuditController::class, 'store'])
+        ->middleware('throttle:3,60')
+        ->name('developer-audit.store');
+    Route::get('/developer-audit/check-email', [DeveloperAuditController::class, 'checkEmail'])->name('developer-audit.check-email');
+    Route::get('/developer-audit/unlock/{audit:public_id}/{token}', [DeveloperAuditController::class, 'unlock'])
+        ->middleware('signed')
+        ->name('developer-audit.unlock');
+    Route::get('/developer-audit/report/{audit:public_id}', [DeveloperAuditController::class, 'report'])->name('developer-audit.report');
+    Route::get('/developer-tools', [DeveloperToolsController::class, 'index'])->name('developer-tools.index');
+    Route::post('/developer-tools/playground', [DeveloperToolsController::class, 'simulate'])
+        ->middleware('throttle:30,60')
+        ->name('developer-tools.playground');
+    Route::post('/developer-tools/export', [DeveloperToolsController::class, 'export'])
+        ->middleware('throttle:10,60')
+        ->name('developer-tools.export');
     Route::get('/business-growth-audit/thank-you/{contact}', [AuditFunnelController::class, 'thankYou'])
         ->middleware('signed')
         ->name('business-audit.thank-you');

@@ -35,6 +35,10 @@ class FunnelAnalyticsController extends Controller
                 'checkout_started',
                 'purchase_completed',
                 'branch_evaluated',
+                'code_audit_completed',
+                'code_audit_report_unlocked',
+                'playground_simulated',
+                'starter_exported',
             ])],
             'session_id' => ['nullable', 'uuid'],
             'form_id' => ['nullable', 'string', 'max:100'],
@@ -55,6 +59,10 @@ class FunnelAnalyticsController extends Controller
             'checkout_started',
             'purchase_completed',
             'branch_evaluated',
+            'code_audit_completed',
+            'code_audit_report_unlocked',
+            'playground_simulated',
+            'starter_exported',
         ];
         abort_if(
             in_array($validated['event_type'], $serverEvents, true) && ! $request->user()?->can('update', $funnel),

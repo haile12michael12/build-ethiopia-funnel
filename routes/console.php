@@ -5,6 +5,7 @@ use App\Jobs\ExecuteAutomationRun;
 use App\Models\AutomationEvent;
 use App\Models\AutomationRun;
 use App\Models\AutomationStepRun;
+use App\Models\DeveloperAuditReport;
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -106,3 +107,10 @@ Schedule::call(function (): void {
         ->where('finished_at', '<', $cutoff)
         ->update(['context' => '[]', 'last_error' => null]);
 })->daily()->name('prune-automation-run-details')->withoutOverlapping();
+
+Schedule::call(fn () => DeveloperAuditReport::query()
+    ->where('expires_at', '<=', now())
+    ->delete())
+    ->daily()
+    ->name('prune-expired-developer-audit-reports')
+    ->withoutOverlapping();

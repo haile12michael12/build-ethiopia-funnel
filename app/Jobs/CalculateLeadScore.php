@@ -28,9 +28,12 @@ class CalculateLeadScore implements ShouldQueue
                 return;
             }
 
+            $funnel = $event->funnel;
+            $ownerId = $funnel?->user_id
+                ?? Contact::query()->whereKey($event->contact_id)->value('user_id');
             $contact = Contact::query()->lockForUpdate()
                 ->whereKey($event->contact_id)
-                ->where('user_id', $event->funnel()->value('user_id'))
+                ->where('user_id', $ownerId)
                 ->first();
             if (! $contact) {
                 return;
@@ -77,7 +80,7 @@ class CalculateLeadScore implements ShouldQueue
                     $contact->user,
                     'contact.lead_score_updated',
                     contact: $contact,
-                    funnel: $event->funnel,
+                    funnel: $funnel,
                     payload: [
                         'previous_score' => $previousScore,
                         'lead_score' => $nextScore,
@@ -93,10 +96,7 @@ class CalculateLeadScore implements ShouldQueue
 
     private function ensureDefaultRules(int $userId): void
     {
-        if (LeadScoringRule::query()->where('user_id', $userId)->exists()) {
-            return;
-        }
-
+        $hasRules = LeadScoringRule::query()->where('user_id', $userId)->exists();
         $defaults = [
             ['event' => 'page_viewed', 'field' => 'page', 'value' => '/pricing', 'points' => 10],
             ['event' => 'form_submitted', 'field' => 'event', 'value' => 'form_submitted', 'points' => 25],
@@ -106,9 +106,23 @@ class CalculateLeadScore implements ShouldQueue
             ['event' => 'checkout_started', 'field' => 'event', 'value' => 'checkout_started', 'points' => 40],
             ['event' => 'purchase_completed', 'field' => 'event', 'value' => 'purchase_completed', 'points' => 100],
             ['event' => 'github_connected', 'field' => 'event', 'value' => 'github_connected', 'points' => 25],
+            ['event' => 'code_audit_completed', 'field' => 'event', 'value' => 'code_audit_completed', 'points' => 20],
+            ['event' => 'code_audit_report_unlocked', 'field' => 'event', 'value' => 'code_audit_report_unlocked', 'points' => 10],
+            ['event' => 'playground_simulated', 'field' => 'event', 'value' => 'playground_simulated', 'points' => 5],
+            ['event' => 'starter_exported', 'field' => 'event', 'value' => 'starter_exported', 'points' => 15],
+        ];
+        $productEvents = [
+            'code_audit_completed',
+            'code_audit_report_unlocked',
+            'playground_simulated',
+            'starter_exported',
         ];
 
         foreach ($defaults as $rule) {
+            if ($hasRules && ! in_array($rule['event'], $productEvents, true)) {
+                continue;
+            }
+
             LeadScoringRule::query()->firstOrCreate(
                 ['user_id' => $userId, 'event' => $rule['event'], 'field' => $rule['field'], 'value' => $rule['value']],
                 ['points' => $rule['points'], 'active' => true],
