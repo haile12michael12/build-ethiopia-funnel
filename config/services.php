@@ -45,4 +45,9 @@ return [
         'webhook_url' => env('LEAD_CAPTURE_WEBHOOK_URL'),
     ],
 
+    'chapa' => [
+        'secret_key' => env('CHAPA_SECRET_KEY'),
+        'webhook_secret' => env('CHAPA_WEBHOOK_SECRET'),
+    ],
+
 ];

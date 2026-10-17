@@ -82,6 +82,7 @@ test('public GitHub profile lookup stores minimal profile data and returns a per
     ])->assertOk()
         ->assertJsonPath('matched_branch', 'TypeScript SaaS builder')
         ->assertJsonPath('next_step_slug', 'mern-boilerplate');
+    expect($profile->fresh()->experience_level)->toBe('intermediate');
 
     $this->assertDatabaseHas('funnel_events', [
         'funnel_id' => $quiz->id,

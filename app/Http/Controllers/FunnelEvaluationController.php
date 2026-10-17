@@ -126,6 +126,9 @@ class FunnelEvaluationController extends Controller
                         'developer_quiz_answers' => $validated['answers'],
                     ],
                 ])->save();
+                $contact->developerProfile?->update([
+                    'experience_level' => $validated['answers']['experience'],
+                ]);
             }
 
             return $funnel->events()->create([

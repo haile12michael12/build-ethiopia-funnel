@@ -10,6 +10,7 @@ import {
     FileText,
     FolderKanban,
     LayoutGrid,
+    ShoppingBag,
     MessageSquareQuote,
     Plus,
     Users,
@@ -29,6 +30,11 @@ const mainNavItems: NavItem[] = [
         title: 'Funnels',
         href: '/funnels',
         icon: Zap,
+    },
+    {
+        title: 'Marketplace',
+        href: '/marketplace',
+        icon: ShoppingBag,
     },
     {
         title: 'Projects',

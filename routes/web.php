@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuditFunnelController;
 use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\AutomationRunController;
+use App\Http\Controllers\ChapaWebhookController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\ClientAcquisitionController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\FunnelVariantController;
 use App\Http\Controllers\GitHubProfileController;
 use App\Http\Controllers\LeadCaptureController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\OpportunityController;
 use App\Http\Controllers\PipelineController;
 use App\Http\Controllers\PipelineStageController;
@@ -53,6 +55,7 @@ Route::post('funnels/{funnel}/github-profile', GitHubProfileController::class)
 Route::post('funnels/{funnel}/support-chat', FunnelSupportChatController::class)
     ->middleware('throttle:10,1')
     ->name('funnels.support-chat');
+Route::post('marketplace/chapa/webhook', ChapaWebhookController::class)->name('marketplace.chapa.webhook');
 
 Route::domain($appDomain)->group(function () {
     Route::get('/', [SiteContentController::class, 'home'])->name('home');
@@ -75,6 +78,8 @@ Route::domain($appDomain)->group(function () {
     // Public funnel view — accessible without authentication.
     // Published funnels are open to all; unpublished funnels require ownership (enforced in controller).
     Route::get('/f/{funnel:slug}', [FunnelController::class, 'show'])->name('funnels.show');
+    Route::get('/marketplace', [MarketplaceController::class, 'index'])->name('marketplace.index');
+    Route::get('/marketplace/{template:slug}', [MarketplaceController::class, 'show'])->name('marketplace.show');
     Route::get('email/unsubscribe/{preference}', [EmailPreferenceController::class, 'show'])
         ->middleware('signed')
         ->name('email.unsubscribe.show');
@@ -95,6 +100,21 @@ Route::domain($appDomain)->group(function () {
     Route::post('/locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
     Route::middleware(['auth', 'verified'])->group(function () {
+        Route::post('marketplace/contributor-submissions', [MarketplaceController::class, 'submit'])
+            ->middleware('throttle:5,60')
+            ->name('marketplace.submissions.store');
+        Route::get('marketplace/{template:slug}/download', [MarketplaceController::class, 'download'])
+            ->name('marketplace.download');
+        Route::post('marketplace/{template:slug}/checkout', [MarketplaceController::class, 'checkout'])
+            ->middleware('throttle:5,10')
+            ->name('marketplace.checkout');
+        Route::get('marketplace/checkout/return', [MarketplaceController::class, 'checkoutReturn'])
+            ->name('marketplace.checkout.return');
+        Route::get('marketplace/manage/review', [MarketplaceController::class, 'reviewerIndex'])
+            ->name('marketplace.review.index');
+        Route::put('marketplace/manage/review/{template}', [MarketplaceController::class, 'review'])
+            ->name('marketplace.review.update');
+
         Route::get('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'edit'])->name('client-acquisition.settings.edit');
         Route::put('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'update'])->name('client-acquisition.settings.update');
         Route::get('dashboard', function () {

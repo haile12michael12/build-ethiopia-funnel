@@ -102,6 +102,16 @@ class User extends Authenticatable
         return $this->hasMany(LeadScoringRule::class);
     }
 
+    public function marketplaceTemplates(): HasMany
+    {
+        return $this->hasMany(MarketplaceTemplate::class, 'owner_id');
+    }
+
+    public function marketplacePurchases(): HasMany
+    {
+        return $this->hasMany(MarketplacePurchase::class, 'buyer_id');
+    }
+
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class);
