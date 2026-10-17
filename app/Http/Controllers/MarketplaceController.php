@@ -13,9 +13,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class MarketplaceController extends Controller
 {
@@ -127,6 +127,8 @@ class MarketplaceController extends Controller
                 Rule::exists('marketplace_templates', 'id')->where('status', 'published')->where('type', 'template'),
             ],
             'file' => ['nullable', 'file', 'mimes:zip', 'max:102400'],
+            'preview_images' => ['nullable', 'array', 'max:4'],
+            'preview_images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $filePath = $template->file_path;
@@ -134,15 +136,20 @@ class MarketplaceController extends Controller
             $filePath = $request->file('file')->store("marketplace/{$template->slug}", 'local');
         }
 
+        $previewImages = $template->preview_images ?? [];
+        foreach ($request->file('preview_images', []) as $image) {
+            $previewImages[] = $image->store("marketplace/{$template->slug}/previews", 'public');
+        }
+
         $bundleIds = array_values(array_unique($validated['bundle_template_ids'] ?? []));
         if ($validated['status'] === 'published') {
             if ($template->type === 'template' && ! $filePath) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'file' => 'Upload the private ZIP artifact before publishing this template.',
                 ]);
             }
             if ($template->type === 'bundle' && $bundleIds === [] && ! $template->bundleItems()->exists()) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'bundle_template_ids' => 'Select at least one published template for this bundle.',
                 ]);
             }
@@ -159,6 +166,7 @@ class MarketplaceController extends Controller
             'license' => $validated['license'],
             'contributor_revenue_share_percent' => $validated['contributor_revenue_share_percent'],
             'file_path' => $filePath,
+            'preview_images' => $previewImages,
         ]);
 
         if ($template->type === 'bundle' && $bundleIds !== []) {
@@ -193,6 +201,7 @@ class MarketplaceController extends Controller
                 'tx_ref' => 'MKT-'.Str::upper(Str::ulid()),
                 'amount_minor' => $template->amount_minor,
                 'currency' => $template->currency,
+                'contributor_share_percent' => $template->owner_id ? $template->contributor_revenue_share_percent : 0,
                 'status' => 'pending',
             ]);
         }
@@ -201,7 +210,12 @@ class MarketplaceController extends Controller
             return redirect()->away($purchase->checkout_url);
         }
 
-        $checkoutUrl = $gateway->initialize($purchase);
+        try {
+            $checkoutUrl = $gateway->initialize($purchase);
+        } catch (HttpException $exception) {
+            $purchase->update(['status' => 'failed']);
+            throw $exception;
+        }
 
         $purchase->update(['checkout_url' => $checkoutUrl]);
 
@@ -219,7 +233,10 @@ class MarketplaceController extends Controller
             ->where('buyer_id', $request->user()->id)
             ->firstOrFail();
 
-        if ($purchase->status === 'paid' || $purchases->verifyAndFulfill($purchase)) {
+        if (
+            $purchase->status === 'paid'
+            || (in_array($purchase->status, ['pending', 'failed'], true) && $purchases->verifyAndFulfill($purchase))
+        ) {
             return to_route('marketplace.show', $purchase->template)
                 ->with('success', 'Payment verified. Your marketplace access is ready.');
         }
@@ -258,7 +275,12 @@ class MarketplaceController extends Controller
             'type' => $product->type,
             'name' => $product->name,
             'description' => $product->description,
-            'preview_images' => $product->preview_images ?? [],
+            'preview_images' => array_map(
+                fn (string $image): string => str_starts_with($image, '/')
+                    ? $image
+                    : Storage::disk('public')->url($image),
+                $product->preview_images ?? [],
+            ),
             'tech_stack' => $product->tech_stack ?? [],
             'amount_minor' => $product->amount_minor,
             'currency' => $product->currency,

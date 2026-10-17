@@ -47,6 +47,7 @@ return new class extends Migration
             $table->string('provider_transaction_id', 100)->nullable()->unique();
             $table->unsignedBigInteger('amount_minor');
             $table->char('currency', 3);
+            $table->decimal('contributor_share_percent', 5, 2)->default(0);
             $table->string('status', 20)->default('pending');
             $table->text('checkout_url')->nullable();
             $table->timestamp('paid_at')->nullable();

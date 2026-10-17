@@ -17,6 +17,7 @@ class MarketplacePurchase extends Model
         'provider_transaction_id',
         'amount_minor',
         'currency',
+        'contributor_share_percent',
         'status',
         'checkout_url',
         'paid_at',
@@ -27,6 +28,7 @@ class MarketplacePurchase extends Model
     {
         return [
             'amount_minor' => 'integer',
+            'contributor_share_percent' => 'decimal:2',
             'paid_at' => 'datetime',
             'provider_metadata' => 'array',
         ];

@@ -11,7 +11,8 @@ class ChapaPaymentGateway
 {
     public function configured(): bool
     {
-        return filled(config('services.chapa.secret_key'));
+        return filled(config('services.chapa.secret_key'))
+            && filled(config('services.chapa.webhook_secret'));
     }
 
     public function initialize(MarketplacePurchase $purchase): string
@@ -38,14 +39,13 @@ class ChapaPaymentGateway
                     'last_name' => $name[1] ?? '',
                     'tx_ref' => $purchase->tx_ref,
                     'return_url' => route('marketplace.checkout.return', ['tx_ref' => $purchase->tx_ref]),
-                    'callback_url' => route('marketplace.chapa.webhook'),
                     'customization' => [
                         'title' => mb_substr($purchase->template->name, 0, 16),
                         'description' => 'Marketplace digital product',
                     ],
                 ]);
         } catch (ConnectionException $exception) {
-            throw new HttpException(503, 'Could not connect to Chapa. The purchase is still pending; please retry checkout.', $exception);
+            throw new HttpException(503, 'Could not connect to Chapa. Please retry checkout.', $exception);
         }
 
         $data = $response->json('data');

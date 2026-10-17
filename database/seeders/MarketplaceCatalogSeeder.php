@@ -27,6 +27,7 @@ class MarketplaceCatalogSeeder extends Seeder
                     'type' => 'template',
                     'name' => $name,
                     'description' => $description,
+                    'preview_images' => ['/images/marketplace/placeholder.svg'],
                     'tech_stack' => $stack,
                     'included_modules' => $modules,
                     'version' => '1.0.0',
@@ -44,6 +45,7 @@ class MarketplaceCatalogSeeder extends Seeder
                 'type' => 'bundle',
                 'name' => 'MERN Developer Bundle',
                 'description' => 'A bundle of reusable MERN and developer workflow starter projects.',
+                'preview_images' => ['/images/marketplace/placeholder.svg'],
                 'tech_stack' => ['MongoDB', 'Express', 'React', 'Node.js', 'TypeScript'],
                 'included_modules' => ['starter-projects', 'documentation'],
                 'version' => '1.0.0',
@@ -53,13 +55,15 @@ class MarketplaceCatalogSeeder extends Seeder
                 'owner_id' => null,
             ],
         );
-        $bundle->bundleItems()->sync(
-            MarketplaceTemplate::query()->whereIn('slug', [
-                'mern-saas-starter',
-                'multi-tenant-saas-starter',
-                'admin-dashboard-template',
-            ])->pluck('id'),
-        );
+        if (! $bundle->bundleItems()->exists()) {
+            $bundle->bundleItems()->sync(
+                MarketplaceTemplate::query()->whereIn('slug', [
+                    'mern-saas-starter',
+                    'multi-tenant-saas-starter',
+                    'admin-dashboard-template',
+                ])->pluck('id'),
+            );
+        }
 
         MarketplaceTemplate::query()->firstOrCreate(
             ['slug' => 'developer-pro-membership'],
@@ -67,6 +71,7 @@ class MarketplaceCatalogSeeder extends Seeder
                 'type' => 'membership',
                 'name' => 'Developer Pro Membership',
                 'description' => 'A planned membership for premium template and learning access. Recurring billing is not enabled yet.',
+                'preview_images' => ['/images/marketplace/placeholder.svg'],
                 'tech_stack' => ['MERN', 'TypeScript'],
                 'included_modules' => ['premium-templates', 'member-updates'],
                 'version' => '1.0.0',

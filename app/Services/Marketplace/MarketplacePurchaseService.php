@@ -13,6 +13,13 @@ class MarketplacePurchaseService
 
     public function verifyAndFulfill(MarketplacePurchase $purchase): bool
     {
+        if ($purchase->status === 'paid') {
+            return true;
+        }
+        if (! in_array($purchase->status, ['pending', 'failed'], true)) {
+            return false;
+        }
+
         $verified = $this->gateway->verify($purchase->tx_ref);
         if (
             $verified['tx_ref'] !== $purchase->tx_ref
@@ -28,7 +35,7 @@ class MarketplacePurchaseService
             if ($locked->status === 'paid') {
                 return;
             }
-            if ($locked->status !== 'pending') {
+            if (! in_array($locked->status, ['pending', 'failed'], true)) {
                 throw new HttpException(409, 'This marketplace purchase is no longer pending.');
             }
 
