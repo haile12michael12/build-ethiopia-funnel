@@ -30,6 +30,7 @@ class WorkflowContextBuilder
                 'phone' => $event->contact->phone,
                 'status' => $event->contact->status,
                 'source' => $event->contact->source,
+                'lead_score' => $event->contact->lead_score,
                 'tags' => $event->contact->tags ?? [],
             ] : null,
             'funnel' => $event->funnel ? [

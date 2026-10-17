@@ -9,10 +9,12 @@ use App\Http\Controllers\ClientAcquisitionController;
 use App\Http\Controllers\ClientAcquisitionSettingsController;
 use App\Http\Controllers\CopilotController;
 use App\Http\Controllers\DemoController;
+use App\Http\Controllers\DeveloperFunnelController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\EmailPreferenceController;
 use App\Http\Controllers\FunnelAnalyticsController;
 use App\Http\Controllers\FunnelController;
+use App\Http\Controllers\FunnelEvaluationController;
 use App\Http\Controllers\FunnelGenerationController;
 use App\Http\Controllers\FunnelOpportunitySettingController;
 use App\Http\Controllers\FunnelResponseController;
@@ -41,6 +43,9 @@ Route::post('funnels/{funnel}/leads', [LeadCaptureController::class, 'store'])->
 Route::post('funnels/{funnel}/events', [FunnelAnalyticsController::class, 'store'])
     ->middleware('throttle:120,1')
     ->name('funnels.events.store');
+Route::post('funnels/{funnel}/evaluate-step', FunnelEvaluationController::class)
+    ->middleware('throttle:30,1')
+    ->name('funnels.steps.evaluate');
 Route::post('funnels/{funnel}/support-chat', FunnelSupportChatController::class)
     ->middleware('throttle:10,1')
     ->name('funnels.support-chat');
@@ -160,6 +165,9 @@ Route::domain($appDomain)->group(function () {
         Route::delete('pipeline-stages/{stage}', [PipelineStageController::class, 'destroy'])->name('pipeline-stages.destroy');
         Route::get('automations', [AutomationController::class, 'index'])->name('automations.index');
         Route::post('automations', [AutomationController::class, 'store'])->name('automations.store');
+        Route::post('funnels/developer-starter', [DeveloperFunnelController::class, 'store'])
+            ->middleware('throttle:5,1')
+            ->name('funnels.developer-starter.store');
         Route::get('automations/runs', [AutomationRunController::class, 'index'])->name('automation-runs.index');
         Route::get('automations/runs/{run}', [AutomationRunController::class, 'show'])->name('automation-runs.show');
         Route::post('automations/runs/{run}/retry', [AutomationRunController::class, 'retry'])->name('automation-runs.retry');

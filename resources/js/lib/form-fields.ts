@@ -117,6 +117,10 @@ export function getFormFields(content: Record<string, unknown>): FormField[] {
     const configured = parseConfiguredFields(content.fields);
     const fields = configured.length > 0 ? configured : legacyFields(content);
 
+    if (typeof content.branchStepSlug === 'string' && content.branchStepSlug !== '') {
+        return fields;
+    }
+
     if (!fields.some((field) => field.name === 'email')) {
         fields.unshift({ id: 'email', name: 'email', label: 'Email', type: 'email', placeholder: 'Enter your email', required: true });
     }

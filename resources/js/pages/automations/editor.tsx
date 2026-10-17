@@ -61,6 +61,7 @@ const triggerTypes: Array<{ value: AutomationTriggerType; label: string }> = [
     { value: 'funnel.form_submitted', label: 'Funnel form submitted' },
     { value: 'contact.created', label: 'Contact created' },
     { value: 'contact.status_changed', label: 'Contact status changed' },
+    { value: 'contact.lead_score_updated', label: 'Contact lead score band changed' },
     { value: 'opportunity.created', label: 'Opportunity created' },
     { value: 'opportunity.stage_changed', label: 'Opportunity stage changed' },
     { value: 'opportunity.status_changed', label: 'Opportunity status changed' },

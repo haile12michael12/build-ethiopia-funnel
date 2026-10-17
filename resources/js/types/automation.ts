@@ -2,6 +2,7 @@ export type AutomationTriggerType =
     | 'funnel.form_submitted'
     | 'contact.created'
     | 'contact.status_changed'
+    | 'contact.lead_score_updated'
     | 'opportunity.created'
     | 'opportunity.stage_changed'
     | 'opportunity.status_changed';

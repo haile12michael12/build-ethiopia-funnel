@@ -2,6 +2,7 @@
 
 namespace App\Services\Automation\Actions;
 
+use App\Jobs\CalculateLeadScore;
 use App\Mail\AutomationMessage;
 use App\Models\ContactEmailPreference;
 use App\Services\Automation\Contracts\WorkflowAction;
@@ -55,6 +56,17 @@ class SendEmailAction implements WorkflowAction
             $body,
             $config['reply_to'] ?? null,
         ));
+
+        if ($funnel = $context->funnel()) {
+            $event = $funnel->events()->create([
+                'contact_id' => $contact->id,
+                'event_type' => 'email_sent',
+                'metadata' => ['purpose' => $purpose],
+                'occurred_at' => now(),
+            ]);
+            CalculateLeadScore::dispatch($event->id)
+                ->onQueue(config('automation.queue', 'default'));
+        }
 
         return ActionResult::completed([
             'recipient' => $this->maskEmail($contact->email),

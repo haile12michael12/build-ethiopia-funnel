@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fieldConditionMatches, getFormSteps, getSuccessAction } from './form-fields';
+import { fieldConditionMatches, getFormFields, getFormSteps, getSuccessAction } from './form-fields';
 
 describe('conversion form configuration', () => {
     it('normalizes fields into ordered steps', () => {
@@ -32,5 +32,18 @@ describe('conversion form configuration', () => {
             type: 'download',
             url: 'https://example.com/guide.pdf',
         });
+
+    });
+
+    it('keeps branch-evaluation forms limited to their quiz fields', () => {
+        const fields = getFormFields({
+            branchStepSlug: 'developer-quiz',
+            fields: [
+                { id: 'experience', name: 'experience', label: 'Experience', type: 'select', options: ['beginner'], required: true },
+                { id: 'timeline', name: 'timeline', label: 'Timeline', type: 'select', options: ['soon'], required: true },
+            ],
+        });
+
+        expect(fields.map((field) => field.name)).toEqual(['experience', 'timeline']);
     });
 });

@@ -13,6 +13,8 @@ class WorkflowRecipes
     {
         return [
             'new-lead-welcome' => $this->newLeadWelcome(),
+            'mern-starter-nurture' => $this->mernStarterNurture(),
+            'mern-lead-score-routing' => $this->mernLeadScoreRouting(),
             'lead-to-opportunity' => $this->leadToOpportunity(),
             'qualified-follow-up' => $this->qualifiedFollowUp(),
             'high-value-alert' => $this->highValueAlert(),
@@ -90,6 +92,134 @@ class WorkflowRecipes
                         'title' => '{{ contact.name }} — {{ funnel.name }}',
                     ], 'next_node_id' => $end],
                     ['id' => $end, 'type' => 'end', 'config' => []],
+                ],
+            ],
+        ];
+    }
+
+    private function mernStarterNurture(): array
+    {
+        $subjects = [
+            'Your MERN starter is ready',
+            'The MERN folder structure I use in production',
+            'The auth mistake that breaks most MERN apps',
+            'From MERN starter to deployed SaaS',
+            'Get the complete MERN SaaS Boilerplate',
+            'Last chance: MERN starter bonus',
+        ];
+        $daysBetween = [1, 2, 2, 2, 2];
+        $nodes = [];
+        $emailIds = array_map(fn () => (string) Str::ulid(), $subjects);
+        $waitIds = array_map(fn () => (string) Str::ulid(), $daysBetween);
+        $end = (string) Str::ulid();
+
+        foreach ($subjects as $index => $subject) {
+            $nextNode = $index < count($subjects) - 1 ? $waitIds[$index] : $end;
+            $body = $index === 0
+                ? "Your MERN starter is ready. Add your hosted download URL here before publishing this workflow.\n\n{{ contact.name }}"
+                : "A practical MERN implementation note for your next project.\n\n{{ unsubscribe_url }}";
+
+            $nodes[] = [
+                'id' => $emailIds[$index],
+                'type' => 'send_email',
+                'config' => [
+                    'purpose' => $index === 0 ? 'transactional' : 'marketing',
+                    'subject' => $subject,
+                    'body' => $body,
+                ],
+                'next_node_id' => $nextNode,
+            ];
+
+            if ($index < count($daysBetween)) {
+                $nodes[] = [
+                    'id' => $waitIds[$index],
+                    'type' => 'wait',
+                    'config' => ['amount' => $daysBetween[$index], 'unit' => 'days'],
+                    'next_node_id' => $emailIds[$index + 1],
+                ];
+            }
+        }
+
+        $nodes[] = ['id' => $end, 'type' => 'end', 'config' => []];
+
+        return [
+            'name' => 'MERN Starter Welcome + Nurture',
+            'description' => 'Deliver the MERN starter, then send the six-message developer nurture sequence over nine days.',
+            'definition' => [
+                'schema_version' => 1,
+                'trigger' => ['type' => 'funnel.form_submitted', 'config' => []],
+                'start_node_id' => $emailIds[0],
+                'nodes' => $nodes,
+            ],
+        ];
+    }
+
+    private function mernLeadScoreRouting(): array
+    {
+        $educational = (string) Str::ulid();
+        $educationalEmail = (string) Str::ulid();
+        $educationalEnd = (string) Str::ulid();
+        $offers = (string) Str::ulid();
+        $offerEmail = (string) Str::ulid();
+        $offerEnd = (string) Str::ulid();
+        $consultingEmail = (string) Str::ulid();
+        $consultingEnd = (string) Str::ulid();
+
+        return [
+            'name' => 'MERN Lead Score Routing',
+            'description' => 'Route educational, boilerplate/course, or code-review follow-up when a contact moves into a lead-score band.',
+            'definition' => [
+                'schema_version' => 1,
+                'trigger' => ['type' => 'contact.lead_score_updated', 'config' => []],
+                'start_node_id' => $educational,
+                'nodes' => [
+                    [
+                        'id' => $educational,
+                        'type' => 'condition',
+                        'config' => ['field' => 'event.payload.score_band', 'operator' => 'equals', 'value' => 'educational'],
+                        'yes_node_id' => $educationalEmail,
+                        'no_node_id' => $offers,
+                    ],
+                    [
+                        'id' => $educationalEmail,
+                        'type' => 'send_email',
+                        'config' => [
+                            'purpose' => 'marketing',
+                            'subject' => 'Your next MERN learning steps',
+                            'body' => "Start with the fundamentals and ship a small feature this week.\n\n{{ unsubscribe_url }}",
+                        ],
+                        'next_node_id' => $educationalEnd,
+                    ],
+                    ['id' => $educationalEnd, 'type' => 'end', 'config' => []],
+                    [
+                        'id' => $offers,
+                        'type' => 'condition',
+                        'config' => ['field' => 'event.payload.score_band', 'operator' => 'equals', 'value' => 'offers'],
+                        'yes_node_id' => $offerEmail,
+                        'no_node_id' => $consultingEmail,
+                    ],
+                    [
+                        'id' => $offerEmail,
+                        'type' => 'send_email',
+                        'config' => [
+                            'purpose' => 'marketing',
+                            'subject' => 'Build faster with the MERN SaaS Boilerplate',
+                            'body' => "Compare the boilerplate and course options for your next project.\n\n{{ unsubscribe_url }}",
+                        ],
+                        'next_node_id' => $offerEnd,
+                    ],
+                    ['id' => $offerEnd, 'type' => 'end', 'config' => []],
+                    [
+                        'id' => $consultingEmail,
+                        'type' => 'send_email',
+                        'config' => [
+                            'purpose' => 'marketing',
+                            'subject' => 'Want a senior developer review?',
+                            'body' => "Book a focused code review or consulting session for your launch.\n\n{{ unsubscribe_url }}",
+                        ],
+                        'next_node_id' => $consultingEnd,
+                    ],
+                    ['id' => $consultingEnd, 'type' => 'end', 'config' => []],
                 ],
             ],
         ];

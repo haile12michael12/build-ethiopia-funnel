@@ -3,7 +3,7 @@ import { shareLink } from '@/lib/share';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import gsap from 'gsap';
-import { BarChart3, Copy, Edit3, ExternalLink, Eye, Inbox, Plus, Rocket, Share2, Trash2, TrendingUp, Users } from 'lucide-react';
+import { BarChart3, Copy, Edit3, ExternalLink, Eye, Inbox, Plus, Rocket, Share2, Sparkles, Trash2, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -42,6 +42,7 @@ interface FunnelsPageProps {
 export default function Funnels({ funnels, stats }: FunnelsPageProps) {
     const gridRef = useRef<HTMLDivElement>(null);
     const [copiedFunnelId, setCopiedFunnelId] = useState<number | null>(null);
+    const [installingStarter, setInstallingStarter] = useState(false);
 
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -120,13 +121,29 @@ export default function Funnels({ funnels, stats }: FunnelsPageProps) {
                         <h1 className="text-2xl font-bold text-foreground">Your Funnels</h1>
                         <p className="text-muted-foreground">Create and manage your marketing funnels</p>
                     </div>
-                    <Link
-                        href="/funnel-editor"
-                        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Create Funnel
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            disabled={installingStarter}
+                            onClick={() => {
+                                setInstallingStarter(true);
+                                router.post(route('funnels.developer-starter.store'), {}, {
+                                    onFinish: () => setInstallingStarter(false),
+                                });
+                            }}
+                            className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                        >
+                            <Sparkles className="h-4 w-4" />
+                            {installingStarter ? 'Installing…' : 'Install MERN Starter'}
+                        </button>
+                        <Link
+                            href="/funnel-editor"
+                            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Create Funnel
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Stats Overview */}

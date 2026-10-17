@@ -18,6 +18,7 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
     const [selectedDevice, setSelectedDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
     const [submittingBlockId, setSubmittingBlockId] = useState<string | null>(null);
     const [submittedBlockId, setSubmittedBlockId] = useState<string | null>(null);
+    const [submissionError, setSubmissionError] = useState<string | null>(null);
     const [shareLabel, setShareLabel] = useState('Share');
 
     const getDeviceWidth = () => {
@@ -40,11 +41,51 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
         const attribution = currentAttribution();
 
         setSubmittingBlockId(block.id);
+        setSubmissionError(null);
+
+        const branchStepSlug = block.content.branchStepSlug;
+        if (typeof branchStepSlug === 'string' && branchStepSlug !== '') {
+            const answers: Record<string, string> = {};
+            formData.forEach((value, key) => {
+                if (typeof value === 'string') answers[key] = value;
+            });
+            const token = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
+
+            void fetch(`/funnels/${funnel.id}/evaluate-step`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token ?? '' },
+                body: JSON.stringify({
+                    step_slug: branchStepSlug,
+                    answers,
+                    session_id: funnelSessionId(),
+                    variant_id: funnel.variant_id,
+                    attribution,
+                }),
+            })
+                .then(async (response) => {
+                    const result = (await response.json()) as {
+                        message?: string;
+                        errors?: Record<string, string[]>;
+                        next_step_url?: string;
+                    };
+                    if (!response.ok || typeof result.next_step_url !== 'string') {
+                        const firstError = Object.values(result.errors ?? {}).flat()[0];
+                        throw new Error(firstError || result.message || 'Unable to evaluate your answers. Please try again.');
+                    }
+                    window.location.assign(result.next_step_url);
+                })
+                .catch((error: unknown) => {
+                    setSubmissionError(error instanceof Error ? error.message : 'Unable to evaluate your answers. Please try again.');
+                })
+                .finally(() => setSubmittingBlockId(null));
+            return;
+        }
 
         router.post(
             `/funnels/${funnel.id}/leads`,
             {
-                name: formData.get('name') || undefined,
+                name: formData.get('name') || formData.get('first_name') || undefined,
                 email: formData.get('email'),
                 phone: formData.get('phone') || undefined,
                 form_id: block.id,
@@ -174,6 +215,11 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
 
                 {/* Preview Content */}
                 <div className={previewMode ? 'py-8' : ''}>
+                    {submissionError && (
+                        <p role="alert" className="mx-auto max-w-3xl px-4 py-3 text-sm font-medium text-red-600">
+                            {submissionError}
+                        </p>
+                    )}
                     <div className="flex justify-center">
                         <div
                             className={`relative mx-auto min-h-screen bg-white transition-all duration-300 ease-in-out ${previewMode ? 'shadow-lg' : ''}`}

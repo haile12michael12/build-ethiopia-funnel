@@ -124,6 +124,42 @@ export interface FunnelSettings {
     fontFamily?: string;
 }
 
+export type FunnelRuleOperator =
+    | 'eq'
+    | 'neq'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte'
+    | 'in'
+    | 'notIn'
+    | 'contains'
+    | 'startsWith'
+    | 'endsWith'
+    | 'exists'
+    | 'empty';
+
+export interface FunnelRule {
+    field?: string;
+    operator?: FunnelRuleOperator;
+    value?: string | number | boolean | string[];
+    all?: FunnelRule[];
+    any?: FunnelRule[];
+    not?: FunnelRule;
+}
+
+export interface FunnelStepBranch {
+    name: string;
+    priority: number;
+    when: FunnelRule;
+    nextStepSlug: string;
+}
+
+export interface FunnelStepBranchConfiguration {
+    defaultNextStepSlug: string;
+    branches: FunnelStepBranch[];
+}
+
 export interface Funnel {
     id?: number;
     revision?: number;
@@ -132,6 +168,7 @@ export interface Funnel {
     content: {
         sections: Section[];
     };
+    step_branches?: Record<string, FunnelStepBranchConfiguration>;
     settings: FunnelSettings;
     status: 'draft' | 'published' | 'archived';
     is_published: boolean;

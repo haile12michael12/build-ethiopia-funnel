@@ -11,6 +11,7 @@ class WorkflowDefinitionValidator
         'funnel.form_submitted',
         'contact.created',
         'contact.status_changed',
+        'contact.lead_score_updated',
         'opportunity.created',
         'opportunity.stage_changed',
         'opportunity.status_changed',
@@ -51,6 +52,7 @@ class WorkflowDefinitionValidator
         'contact.phone',
         'contact.status',
         'contact.source',
+        'contact.lead_score',
         'funnel.id',
         'funnel.name',
         'submission.form_id',
@@ -63,6 +65,7 @@ class WorkflowDefinitionValidator
         'stage.id',
         'stage.name',
         'event.type',
+        'event.payload.score_band',
     ];
 
     private const MERGE_FIELDS = [

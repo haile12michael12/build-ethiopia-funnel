@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Funnel;
 use App\Models\FunnelVariant;
+use App\Services\FunnelBranchResolver;
 use App\Services\FunnelPublicUrlResolver;
 use App\Services\FunnelVariantResolver;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -76,14 +77,29 @@ class FunnelController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, FunnelBranchResolver $branchResolver)
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'content' => 'nullable|json',
             'settings' => 'nullable|json',
+            'step_branches' => 'nullable|json',
         ]);
+
+        $stepBranches = $request->filled('step_branches') ? json_decode((string) $request->input('step_branches'), true) : null;
+        if ($stepBranches !== null && ! is_array($stepBranches)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => 'Branch configuration must be an object.']);
+        }
+        if ($stepBranches !== null) {
+            $errors = [
+                ...$branchResolver->validateConfiguration($stepBranches),
+                ...$branchResolver->validateDestinationSlugs($stepBranches, $request->user()),
+            ];
+            if ($errors !== []) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => $errors]);
+            }
+        }
 
         // Generate unique slug
         $baseSlug = Str::slug($request->name);
@@ -101,6 +117,7 @@ class FunnelController extends Controller
             'description' => $request->description,
             'content' => $request->content ? json_decode($request->content, true) : [],
             'settings' => $request->settings ? json_decode($request->settings, true) : [],
+            'step_branches' => $stepBranches,
         ]);
 
         return redirect()->route('funnel-editor.edit', $funnel->id)
@@ -153,6 +170,7 @@ class FunnelController extends Controller
                 'description' => $funnel->description,
                 'content' => $funnel->content,
                 'settings' => $funnel->settings,
+                'step_branches' => $funnel->step_branches ?? [],
                 'revision' => $funnel->revision,
                 'updated_at' => $funnel->updated_at?->toISOString(),
                 'status' => $funnel->status,
@@ -217,7 +235,7 @@ class FunnelController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Funnel $funnel)
+    public function update(Request $request, Funnel $funnel, FunnelBranchResolver $branchResolver)
     {
         $this->authorize('update', $funnel);
 
@@ -226,7 +244,22 @@ class FunnelController extends Controller
             'description' => 'nullable|string|max:1000',
             'content' => 'nullable|json',
             'settings' => 'nullable|json',
+            'step_branches' => 'nullable|json',
         ]);
+
+        $stepBranches = $request->filled('step_branches') ? json_decode((string) $request->input('step_branches'), true) : null;
+        if ($stepBranches !== null && ! is_array($stepBranches)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => 'Branch configuration must be an object.']);
+        }
+        if ($stepBranches !== null) {
+            $errors = [
+                ...$branchResolver->validateConfiguration($stepBranches),
+                ...$branchResolver->validateDestinationSlugs($stepBranches, $funnel->user),
+            ];
+            if ($errors !== []) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => $errors]);
+            }
+        }
 
         // Generate unique slug if name changed
         $slug = $funnel->slug;
@@ -247,12 +280,13 @@ class FunnelController extends Controller
             'description' => $request->description,
             'content' => $request->content ? json_decode($request->content, true) : $funnel->content,
             'settings' => $request->settings ? json_decode($request->settings, true) : $funnel->settings,
+            'step_branches' => $stepBranches ?? $funnel->step_branches,
         ]);
 
         return back()->with('success', 'Funnel updated successfully!');
     }
 
-    public function autosave(Request $request, Funnel $funnel): JsonResponse
+    public function autosave(Request $request, Funnel $funnel, FunnelBranchResolver $branchResolver): JsonResponse
     {
         $this->authorize('update', $funnel);
 
@@ -263,7 +297,18 @@ class FunnelController extends Controller
             'content' => ['required', 'array'],
             'content.sections' => ['present', 'array', 'max:200'],
             'settings' => ['present', 'array'],
+            'step_branches' => ['sometimes', 'array'],
         ]);
+
+        if (isset($validated['step_branches'])) {
+            $errors = [
+                ...$branchResolver->validateConfiguration($validated['step_branches']),
+                ...$branchResolver->validateDestinationSlugs($validated['step_branches'], $request->user()),
+            ];
+            if ($errors !== []) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => $errors]);
+            }
+        }
 
         if ((int) $funnel->revision !== (int) $validated['revision']) {
             return response()->json([
@@ -278,6 +323,11 @@ class FunnelController extends Controller
             'description' => $validated['description'] ?? null,
             'content' => $validated['content'],
             'settings' => $validated['settings'],
+            ...(
+                array_key_exists('step_branches', $validated)
+                    ? ['step_branches' => $validated['step_branches']]
+                    : []
+            ),
             'revision' => $funnel->revision + 1,
         ]);
 

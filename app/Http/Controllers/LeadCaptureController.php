@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\CalculateLeadScore;
 use App\Jobs\SendLeadCaptureNotifications;
 use App\Models\Contact;
 use App\Models\ContactEmailPreference;
 use App\Models\Funnel;
+use App\Models\FunnelEvent;
 use App\Services\Automation\AutomationEventRecorder;
 use App\Services\OpportunityAutomationService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -51,7 +53,7 @@ class LeadCaptureController extends Controller
             abort(422, 'Invalid experiment variant.');
         }
 
-        [$contact, $submission] = DB::transaction(function () use (
+        [$contact, $submission, $scoreEventIds] = DB::transaction(function () use (
             $request,
             $validated,
             $funnel,
@@ -89,6 +91,15 @@ class LeadCaptureController extends Controller
             ]);
             $contact->save();
 
+            $sessionId = isset($validated['session_id']) ? hash('sha256', $validated['session_id']) : null;
+            if ($sessionId) {
+                FunnelEvent::query()
+                    ->where('session_id', $sessionId)
+                    ->whereNull('contact_id')
+                    ->whereHas('funnel', fn ($query) => $query->where('user_id', $funnel->user_id))
+                    ->update(['contact_id' => $contact->id]);
+            }
+
             $submission = $contact->submissions()->create([
                 'funnel_id' => $funnel->id,
                 'variant_id' => $validated['variant_id'] ?? null,
@@ -111,14 +122,33 @@ class LeadCaptureController extends Controller
             $funnel->incrementConversions();
             $funnel->events()->create([
                 'event_type' => 'conversion',
+                'contact_id' => $contact->id,
                 'variant_id' => $validated['variant_id'] ?? null,
-                'session_id' => isset($validated['session_id']) ? hash('sha256', $validated['session_id']) : null,
+                'session_id' => $sessionId,
+                'form_id' => $validated['form_id'] ?? null,
+                'attribution' => $validated['attribution'] ?? [],
+                'occurred_at' => now(),
+            ]);
+            $funnel->events()->create([
+                'event_type' => 'form_submitted',
+                'contact_id' => $contact->id,
+                'variant_id' => $validated['variant_id'] ?? null,
+                'session_id' => $sessionId,
                 'form_id' => $validated['form_id'] ?? null,
                 'attribution' => $validated['attribution'] ?? [],
                 'occurred_at' => now(),
             ]);
 
             if ($isNewContact) {
+                $funnel->events()->create([
+                    'event_type' => 'lead_created',
+                    'contact_id' => $contact->id,
+                    'variant_id' => $validated['variant_id'] ?? null,
+                    'session_id' => $sessionId,
+                    'form_id' => $validated['form_id'] ?? null,
+                    'attribution' => $validated['attribution'] ?? [],
+                    'occurred_at' => now(),
+                ]);
                 $automationEvents->record(
                     $funnel->user,
                     'contact.created',
@@ -143,8 +173,23 @@ class LeadCaptureController extends Controller
                 dispatch: $dispatchAutomationImmediately,
             );
 
-            return [$contact, $submission];
+            $scoreEventIds = FunnelEvent::query()
+                ->where('contact_id', $contact->id)
+                ->whereIn('event_type', ['page_viewed', 'form_submitted', 'quiz_completed'])
+                ->whereNull('scored_at')
+                ->pluck('id')
+                ->all();
+
+            return [$contact, $submission, $scoreEventIds];
         });
+
+        foreach ($scoreEventIds as $eventId) {
+            $scoring = CalculateLeadScore::dispatch((int) $eventId)
+                ->onQueue(config('automation.queue', 'default'));
+            if (config('queue.default') === 'sync') {
+                $scoring->afterResponse();
+            }
+        }
 
         try {
             $notification = SendLeadCaptureNotifications::dispatch($contact->id, $funnel->id, $submission->id)

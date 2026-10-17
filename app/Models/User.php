@@ -97,6 +97,11 @@ class User extends Authenticatable
         return $this->hasMany(ContactEmailPreference::class);
     }
 
+    public function leadScoringRules(): HasMany
+    {
+        return $this->hasMany(LeadScoringRule::class);
+    }
+
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class);

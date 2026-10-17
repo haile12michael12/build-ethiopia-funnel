@@ -1,4 +1,4 @@
-import type { Block, Column, Funnel, FunnelSettings, Section } from '@/types/editor';
+import type { Block, Column, Funnel, FunnelSettings, FunnelStepBranchConfiguration, Section } from '@/types/editor';
 import { current, produce } from 'immer';
 import { create } from 'zustand';
 
@@ -20,6 +20,7 @@ function getDefaultFunnel(): Funnel {
         name: 'Untitled Funnel',
         description: '',
         content: { sections: [] },
+        step_branches: {},
         settings: {
             backgroundColor: '#ffffff',
             maxWidth: '1200px',
@@ -66,6 +67,7 @@ interface FunnelStore {
     updateFunnelName: (name: string) => void;
     updateFunnelDescription: (description: string) => void;
     updateFunnelSettings: (settings: Partial<FunnelSettings>) => void;
+    updateStepBranches: (branches: Record<string, FunnelStepBranchConfiguration>) => void;
     setSections: (sections: Section[]) => void;
 
     // ── Section actions ──────────────────────────────────────────────────
@@ -183,6 +185,14 @@ export const useFunnelStore = create<FunnelStore>()((set, get) => ({
         set(
             immerSet((draft) => {
                 Object.assign(draft.funnel.settings, settings);
+                pushHistory(draft);
+            }),
+        ),
+
+    updateStepBranches: (branches) =>
+        set(
+            immerSet((draft) => {
+                draft.funnel.step_branches = branches;
                 pushHistory(draft);
             }),
         ),

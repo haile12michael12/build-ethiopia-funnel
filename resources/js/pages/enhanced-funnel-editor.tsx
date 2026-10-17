@@ -5,6 +5,7 @@ import ExperimentModal, { type ExperimentVariant } from '@/components/editor/Exp
 import ExportModal from '@/components/editor/ExportModal';
 import FunnelCrmModal, { type CrmAutomationSettings, type CrmPipelineOption } from '@/components/editor/FunnelCrmModal';
 import FunnelSettingsModal from '@/components/editor/FunnelSettingsModal';
+import FunnelBranchingModal from '@/components/editor/FunnelBranchingModal';
 import LayoutBuilder from '@/components/editor/LayoutBuilder';
 import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import { Head, Link } from '@inertiajs/react';
@@ -20,6 +21,7 @@ import {
     FileText,
     Gift,
     Globe,
+    GitBranch,
     GraduationCap,
     HeartHandshake,
     Home,
@@ -61,6 +63,7 @@ interface EnhancedFunnelEditorProps {
         updated_at?: string;
         domains: DomainMapping[];
         variants: ExperimentVariant[];
+        step_branches?: Funnel['step_branches'];
     };
     domainMapping?: DomainMappingSettings;
     crmAutomation?: CrmAutomationSettings;
@@ -1270,6 +1273,7 @@ export default function EnhancedFunnelEditor({
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isCrmModalOpen, setIsCrmModalOpen] = useState(false);
     const [isExperimentModalOpen, setIsExperimentModalOpen] = useState(false);
+    const [isBranchingModalOpen, setIsBranchingModalOpen] = useState(false);
     const [isStarterOpen, setIsStarterOpen] = useState(!initialFunnel);
     const [starterStep, setStarterStep] = useState<'choice' | 'templates'>('choice');
     const [starterCategory, setStarterCategory] = useState<StarterCategory>('All');
@@ -1305,6 +1309,7 @@ export default function EnhancedFunnelEditor({
     const selectDevice = useFunnelStore((s) => s.selectDevice);
     const setSections = useFunnelStore((s) => s.setSections);
     const updateFunnelSettings = useFunnelStore((s) => s.updateFunnelSettings);
+    const updateStepBranches = useFunnelStore((s) => s.updateStepBranches);
     const addBlockAction = useFunnelStore((s) => s.addBlock);
     const updateBlockAction = useFunnelStore((s) => s.updateBlock);
     const deleteBlockAction = useFunnelStore((s) => s.deleteBlock);
@@ -1349,6 +1354,7 @@ export default function EnhancedFunnelEditor({
                 is_published: initialFunnel.is_published,
                 public_url: initialFunnel.public_url,
                 revision: initialFunnel.revision,
+                step_branches: initialFunnel.step_branches ?? {},
             });
             setIsStarterOpen(false);
         } else {
@@ -1697,6 +1703,15 @@ export default function EnhancedFunnelEditor({
                                     <span>Experiments</span>
                                 </button>
                                 <button
+                                    onClick={() => setIsBranchingModalOpen(true)}
+                                    disabled={!initialFunnel?.id}
+                                    className="flex items-center space-x-2 rounded-lg bg-muted px-3 py-2 text-foreground transition-colors hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-50"
+                                    title={initialFunnel?.id ? 'Configure server-side funnel branching' : 'Save the funnel first to configure branching'}
+                                >
+                                    <GitBranch className="h-4 w-4" />
+                                    <span>Branches</span>
+                                </button>
+                                <button
                                     onClick={() => void saveFunnel()}
                                     disabled={isSaving}
                                     className={`flex items-center space-x-2 rounded-lg px-4 py-2 transition-colors ${
@@ -1948,6 +1963,15 @@ export default function EnhancedFunnelEditor({
                     variants={initialFunnel.variants || []}
                 />
             )}
+            <FunnelBranchingModal
+                isOpen={isBranchingModalOpen}
+                onClose={() => setIsBranchingModalOpen(false)}
+                value={funnel.step_branches ?? {}}
+                onSave={(branches) => {
+                    updateStepBranches(branches);
+                    setIsBranchingModalOpen(false);
+                }}
+            />
             {initialFunnel?.id && (
                 <FunnelSettingsModal
                     isOpen={isSettingsModalOpen}

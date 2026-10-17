@@ -60,6 +60,7 @@ export function useFunnelPersistence(funnelId?: number, initialRevision = 1, ser
                     description: funnel.description || '',
                     content: JSON.stringify(funnel.content),
                     settings: JSON.stringify(funnel.settings),
+                    step_branches: JSON.stringify(funnel.step_branches ?? {}),
                 },
                 {
                     onSuccess: () => {
@@ -90,6 +91,7 @@ export function useFunnelPersistence(funnelId?: number, initialRevision = 1, ser
                     description: funnel.description || null,
                     content: funnel.content,
                     settings: funnel.settings,
+                    step_branches: funnel.step_branches ?? {},
                 }),
             });
 

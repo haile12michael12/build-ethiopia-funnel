@@ -1,4 +1,20 @@
-export type FunnelEventType = 'view' | 'cta_click' | 'form_start' | 'form_step';
+export type FunnelEventType =
+    | 'view'
+    | 'cta_click'
+    | 'form_start'
+    | 'form_step'
+    | 'page_viewed'
+    | 'form_started'
+    | 'form_submitted'
+    | 'quiz_completed'
+    | 'lead_created'
+    | 'email_sent'
+    | 'email_opened'
+    | 'email_clicked'
+    | 'offer_viewed'
+    | 'checkout_started'
+    | 'purchase_completed'
+    | 'branch_evaluated';
 
 export function funnelSessionId(): string {
     const key = 'openfunnels:analytics-session';
@@ -41,6 +57,7 @@ export function trackFunnelEvent(
             attribution: currentAttribution(),
             metadata: {
                 ...options.metadata,
+                page: window.location.pathname,
                 device: window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop',
             },
         }),
