@@ -10,9 +10,9 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\CopilotController;
 use App\Http\Controllers\DemoController;
-use App\Http\Controllers\DeveloperFunnelController;
 use App\Http\Controllers\DeveloperAiRecommendationController;
 use App\Http\Controllers\DeveloperFunnelAnalyticsController;
+use App\Http\Controllers\DeveloperFunnelController;
 use App\Http\Controllers\DomainController;
 use App\Http\Controllers\EmailPreferenceController;
 use App\Http\Controllers\FunnelAnalyticsController;
@@ -120,6 +120,9 @@ Route::domain($appDomain)->group(function () {
         Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
         Route::post('workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
         Route::post('workspaces/{workspace}/invitations', [WorkspaceController::class, 'invite'])->name('workspaces.invitations.store');
+        Route::get('workspace-invitations/{token}/accept', [WorkspaceController::class, 'showInvitation'])
+            ->where('token', '[A-Za-z0-9]+')
+            ->name('workspaces.invitations.show');
         Route::post('workspace-invitations/{token}/accept', [WorkspaceController::class, 'accept'])
             ->where('token', '[A-Za-z0-9]+')
             ->name('workspaces.invitations.accept');

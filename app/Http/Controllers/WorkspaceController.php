@@ -120,7 +120,7 @@ class WorkspaceController extends Controller
 
         return to_route('workspaces.index')->with([
             'success' => 'Invitation created. Share this private link with the invited person.',
-            'workspace_invite_url' => route('workspaces.invitations.accept', ['token' => $token]),
+            'workspace_invite_url' => route('workspaces.invitations.show', ['token' => $token]),
         ]);
     }
 
@@ -142,5 +142,23 @@ class WorkspaceController extends Controller
         });
 
         return to_route('workspaces.index')->with('success', 'You joined the workspace.');
+    }
+
+    public function showInvitation(Request $request, string $token): Response
+    {
+        $invitation = WorkspaceInvitation::query()
+            ->with('workspace:id,name')
+            ->where('token_hash', hash('sha256', $token))
+            ->whereNull('accepted_at')
+            ->where('expires_at', '>', now())
+            ->firstOrFail();
+
+        abort_unless(mb_strtolower($invitation->email) === mb_strtolower($request->user()->email), 403);
+
+        return Inertia::render('workspaces/accept', [
+            'token' => $token,
+            'workspace' => $invitation->workspace->name,
+            'role' => $invitation->role,
+        ]);
     }
 }

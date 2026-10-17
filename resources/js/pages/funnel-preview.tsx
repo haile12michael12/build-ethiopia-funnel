@@ -169,7 +169,7 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
                 trackFunnelEvent(funnel.id, 'offer_viewed', {}, funnel.variant_id);
             }
         }
-    }, [funnel.id, funnel.variant_id, previewMode]);
+    }, [funnel.id, funnel.slug, funnel.variant_id, previewMode]);
 
     const renderBlock = (block: Block) => (
         <FunnelBlock

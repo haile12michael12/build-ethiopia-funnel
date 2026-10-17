@@ -24,6 +24,7 @@ interface Submission {
     slug: string;
     status: string;
     type: string;
+    workspace: string | null;
 }
 
 interface MarketplacePageProps {
@@ -247,7 +248,10 @@ export default function MarketplaceIndex({ products, canReview, authenticated, m
                                     <ul className="mt-2 space-y-2 text-sm">
                                         {mySubmissions.map((submission) => (
                                             <li key={submission.id} className="flex justify-between gap-4">
-                                                <span>{submission.name}</span>
+                                                <span>
+                                                    {submission.name}
+                                                    {submission.workspace ? ` · ${submission.workspace}` : ''}
+                                                </span>
                                                 <span className="text-muted-foreground capitalize">{submission.status.replace('_', ' ')}</span>
                                             </li>
                                         ))}

@@ -7,6 +7,7 @@ use App\Models\DeveloperAiRecommendation;
 use App\Models\MarketplaceTemplate;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Marketplace\MarketplaceAccessService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 
@@ -35,9 +36,15 @@ test('workspace invitations assign scoped roles and only the invited email can a
     $url = session('workspace_invite_url');
     $token = explode('/', trim(parse_url($url, PHP_URL_PATH), '/'))[1];
     $this->actingAs(User::factory()->create(['email' => 'other@example.com']))
-        ->post(route('workspaces.invitations.accept', $token))
+        ->get(route('workspaces.invitations.show', $token))
         ->assertForbidden();
 
+    $this->actingAs($invitee)->get(route('workspaces.invitations.show', $token))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('workspaces/accept')
+            ->where('workspace', 'Product Team')
+            ->where('role', 'editor'));
     $this->actingAs($invitee)->post(route('workspaces.invitations.accept', $token))
         ->assertRedirect(route('workspaces.index'));
 
@@ -49,6 +56,7 @@ test('workspace admins cannot grant admin role and viewers cannot submit workspa
     $owner = User::factory()->create();
     $admin = User::factory()->create();
     $viewer = User::factory()->create();
+    $editor = User::factory()->create();
     $workspace = Workspace::query()->create([
         'owner_id' => $owner->id,
         'name' => 'Roles Team',
@@ -57,6 +65,7 @@ test('workspace admins cannot grant admin role and viewers cannot submit workspa
     $workspace->members()->attach($owner->id, ['role' => 'owner']);
     $workspace->members()->attach($admin->id, ['role' => 'admin']);
     $workspace->members()->attach($viewer->id, ['role' => 'viewer']);
+    $workspace->members()->attach($editor->id, ['role' => 'editor']);
 
     $this->actingAs($admin)->post(route('workspaces.invitations.store', $workspace), [
         'email' => 'new-admin@example.com',
@@ -73,6 +82,21 @@ test('workspace admins cannot grant admin role and viewers cannot submit workspa
         'license' => 'Personal use',
         'workspace_id' => $workspace->id,
     ])->assertForbidden();
+
+    $this->actingAs($editor)->post(route('marketplace.submissions.store'), [
+        'type' => 'template',
+        'name' => 'Workspace starter',
+        'description' => 'A team contribution.',
+        'tech_stack' => ['React'],
+        'included_modules' => ['forms'],
+        'version' => '1.0.0',
+        'license' => 'Team use',
+        'workspace_id' => $workspace->id,
+    ])->assertRedirect(route('marketplace.index'));
+    $this->actingAs($viewer)->get(route('marketplace.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('mySubmissions.0.name', 'Workspace starter')
+            ->where('mySubmissions.0.workspace', 'Roles Team'));
 });
 
 test('workspace members can access approved workspace template artifacts', function () {
@@ -102,7 +126,7 @@ test('workspace members can access approved workspace template artifacts', funct
         'currency' => 'ETB',
     ]);
 
-    expect(app(\App\Services\Marketplace\MarketplaceAccessService::class)->hasAccess($member, $template))->toBeTrue();
+    expect(app(MarketplaceAccessService::class)->hasAccess($member, $template))->toBeTrue();
 });
 
 test('developer ai recommendations are queued with minimized inputs then held for human review', function () {

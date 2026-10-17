@@ -34,13 +34,22 @@ class MarketplaceController extends Controller
             'canReview' => $this->canReview($request->user()),
             'authenticated' => (bool) $request->user(),
             'mySubmissions' => $request->user()
-                ? $request->user()->marketplaceTemplates()->latest()->get()->map(fn (MarketplaceTemplate $product): array => [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'slug' => $product->slug,
-                    'status' => $product->status,
-                    'type' => $product->type,
-                ])
+                ? MarketplaceTemplate::query()
+                    ->with('workspace:id,name')
+                    ->where(function ($query) use ($request): void {
+                        $query->where('owner_id', $request->user()->id)
+                            ->orWhereHas('workspace.members', fn ($members) => $members->whereKey($request->user()->id));
+                    })
+                    ->latest()
+                    ->get()
+                    ->map(fn (MarketplaceTemplate $product): array => [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'slug' => $product->slug,
+                        'status' => $product->status,
+                        'type' => $product->type,
+                        'workspace' => $product->workspace?->name,
+                    ])
                 : [],
             'workspaces' => $request->user()
                 ? Workspace::query()
@@ -117,9 +126,10 @@ class MarketplaceController extends Controller
         abort_unless($this->canReview($request->user()), 403);
 
         return Inertia::render('marketplace/review', [
-            'products' => MarketplaceTemplate::query()->with('owner:id,name,email')->withCount('bundleItems')->latest()->get()->map(fn (MarketplaceTemplate $product): array => [
+            'products' => MarketplaceTemplate::query()->with(['owner:id,name,email', 'workspace:id,name'])->withCount('bundleItems')->latest()->get()->map(fn (MarketplaceTemplate $product): array => [
                 ...$this->present($product),
                 'owner' => $product->owner?->only(['name', 'email']),
+                'workspace' => $product->workspace?->name,
                 'file_configured' => filled($product->file_path),
                 'revenue_share_percent' => $product->contributor_revenue_share_percent,
                 'bundle_item_count' => $product->bundle_items_count,

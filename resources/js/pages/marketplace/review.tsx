@@ -15,6 +15,7 @@ interface Product {
     status: string;
     file_configured: boolean;
     owner: { name: string; email: string } | null;
+    workspace: string | null;
     revenue_share_percent: string;
     bundle_item_count: number;
 }
@@ -75,7 +76,8 @@ export default function MarketplaceReview({ products, bundleOptions }: { product
                                         {product.slug} · {product.type} · {product.status}
                                     </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        {product.owner ? `${product.owner.name} (${product.owner.email})` : 'Hailab curated'} · ZIP:{' '}
+                                        {product.owner ? `${product.owner.name} (${product.owner.email})` : 'Hailab curated'}
+                                        {product.workspace ? ` · Workspace: ${product.workspace}` : ''} · ZIP:{' '}
                                         {product.file_configured ? 'configured' : 'missing'}
                                     </p>
                                 </div>
