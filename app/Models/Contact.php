@@ -77,6 +77,11 @@ class Contact extends Model
         return $this->hasOne(ContactEmailPreference::class);
     }
 
+    public function developerProfile(): HasOne
+    {
+        return $this->hasOne(DeveloperProfile::class);
+    }
+
     public function automationRuns(): HasMany
     {
         return $this->hasMany(AutomationRun::class);

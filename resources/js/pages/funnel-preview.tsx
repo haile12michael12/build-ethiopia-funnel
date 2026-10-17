@@ -20,6 +20,24 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
     const [submittedBlockId, setSubmittedBlockId] = useState<string | null>(null);
     const [submissionError, setSubmissionError] = useState<string | null>(null);
     const [shareLabel, setShareLabel] = useState('Share');
+    const [githubUsername, setGithubUsername] = useState('');
+    const [githubConnecting, setGithubConnecting] = useState(false);
+    const [githubError, setGithubError] = useState<string | null>(null);
+    const [githubResult, setGithubResult] = useState<{
+        profile: {
+            username: string;
+            profile_url: string;
+            primary_language: string | null;
+            detected_stack: string[];
+            public_repo_count: number;
+        };
+        recommendation: {
+            offer_name: string;
+            reason: string;
+            recommended_modules: string[];
+            offer_url: string | null;
+        };
+    } | null>(null);
 
     const getDeviceWidth = () => {
         switch (selectedDevice) {
@@ -111,6 +129,37 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
                 onFinish: () => setSubmittingBlockId(null),
             },
         );
+    };
+
+    const handleGitHubConnect = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setGithubConnecting(true);
+        setGithubError(null);
+
+        try {
+            const token = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
+            const response = await fetch(`/funnels/${funnel.id}/github-profile`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token ?? '' },
+                body: JSON.stringify({ username: githubUsername, session_id: funnelSessionId() }),
+            });
+            const result = (await response.json()) as {
+                message?: string;
+                errors?: Record<string, string[]>;
+                profile?: NonNullable<typeof githubResult>['profile'];
+                recommendation?: NonNullable<typeof githubResult>['recommendation'];
+            };
+            if (!response.ok || !result.profile || !result.recommendation) {
+                const firstError = Object.values(result.errors ?? {}).flat()[0];
+                throw new Error(firstError || result.message || 'Unable to connect this GitHub profile. Please try again.');
+            }
+            setGithubResult({ profile: result.profile, recommendation: result.recommendation });
+        } catch (error: unknown) {
+            setGithubError(error instanceof Error ? error.message : 'Unable to connect this GitHub profile. Please try again.');
+        } finally {
+            setGithubConnecting(false);
+        }
     };
 
     useEffect(() => {
@@ -229,6 +278,79 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
                                 backgroundColor: funnel.settings.backgroundColor,
                             }}
                         >
+                            {!previewMode && funnel.slug === 'developer-quiz' && (
+                                <section className="mx-auto my-8 max-w-3xl rounded-xl border border-gray-200 bg-gray-50 p-6">
+                                    <h2 className="text-xl font-semibold text-gray-900">Personalize your recommendation (optional)</h2>
+                                    <p className="mt-2 text-sm text-gray-600">
+                                        Enter a GitHub username to use public profile and recent repository details. Hailab does not request OAuth
+                                        access or store your repository list.
+                                    </p>
+                                    <form onSubmit={handleGitHubConnect} className="mt-4 flex flex-col gap-3 sm:flex-row">
+                                        <label className="sr-only" htmlFor="github-username">
+                                            GitHub username
+                                        </label>
+                                        <input
+                                            id="github-username"
+                                            type="text"
+                                            autoComplete="off"
+                                            maxLength={39}
+                                            value={githubUsername}
+                                            onChange={(event) => setGithubUsername(event.target.value)}
+                                            placeholder="GitHub username"
+                                            required
+                                            className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={githubConnecting}
+                                            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                                        >
+                                            {githubConnecting ? 'Checking profile…' : 'Use public profile'}
+                                        </button>
+                                    </form>
+                                    {githubError && (
+                                        <p role="alert" className="mt-3 text-sm text-red-700">
+                                            {githubError}
+                                        </p>
+                                    )}
+                                    {githubResult && (
+                                        <div className="mt-4 rounded-lg bg-white p-4 text-sm text-gray-700">
+                                            <p>
+                                                Profile:{' '}
+                                                <a
+                                                    href={githubResult.profile.profile_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="font-medium text-blue-700 underline"
+                                                >
+                                                    @{githubResult.profile.username}
+                                                </a>
+                                                {githubResult.profile.primary_language ? ` · ${githubResult.profile.primary_language}` : ''}
+                                                {` · ${githubResult.profile.public_repo_count} public repositories`}
+                                            </p>
+                                            {githubResult.profile.detected_stack.length > 0 && (
+                                                <p className="mt-1">Detected stack: {githubResult.profile.detected_stack.join(', ')}</p>
+                                            )}
+                                            <p className="mt-3 font-semibold">Recommended next step: {githubResult.recommendation.offer_name}</p>
+                                            <p className="mt-1">{githubResult.recommendation.reason}</p>
+                                            {githubResult.recommendation.recommended_modules.length > 0 && (
+                                                <p className="mt-1">
+                                                    Suggested modules: {githubResult.recommendation.recommended_modules.join(', ')}
+                                                </p>
+                                            )}
+                                            {githubResult.recommendation.offer_url && (
+                                                <a
+                                                    href={githubResult.recommendation.offer_url}
+                                                    className="mt-3 inline-block font-medium text-blue-700 underline"
+                                                >
+                                                    View recommendation
+                                                </a>
+                                            )}
+                                        </div>
+                                    )}
+                                </section>
+                            )}
+
                             {/* Render all sections, columns, and blocks */}
                             {funnel.content.sections?.map((section) => (
                                 <div

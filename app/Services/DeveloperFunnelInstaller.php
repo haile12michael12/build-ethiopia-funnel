@@ -2,9 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\AutomationWorkflow;
 use App\Models\Funnel;
-use App\Models\FunnelVariant;
 use App\Models\User;
 use App\Services\Automation\WorkflowRecipes;
 use Illuminate\Support\Facades\DB;
@@ -170,6 +168,15 @@ class DeveloperFunnelInstaller
                             ['field' => 'answers.timeline', 'operator' => 'eq', 'value' => 'immediately'],
                         ]],
                         'nextStepSlug' => 'code-review',
+                    ],
+                    [
+                        'name' => 'TypeScript SaaS builder',
+                        'priority' => 95,
+                        'when' => ['all' => [
+                            ['field' => 'github.primary_language', 'operator' => 'eq', 'value' => 'TypeScript'],
+                            ['field' => 'github.has_saas_repo', 'operator' => 'eq', 'value' => true],
+                        ]],
+                        'nextStepSlug' => 'mern-boilerplate',
                     ],
                     [
                         'name' => 'Client project builder',

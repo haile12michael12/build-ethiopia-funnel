@@ -20,6 +20,7 @@ use App\Http\Controllers\FunnelOpportunitySettingController;
 use App\Http\Controllers\FunnelResponseController;
 use App\Http\Controllers\FunnelSupportChatController;
 use App\Http\Controllers\FunnelVariantController;
+use App\Http\Controllers\GitHubProfileController;
 use App\Http\Controllers\LeadCaptureController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OpportunityController;
@@ -46,6 +47,9 @@ Route::post('funnels/{funnel}/events', [FunnelAnalyticsController::class, 'store
 Route::post('funnels/{funnel}/evaluate-step', FunnelEvaluationController::class)
     ->middleware('throttle:30,1')
     ->name('funnels.steps.evaluate');
+Route::post('funnels/{funnel}/github-profile', GitHubProfileController::class)
+    ->middleware('throttle:30,60')
+    ->name('funnels.github-profile.store');
 Route::post('funnels/{funnel}/support-chat', FunnelSupportChatController::class)
     ->middleware('throttle:10,1')
     ->name('funnels.support-chat');

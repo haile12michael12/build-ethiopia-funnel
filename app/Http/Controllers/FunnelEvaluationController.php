@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\CalculateLeadScore;
-use App\Models\Contact;
 use App\Models\Funnel;
 use App\Models\FunnelEvent;
 use App\Services\FunnelBranchResolver;
@@ -47,19 +46,9 @@ class FunnelEvaluationController extends Controller
         $configuration = $funnel->step_branches[$validated['step_slug']] ?? null;
         abort_unless(is_array($configuration), 404);
 
-        $result = $branches->resolve($configuration, ['answers' => $validated['answers']]);
-        $destination = Funnel::query()
-            ->where('user_id', $funnel->user_id)
-            ->where('slug', $result['next_step_slug'])
-            ->where('is_published', true)
-            ->first();
-
-        abort_unless($destination, 422, 'The configured next step is not available.');
-
         $sessionId = isset($validated['session_id']) ? hash('sha256', $validated['session_id']) : null;
         $attribution = $validated['attribution'] ?? [];
         $variantId = $validated['variant_id'] ?? null;
-        $matchedBranch = $result['matched_branch'];
 
         $contactId = $sessionId
             ? FunnelEvent::query()
@@ -74,6 +63,32 @@ class FunnelEvaluationController extends Controller
         if ($validated['step_slug'] === 'developer-quiz') {
             abort_unless($contact, 422, 'Complete the email opt-in before taking the developer quiz.');
         }
+
+        $result = $branches->resolve($configuration, [
+            'answers' => $validated['answers'],
+            'github' => [
+                'primary_language' => $contact?->developerProfile?->primary_language,
+                'detected_stack' => $contact?->developerProfile?->detected_stack ?? [],
+                'public_repo_count' => $contact?->developerProfile?->public_repo_count,
+                'has_saas_repo' => $contact?->developerProfile?->has_saas_repo ?? false,
+            ],
+            'lead_score' => $contact?->lead_score ?? 0,
+            'utm' => [
+                'source' => data_get($validated, 'attribution.utm_source'),
+                'medium' => data_get($validated, 'attribution.utm_medium'),
+                'campaign' => data_get($validated, 'attribution.utm_campaign'),
+            ],
+            'device' => data_get($validated, 'attribution.device'),
+        ]);
+        $destination = Funnel::query()
+            ->where('user_id', $funnel->user_id)
+            ->where('slug', $result['next_step_slug'])
+            ->where('is_published', true)
+            ->first();
+
+        abort_unless($destination, 422, 'The configured next step is not available.');
+
+        $matchedBranch = $result['matched_branch'];
 
         $scoreEventId = DB::transaction(function () use (
             $funnel,

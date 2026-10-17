@@ -12,4 +12,6 @@ Authenticated users can install the MERN developer lead-magnet funnel from the F
 
 The quiz is evaluated server-side and redirects to the selected offer page. Lead scoring uses linked funnel events and the account's scoring rules. Installation also creates two automation drafts in Automation Studio: a six-email welcome/nurture sequence and a lead-score routing sequence. Drafts are not activated automatically; review consent settings, email content, and the workflow before publishing. In particular, add the hosted starter download URL to the first nurture email before publishing.
 
+The developer quiz offers an optional GitHub username lookup using GitHub's public REST API; no OAuth or repository write permission is requested. The app stores the username, public profile URL, primary language, detected stack, public repository count, and SaaS signal on the opted-in contact. Recent repository metadata is analyzed but not stored. Profile lookups are limited per visitor and globally, and successful public lookups are cached for six hours. GitHub connection is also recorded as a product event for asynchronous scoring, and can be used by quiz branching rules.
+
 Email-open/click tracking and trusted purchase events are not supported by the current application, so they are not wired into scoring or automation enrollment.

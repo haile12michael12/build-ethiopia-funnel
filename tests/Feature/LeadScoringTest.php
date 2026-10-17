@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\CalculateLeadScore;
+use App\Models\AutomationEvent;
 use App\Models\Contact;
 use App\Models\Funnel;
 use App\Models\FunnelEvent;
@@ -47,14 +48,14 @@ test('queued lead scoring applies default rules once per analytics event', funct
         ->and($contact->fresh()->last_scored_at)->not->toBeNull()
         ->and($event->fresh()->scored_at)->not->toBeNull()
         ->and($contact->fresh()->metadata['lead_score_band'])->toBe('educational')
-        ->and(LeadScoringRule::query()->where('user_id', $user->id)->count())->toBe(7);
+        ->and(LeadScoringRule::query()->where('user_id', $user->id)->count())->toBe(8);
     $this->assertDatabaseHas('automation_events', [
         'user_id' => $user->id,
         'contact_id' => $contact->id,
         'event_type' => 'contact.lead_score_updated',
     ]);
 
-    $routingEvent = \App\Models\AutomationEvent::query()->where('contact_id', $contact->id)->firstOrFail();
+    $routingEvent = AutomationEvent::query()->where('contact_id', $contact->id)->firstOrFail();
     expect($routingEvent->payload)->toMatchArray([
         'previous_score' => 0,
         'lead_score' => 25,

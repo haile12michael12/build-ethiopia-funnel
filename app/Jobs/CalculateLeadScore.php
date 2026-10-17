@@ -105,6 +105,7 @@ class CalculateLeadScore implements ShouldQueue
             ['event' => 'email_clicked', 'field' => 'event', 'value' => 'email_clicked', 'points' => 10],
             ['event' => 'checkout_started', 'field' => 'event', 'value' => 'checkout_started', 'points' => 40],
             ['event' => 'purchase_completed', 'field' => 'event', 'value' => 'purchase_completed', 'points' => 100],
+            ['event' => 'github_connected', 'field' => 'event', 'value' => 'github_connected', 'points' => 25],
         ];
 
         foreach ($defaults as $rule) {
