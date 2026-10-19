@@ -70,7 +70,9 @@ class CaptureLead
             $contact->save();
 
             $this->updateLeadScore->handle($contact, $audit, $this->scoring);
+            $previousStatus = $contact->status;
             $this->qualifyLead->handle($contact);
+            $this->recordStatusTransition($contact, $previousStatus, $owner, 'configured qualification threshold');
 
             $submission = $contact->submissions()->create([
                 'fields' => $audit,
@@ -178,13 +180,7 @@ class CaptureLead
             $contact->save();
             $previousStatus = $contact->status;
             $this->qualifyLead->handle($contact, (int) $settings['qualified_score']);
-            if ($contact->status !== $previousStatus) {
-                $contact->activities()->create([
-                    'actor_user_id' => $owner->id,
-                    'type' => 'status_changed',
-                    'payload' => ['from' => $previousStatus, 'to' => $contact->status, 'reason' => 'configured qualification threshold'],
-                ]);
-            }
+            $this->recordStatusTransition($contact, $previousStatus, $owner, 'configured qualification threshold');
 
             $submission = $contact->submissions()->create([
                 'funnel_id' => $analyticsFunnel?->id,
@@ -269,5 +265,22 @@ class CaptureLead
         }
 
         return $result;
+    }
+
+    private function recordStatusTransition(Contact $contact, string $previousStatus, User $actor, string $reason): void
+    {
+        if ($contact->status === $previousStatus) {
+            return;
+        }
+
+        $contact->activities()->create([
+            'actor_user_id' => $actor->id,
+            'type' => 'status_changed',
+            'payload' => [
+                'from' => $previousStatus,
+                'to' => $contact->status,
+                'reason' => $reason,
+            ],
+        ]);
     }
 }

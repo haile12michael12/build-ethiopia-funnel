@@ -207,6 +207,12 @@ export default function ContactDetail({ contact, statusOptions, projectOptions }
     });
 
     const updateStatus = (status: string) => {
+        if (
+            ['won', 'lost'].includes(status) &&
+            !window.confirm(`Mark this lead as ${status}? This change will be recorded in its activity history.`)
+        ) {
+            return;
+        }
         router.patch(route('contacts.update', contact.id), { status, lost_reason: status === 'lost' ? lostReason : null }, { preserveScroll: true });
     };
 
@@ -317,7 +323,7 @@ export default function ContactDetail({ contact, statusOptions, projectOptions }
                         >
                             {statusOptions.map((status) => (
                                 <option key={status} value={status}>
-                                    {status}
+                                    {status.replaceAll('_', ' ')}
                                 </option>
                             ))}
                         </select>

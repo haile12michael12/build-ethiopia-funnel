@@ -17,6 +17,7 @@ class UpdateLeadScore
         $contact->forceFill([
             'lead_score' => $result['score'],
             'lead_score_breakdown' => $result['breakdown'],
+            'last_scored_at' => now(),
         ])->save();
 
         return $contact;

@@ -45,6 +45,7 @@ test('audit submissions create a scored contact, submission history, and signed 
         ->and($contact->source)->toBe('business_audit')
         ->and($contact->status)->toBe('qualified')
         ->and($contact->lead_score)->toBe(85)
+        ->and($contact->last_scored_at)->not->toBeNull()
         ->and($contact->lead_score_breakdown)->toBe([
             'business_profile' => 10,
             'website_readiness' => 10,
@@ -59,6 +60,11 @@ test('audit submissions create a scored contact, submission history, and signed 
     $this->assertDatabaseHas('contact_submissions', [
         'contact_id' => $contact->id,
         'source' => 'business_audit',
+    ]);
+    $this->assertDatabaseHas('contact_activities', [
+        'contact_id' => $contact->id,
+        'actor_user_id' => $owner->id,
+        'type' => 'status_changed',
     ]);
     $this->assertDatabaseHas('automation_events', [
         'user_id' => $owner->id,

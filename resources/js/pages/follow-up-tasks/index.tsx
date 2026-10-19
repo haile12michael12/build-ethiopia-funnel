@@ -86,9 +86,15 @@ export default function FollowUpTasks({ tasks, view, counts }: FollowUpTasksProp
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            router.patch(route('follow-up-tasks.update', task.id), { status: 'cancelled' }, { preserveScroll: true })
-                                        }
+                                        onClick={() => {
+                                            if (window.confirm('Cancel this follow-up task?')) {
+                                                router.patch(
+                                                    route('follow-up-tasks.update', task.id),
+                                                    { status: 'cancelled' },
+                                                    { preserveScroll: true },
+                                                );
+                                            }
+                                        }}
                                         className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
                                     >
                                         Cancel
