@@ -6,9 +6,12 @@ use App\Models\Contact;
 use App\Models\ContactActivity;
 use App\Services\Automation\AutomationEventRecorder;
 use App\Services\ClientAcquisitionConfiguration;
+use App\Services\LeadScoringService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -16,6 +19,7 @@ class ContactController extends Controller
 {
     public function index(Request $request, ClientAcquisitionConfiguration $configuration)
     {
+        $settings = $configuration->forOwner($request->user()->id);
         $filters = $this->validatedFilters($request);
         $contacts = $this->filteredContacts($request, $filters)
             ->with('funnel:id,name,slug')
@@ -34,14 +38,6 @@ class ContactController extends Controller
                 'lost_reason' => $contact->lost_reason,
                 'source' => $contact->source,
                 'lead_score' => $contact->lead_score,
-                'lead_priority' => $contact->lead_score >= $settings['high_priority_score']
-                    ? 'high'
-                    : ($contact->lead_score >= $settings['medium_priority_score'] ? 'medium' : 'low'),
-                'last_scored_at' => $contact->last_scored_at?->format('M j, Y g:i A'),
-                'priority_thresholds' => [
-                    'high' => $settings['high_priority_score'],
-                    'medium' => $settings['medium_priority_score'],
-                ],
                 'market' => data_get($contact->client_project, 'market'),
                 'service' => implode(', ', data_get($contact->client_project, 'service_labels', [])),
                 'budget_label' => data_get($contact->client_project, 'budget_label'),
@@ -180,6 +176,14 @@ class ContactController extends Controller
                 'lost_reason' => $contact->lost_reason,
                 'source' => $contact->source,
                 'lead_score' => $contact->lead_score,
+                'lead_priority' => $contact->lead_score >= $settings['high_priority_score']
+                    ? 'high'
+                    : ($contact->lead_score >= $settings['medium_priority_score'] ? 'medium' : 'low'),
+                'last_scored_at' => $contact->last_scored_at?->format('M j, Y g:i A'),
+                'priority_thresholds' => [
+                    'high' => $settings['high_priority_score'],
+                    'medium' => $settings['medium_priority_score'],
+                ],
                 'lead_score_breakdown' => $contact->lead_score_breakdown ?? [],
                 'lead_score_reasons' => $contact->lead_score_reasons ?? [],
                 'business_audit' => $contact->business_audit,
@@ -269,7 +273,94 @@ class ContactController extends Controller
                 ]),
             ],
             'statusOptions' => Contact::STATUSES,
+            'projectOptions' => [
+                'services' => collect($settings['services'])->map(fn (array $option) => ['key' => $option['key'], 'label' => $option['label_en']])->values(),
+                'budgets' => collect($settings['budgets'])->map(fn (array $option) => ['key' => $option['key'], 'label' => $option['label_en'], 'currency' => $option['currency']])->values(),
+                'timelines' => collect($settings['timelines'])->map(fn (array $option) => ['key' => $option['key'], 'label' => $option['label_en']])->values(),
+            ],
         ]);
+    }
+
+    public function updateDetails(
+        Request $request,
+        Contact $contact,
+        ClientAcquisitionConfiguration $configuration,
+        LeadScoringService $scoring,
+    ) {
+        abort_unless($contact->user_id === $request->user()->id, 403);
+        abort_unless(is_array($contact->client_project), 404);
+
+        $settings = $configuration->forOwner($contact->user_id);
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'email:rfc',
+                'max:255',
+                Rule::unique('contacts', 'email')->where(fn ($query) => $query->where('user_id', $contact->user_id))->ignore($contact->id),
+            ],
+            'phone' => ['nullable', 'string', 'max:50', 'regex:/^[+]?[\d\s().-]{7,30}$/'],
+            'business_name' => ['nullable', 'string', 'max:255'],
+            'market' => ['required', Rule::in(['ethiopia', 'international'])],
+            'country' => ['required', 'string', 'max:120'],
+            'service_interests' => ['required', 'array', 'min:1', 'max:5'],
+            'service_interests.*' => ['required', 'string', 'distinct', Rule::in(collect($settings['services'])->pluck('key')->all())],
+            'project_description' => ['required', 'string', 'min:30', 'max:5000'],
+            'budget' => ['required', Rule::in(collect($settings['budgets'])->pluck('key')->all())],
+            'timeline' => ['required', Rule::in(collect($settings['timelines'])->pluck('key')->all())],
+            'website' => ['nullable', 'url', 'max:2048'],
+            'additional_requirements' => ['nullable', 'string', 'max:3000'],
+            'preferred_contact' => ['required', Rule::in(['email', 'phone', 'whatsapp'])],
+        ]);
+        if ($validated['market'] === 'ethiopia' && mb_strtolower(trim($validated['country'])) !== 'ethiopia') {
+            throw ValidationException::withMessages(['country' => 'Choose Ethiopia as the country for the Ethiopia market.']);
+        }
+        $budget = collect($settings['budgets'])->firstWhere('key', $validated['budget']);
+        $currency = $validated['market'] === 'ethiopia' ? 'ETB' : 'USD';
+        if (($budget['currency'] ?? null) !== $currency) {
+            throw ValidationException::withMessages(['budget' => 'Choose a planning range in the selected market currency.']);
+        }
+
+        $project = [
+            ...$contact->client_project,
+            ...array_diff_key($validated, array_flip(['name', 'email', 'phone'])),
+            'email' => mb_strtolower($validated['email']),
+            'budget_currency' => $currency,
+            'service_labels' => collect($settings['services'])
+                ->filter(fn (array $service) => in_array($service['key'], $validated['service_interests'], true))
+                ->pluck('label_en')->values()->all(),
+            'budget_label' => $budget['label_en'],
+            'timeline_label' => collect($settings['timelines'])->firstWhere('key', $validated['timeline'])['label_en'],
+        ];
+        $score = $scoring->scoreClientProject([
+            ...$project,
+            'name' => trim($validated['name']),
+            'phone' => $validated['phone'] ?? '',
+        ], $settings);
+        $changedFields = array_values(array_filter(
+            ['name', 'email', 'phone', 'business_name', 'market', 'country', 'service_interests', 'project_description', 'budget', 'timeline', 'website', 'additional_requirements', 'preferred_contact'],
+            fn (string $field): bool => ($contact->{$field} ?? data_get($contact->client_project, $field)) !== ($validated[$field] ?? null),
+        ));
+
+        DB::transaction(function () use ($contact, $request, $validated, $project, $score, $changedFields): void {
+            $contact->update([
+                'name' => trim($validated['name']),
+                'email' => mb_strtolower($validated['email']),
+                'phone' => $validated['phone'] ?? null,
+                'client_project' => $project,
+                'lead_score' => $score['score'],
+                'lead_score_breakdown' => $score['breakdown'],
+                'lead_score_reasons' => $score['reasons'],
+                'last_scored_at' => now(),
+            ]);
+            $contact->activities()->create([
+                'actor_user_id' => $request->user()->id,
+                'type' => 'details_updated',
+                'payload' => ['fields' => $changedFields],
+            ]);
+        });
+
+        return back()->with('success', 'Lead details updated and score recalculated.');
     }
 
     public function update(Request $request, Contact $contact, AutomationEventRecorder $automationEvents)

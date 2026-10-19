@@ -29,7 +29,7 @@ test('empty audit answers receive a zero score', function () {
 });
 
 test('client project scores stay bounded and explain every group without comparing currencies', function () {
-    $settings = config('client-acquisition');
+    $settings = require __DIR__.'/../../config/client-acquisition.php';
     $project = [
         'name' => 'Selam Tesfaye',
         'email' => 'selam@example.com',
@@ -53,7 +53,7 @@ test('client project scores stay bounded and explain every group without compari
 });
 
 test('unknown budget scores no budget points and zero weights disable score rules', function () {
-    $settings = config('client-acquisition');
+    $settings = require __DIR__.'/../../config/client-acquisition.php';
     $project = [
         'market' => 'ethiopia',
         'service_interests' => [],

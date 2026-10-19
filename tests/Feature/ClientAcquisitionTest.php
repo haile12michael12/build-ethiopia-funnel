@@ -4,6 +4,7 @@ use App\Models\ClientAcquisitionSettings;
 use App\Models\Funnel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -107,6 +108,45 @@ test('repeat project requests update the owner contact while retaining submissio
         ->and($contact->emailPreference->status)->toBe('subscribed');
 });
 
+test('repeat submissions keep original attribution while each submission records its own source', function () {
+    $owner = User::factory()->create();
+    config(['business-audit.owner_id' => $owner->id]);
+
+    $this->post(route('client-acquisition.store'), validClientProjectPayload([
+        'attribution' => [
+            'utm_source' => 'first-source',
+            'utm_campaign' => 'launch-one',
+            'landing_page' => '/start-project?utm_campaign=launch-one',
+        ],
+    ]))->assertRedirect();
+    $this->post(route('client-acquisition.store'), validClientProjectPayload([
+        'attribution' => [
+            'utm_source' => 'second-source',
+            'utm_campaign' => 'launch-two',
+            'landing_page' => '/start-project?utm_campaign=launch-two',
+        ],
+    ]))->assertRedirect();
+
+    $contact = $owner->contacts()->where('email', 'selam@example.com')->firstOrFail();
+    expect(data_get($contact->client_project, 'attribution.utm_source'))->toBe('first-source')
+        ->and(data_get($contact->submissions()->latest()->firstOrFail()->attribution, 'utm_source'))->toBe('second-source');
+});
+
+test('saving scoring rules recalculates existing project lead scores', function () {
+    $owner = User::factory()->create();
+    config(['business-audit.owner_id' => $owner->id]);
+    $this->post(route('client-acquisition.store'), validClientProjectPayload())->assertRedirect();
+    $contact = $owner->contacts()->where('email', 'selam@example.com')->firstOrFail();
+    $previousScore = $contact->lead_score;
+    $settings = ClientAcquisitionSettings::defaults();
+    $settings['scoring_weights']['service_fit'] = 0;
+
+    $this->actingAs($owner)->put(route('client-acquisition.settings.update'), $settings)->assertRedirect();
+
+    expect($contact->fresh()->lead_score)->toBe($previousScore - 25)
+        ->and($contact->fresh()->last_scored_at)->not->toBeNull();
+});
+
 test('project requests reject mismatched markets and invalid option keys', function () {
     $owner = User::factory()->create();
     config(['business-audit.owner_id' => $owner->id]);
@@ -161,8 +201,8 @@ test('project funnel records linked experiment assignment on conversion and subm
 
     $this->withCookie('of_variant_'.$funnel->id, (string) $variant->id)
         ->post(route('client-acquisition.store'), validClientProjectPayload([
-        'variant_id' => $variant->id,
-    ]))->assertRedirect();
+            'variant_id' => $variant->id,
+        ]))->assertRedirect();
 
     $contact = $owner->contacts()->where('email', 'selam@example.com')->firstOrFail();
 
@@ -299,7 +339,7 @@ test('signed confirmation cannot expose a different owner or another lead source
         'source' => 'client_acquisition',
     ]);
 
-    $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute(
+    $this->get(URL::temporarySignedRoute(
         'client-acquisition.thank-you',
         now()->addMinutes(30),
         ['contact' => $privateContact->id],

@@ -2,15 +2,13 @@
 
 namespace App\Actions\Leads;
 
+use App\Jobs\SendLeadCaptureNotifications;
 use App\Models\Contact;
 use App\Models\ContactEmailPreference;
 use App\Models\ContactSubmission;
 use App\Models\Funnel;
-use App\Models\FunnelEvent;
 use App\Models\User;
-use App\Jobs\SendLeadCaptureNotifications;
 use App\Services\Automation\AutomationEventRecorder;
-use App\Services\ClientAcquisitionConfiguration;
 use App\Services\EthiopianPhoneNormalizer;
 use App\Services\LeadScoringService;
 use App\Services\OpportunityAutomationService;

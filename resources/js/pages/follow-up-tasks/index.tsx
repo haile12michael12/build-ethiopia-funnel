@@ -44,39 +44,92 @@ export default function FollowUpTasks({ tasks, view, counts }: FollowUpTasksProp
                 </header>
                 <nav className="flex flex-wrap gap-2" aria-label="Task views">
                     {views.map((item) => (
-                        <Link key={item.key} href={route('follow-up-tasks.index', { view: item.key })} className={`rounded-lg border px-3 py-2 text-sm font-medium ${view === item.key ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'}`}>
-                            {item.title}{item.key !== 'all' && <span className="ml-2 tabular-nums">{counts[item.key]}</span>}
+                        <Link
+                            key={item.key}
+                            href={route('follow-up-tasks.index', { view: item.key })}
+                            className={`rounded-lg border px-3 py-2 text-sm font-medium ${view === item.key ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'}`}
+                        >
+                            {item.title}
+                            {item.key !== 'all' && <span className="ml-2 tabular-nums">{counts[item.key]}</span>}
                         </Link>
                     ))}
                 </nav>
                 <section className="overflow-hidden rounded-xl border border-border bg-card">
                     {tasks.data.map((task) => (
-                        <article key={task.id} className="flex flex-col gap-4 border-b border-border p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+                        <article
+                            key={task.id}
+                            className="flex flex-col gap-4 border-b border-border p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
+                        >
                             <div className="min-w-0">
                                 <h2 className="font-semibold text-foreground">{task.title}</h2>
-                                <p className="mt-1 text-sm text-muted-foreground">{task.due_at} · {task.status}</p>
-                                {task.description && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}
-                                <Link href={route('contacts.show', task.contact.id)} className="mt-2 inline-block text-sm text-primary hover:underline">{task.contact.name || task.contact.email} · {task.contact.email}</Link>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {task.due_at} · {task.status}
+                                </p>
+                                {task.description && <p className="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">{task.description}</p>}
+                                <Link
+                                    href={route('contacts.show', task.contact.id)}
+                                    className="mt-2 inline-block text-sm text-primary hover:underline"
+                                >
+                                    {task.contact.name || task.contact.email} · {task.contact.email}
+                                </Link>
                             </div>
                             {task.status === 'pending' && (
                                 <div className="flex shrink-0 gap-2">
-                                    <button type="button" onClick={() => router.patch(route('follow-up-tasks.update', task.id), { status: 'completed' }, { preserveScroll: true })} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"><Check className="h-4 w-4" /> Complete</button>
-                                    <button type="button" onClick={() => router.patch(route('follow-up-tasks.update', task.id), { status: 'cancelled' }, { preserveScroll: true })} className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted">Cancel</button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            router.patch(route('follow-up-tasks.update', task.id), { status: 'completed' }, { preserveScroll: true })
+                                        }
+                                        className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"
+                                    >
+                                        <Check className="h-4 w-4" /> Complete
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            router.patch(route('follow-up-tasks.update', task.id), { status: 'cancelled' }, { preserveScroll: true })
+                                        }
+                                        className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+                                    >
+                                        Cancel
+                                    </button>
                                 </div>
                             )}
                         </article>
                     ))}
                     {tasks.data.length === 0 && (
                         <div className="px-6 py-14 text-center">
-                            {tasks.total === 0 ? <CalendarClock className="mx-auto mb-3 h-9 w-9 text-muted-foreground" /> : <ClipboardList className="mx-auto mb-3 h-9 w-9 text-muted-foreground" />}
+                            {tasks.total === 0 ? (
+                                <CalendarClock className="mx-auto mb-3 h-9 w-9 text-muted-foreground" />
+                            ) : (
+                                <ClipboardList className="mx-auto mb-3 h-9 w-9 text-muted-foreground" />
+                            )}
                             <p className="font-medium text-foreground">No tasks in this view</p>
                             <p className="mt-1 text-sm text-muted-foreground">Create a follow-up from a lead's detail page.</p>
                         </div>
                     )}
                 </section>
-                {tasks.links.length > 3 && <nav className="flex flex-wrap justify-center gap-1" aria-label="Task pages">
-                    {tasks.links.map((link, index) => link.url ? <Link key={`${link.label}-${index}`} href={link.url} preserveScroll className={`rounded-md border px-3 py-1.5 text-sm ${link.active ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-muted'}`} dangerouslySetInnerHTML={{ __html: link.label }} /> : <span key={`${link.label}-${index}`} className="px-3 py-1.5 text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: link.label }} />)}
-                </nav>}
+                {tasks.links.length > 3 && (
+                    <nav className="flex flex-wrap justify-center gap-1" aria-label="Task pages">
+                        {tasks.links.map((link, index) =>
+                            link.url ? (
+                                <Link
+                                    key={`${link.label}-${index}`}
+                                    href={link.url}
+                                    preserveScroll
+                                    className={`rounded-md border px-3 py-1.5 text-sm ${link.active ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:bg-muted'}`}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
+                            ) : (
+                                <span
+                                    key={`${link.label}-${index}`}
+                                    className="px-3 py-1.5 text-sm text-muted-foreground"
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
+                            ),
+                        )}
+                    </nav>
+                )}
             </main>
         </AppLayout>
     );

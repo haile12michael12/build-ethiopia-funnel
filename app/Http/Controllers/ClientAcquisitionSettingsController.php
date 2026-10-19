@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ClientAcquisitionSettings;
-use App\Models\Contact;
-use App\Services\LeadScoringService;
 use App\Services\ClientAcquisitionConfiguration;
+use App\Services\LeadScoringService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;

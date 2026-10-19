@@ -2,7 +2,6 @@
 
 use App\Models\Contact;
 use App\Models\FollowUpTask;
-use App\Models\Pipeline;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -100,6 +99,66 @@ test('lead status changes, internal notes and contact attempts are recorded only
     $this->actingAs($owner)->patch(route('contacts.update', $contact), ['status' => 'invalid'])->assertSessionHasErrors('status');
 });
 
+test('lead detail edits validate currency and recalculate score without replacing attribution', function () {
+    $owner = User::factory()->create();
+    $contact = leadManagementContact($owner, [
+        'client_project' => [
+            'business_name' => 'Addis Studio',
+            'market' => 'ethiopia',
+            'country' => 'Ethiopia',
+            'service_interests' => ['web_app'],
+            'service_labels' => ['Website or web application'],
+            'project_description' => str_repeat('Detailed project description. ', 5),
+            'budget' => 'etb_100000_500000',
+            'budget_currency' => 'ETB',
+            'budget_label' => 'ETB 100,000–500,000',
+            'timeline' => 'within_1_month',
+            'timeline_label' => 'Within one month',
+            'attribution' => ['utm_source' => 'original'],
+            'social_links' => [],
+            'preferred_contact' => 'email',
+        ],
+    ]);
+
+    $this->actingAs($owner)->put(route('contacts.details.update', $contact), [
+        'name' => 'Updated Name',
+        'email' => $contact->email,
+        'phone' => '+251911223344',
+        'business_name' => 'Updated Studio',
+        'market' => 'ethiopia',
+        'country' => 'Ethiopia',
+        'service_interests' => ['web_app'],
+        'project_description' => str_repeat('Updated project details. ', 5),
+        'budget' => 'usd_over_5000',
+        'timeline' => 'within_1_month',
+        'website' => null,
+        'additional_requirements' => null,
+        'preferred_contact' => 'email',
+    ])->assertSessionHasErrors('budget');
+
+    $this->actingAs($owner)->put(route('contacts.details.update', $contact), [
+        'name' => 'Updated Name',
+        'email' => $contact->email,
+        'phone' => '+251911223344',
+        'business_name' => 'Updated Studio',
+        'market' => 'ethiopia',
+        'country' => 'Ethiopia',
+        'service_interests' => ['web_app'],
+        'project_description' => str_repeat('Updated project details. ', 5),
+        'budget' => 'etb_100000_500000',
+        'timeline' => 'within_1_month',
+        'website' => null,
+        'additional_requirements' => null,
+        'preferred_contact' => 'email',
+    ])->assertRedirect();
+
+    expect($contact->fresh()->name)->toBe('Updated Name')
+        ->and(data_get($contact->fresh()->client_project, 'attribution.utm_source'))->toBe('original')
+        ->and(data_get($contact->fresh()->client_project, 'budget_currency'))->toBe('ETB')
+        ->and($contact->fresh()->last_scored_at)->not->toBeNull();
+    $this->assertDatabaseHas('contact_activities', ['contact_id' => $contact->id, 'type' => 'details_updated']);
+});
+
 test('follow-up tasks can be created completed and listed by due view without cross-owner access', function () {
     $owner = User::factory()->create();
     $contact = leadManagementContact($owner);
@@ -120,7 +179,7 @@ test('follow-up tasks can be created completed and listed by due view without cr
     expect($task->contact_id)->toBe($contact->id)
         ->and($task->status)->toBe('pending');
 
-    $this->actingAs($owner)->get(route('follow-up-tasks.index', ['view' => 'upcoming']))
+    $this->actingAs($owner)->withoutVite()->get(route('follow-up-tasks.index', ['view' => 'upcoming']))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('follow-up-tasks/index')->has('tasks.data', 1));
     $this->actingAs($owner)->patch(route('follow-up-tasks.update', $task), ['status' => 'completed'])->assertRedirect();
@@ -137,6 +196,10 @@ test('follow-up tasks can be created completed and listed by due view without cr
 test('lead analytics use actual contacts and opportunity outcomes for the selected period', function () {
     $owner = User::factory()->create();
     $contact = leadManagementContact($owner);
+    $contact->submissions()->create([
+        'fields' => ['form' => 'project'],
+        'source' => 'client_acquisition',
+    ]);
     $pipeline = $owner->pipelines()->create(['name' => 'Consulting', 'currency' => 'ETB']);
     $stage = $pipeline->stages()->create(['name' => 'Won', 'position' => 0, 'probability' => 100]);
     $owner->opportunities()->create([

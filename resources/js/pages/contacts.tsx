@@ -172,7 +172,21 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                     <div className="flex flex-wrap gap-2">
                         {contacts.total > 0 ? (
                             <a
-                                href={route('contacts.export', filters)}
+                                href={route('contacts.export', {
+                                    search: filters.search,
+                                    status: filters.status,
+                                    funnel_id: filters.funnel_id,
+                                    date_from: filters.date_from,
+                                    date_to: filters.date_to,
+                                    market: filters.market,
+                                    service: filters.service,
+                                    budget_currency: filters.budget_currency,
+                                    budget: filters.budget,
+                                    score_min: filters.score_min,
+                                    score_max: filters.score_max,
+                                    follow_up_due: filters.follow_up_due,
+                                    sort: filters.sort,
+                                })}
                                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                             >
                                 <Download className="h-4 w-4" />
@@ -293,44 +307,105 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                         </label>
                         <label>
                             <span className="sr-only">Filter by market</span>
-                            <select value={form.market} onChange={(event) => updateFilter('market', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
-                                <option value="">All markets</option><option value="ethiopia">Ethiopia</option><option value="international">International</option>
+                            <select
+                                value={form.market}
+                                onChange={(event) => updateFilter('market', event.target.value)}
+                                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+                            >
+                                <option value="">All markets</option>
+                                <option value="ethiopia">Ethiopia</option>
+                                <option value="international">International</option>
                             </select>
                         </label>
                         <label>
                             <span className="sr-only">Filter by service</span>
-                            <select value={form.service} onChange={(event) => updateFilter('service', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
-                                <option value="">All services</option>{filterOptions.services.map((service) => <option key={service.key} value={service.key}>{service.label}</option>)}
+                            <select
+                                value={form.service}
+                                onChange={(event) => updateFilter('service', event.target.value)}
+                                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+                            >
+                                <option value="">All services</option>
+                                {filterOptions.services.map((service) => (
+                                    <option key={service.key} value={service.key}>
+                                        {service.label}
+                                    </option>
+                                ))}
                             </select>
                         </label>
                         <label>
                             <span className="sr-only">Filter by budget range</span>
-                            <select value={form.budget} onChange={(event) => updateFilter('budget', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
-                                <option value="">All budget ranges</option>{filterOptions.budgets.map((budget) => <option key={budget.key} value={budget.key}>{budget.label}</option>)}
+                            <select
+                                value={form.budget}
+                                onChange={(event) => updateFilter('budget', event.target.value)}
+                                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+                            >
+                                <option value="">All budget ranges</option>
+                                {filterOptions.budgets.map((budget) => (
+                                    <option key={budget.key} value={budget.key}>
+                                        {budget.label}
+                                    </option>
+                                ))}
                             </select>
                         </label>
                         <label>
                             <span className="sr-only">Filter by currency</span>
-                            <select value={form.budget_currency} onChange={(event) => updateFilter('budget_currency', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
-                                <option value="">All currencies</option><option value="ETB">ETB</option><option value="USD">USD</option>
+                            <select
+                                value={form.budget_currency}
+                                onChange={(event) => updateFilter('budget_currency', event.target.value)}
+                                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+                            >
+                                <option value="">All currencies</option>
+                                <option value="ETB">ETB</option>
+                                <option value="USD">USD</option>
                             </select>
                         </label>
                         <label className="flex items-center gap-2 rounded-lg border border-border px-3 text-sm">
                             <span className="text-muted-foreground">Score</span>
-                            <input aria-label="Minimum lead score" type="number" min="0" max="100" value={form.score_min} onChange={(event) => updateFilter('score_min', event.target.value)} placeholder="Min" className="w-full bg-transparent py-2 outline-none" />
+                            <input
+                                aria-label="Minimum lead score"
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={form.score_min}
+                                onChange={(event) => updateFilter('score_min', event.target.value)}
+                                placeholder="Min"
+                                className="w-full bg-transparent py-2 outline-none"
+                            />
                             <span>–</span>
-                            <input aria-label="Maximum lead score" type="number" min="0" max="100" value={form.score_max} onChange={(event) => updateFilter('score_max', event.target.value)} placeholder="Max" className="w-full bg-transparent py-2 outline-none" />
+                            <input
+                                aria-label="Maximum lead score"
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={form.score_max}
+                                onChange={(event) => updateFilter('score_max', event.target.value)}
+                                placeholder="Max"
+                                className="w-full bg-transparent py-2 outline-none"
+                            />
                         </label>
                         <label>
                             <span className="sr-only">Filter by follow-up due date</span>
-                            <select value={form.follow_up_due} onChange={(event) => updateFilter('follow_up_due', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
-                                <option value="">Any follow-up</option><option value="overdue">Overdue</option><option value="today">Due today</option><option value="upcoming">Upcoming</option>
+                            <select
+                                value={form.follow_up_due}
+                                onChange={(event) => updateFilter('follow_up_due', event.target.value)}
+                                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+                            >
+                                <option value="">Any follow-up</option>
+                                <option value="overdue">Overdue</option>
+                                <option value="today">Due today</option>
+                                <option value="upcoming">Upcoming</option>
                             </select>
                         </label>
                         <label>
                             <span className="sr-only">Sort contacts</span>
-                            <select value={form.sort} onChange={(event) => updateFilter('sort', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
-                                <option value="created_at">Newest first</option><option value="score">Highest score</option><option value="next_follow_up_at">Next follow-up</option>
+                            <select
+                                value={form.sort}
+                                onChange={(event) => updateFilter('sort', event.target.value)}
+                                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
+                            >
+                                <option value="created_at">Newest first</option>
+                                <option value="score">Highest score</option>
+                                <option value="next_follow_up_at">Next follow-up</option>
                             </select>
                         </label>
                         <button
@@ -340,7 +415,7 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                             Apply
                         </button>
                     </div>
-                    {                    (hasFilters || Object.entries(form).some(([key, value]) => key !== 'sort' && Boolean(value))) && (
+                    {(hasFilters || Object.entries(form).some(([key, value]) => key !== 'sort' && Boolean(value))) && (
                         <button
                             type="button"
                             onClick={clearFilters}
@@ -423,10 +498,16 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                                                 {titleCase(contact.status)}
                                             </span>
                                         </div>
-                                        <div className="font-medium tabular-nums text-foreground">{contact.lead_score}/100</div>
+                                        <div className="font-medium text-foreground tabular-nums">{contact.lead_score}/100</div>
                                         <div className="text-sm text-muted-foreground">
-                                            <div>{contact.last_contacted_at ? `Contacted ${contact.last_contacted_at}` : contact.last_submitted_at || contact.created_at}</div>
-                                            {contact.next_follow_up_at && <div className="mt-1 text-xs">Follow-up {new Date(contact.next_follow_up_at).toLocaleString()}</div>}
+                                            <div>
+                                                {contact.last_contacted_at
+                                                    ? `Contacted ${contact.last_contacted_at}`
+                                                    : contact.last_submitted_at || contact.created_at}
+                                            </div>
+                                            {contact.next_follow_up_at && (
+                                                <div className="mt-1 text-xs">Follow-up {new Date(contact.next_follow_up_at).toLocaleString()}</div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

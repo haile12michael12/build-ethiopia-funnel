@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Opportunity;
+use App\Models\ContactSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -81,12 +81,19 @@ class ClientAcquisitionAnalyticsController extends Controller
                 'won_count' => (int) $row->won_count,
             ])
             ->values();
+        $contactIds = $request->user()->contacts()->select('contacts.id');
+        $totalInquiries = ContactSubmission::query()->whereIn('contact_id', $contactIds)->count();
+        $newInquiries = ContactSubmission::query()
+            ->whereIn('contact_id', $contactIds)
+            ->whereBetween('created_at', [$from, $to])
+            ->count();
 
         return Inertia::render('client-acquisition/analytics', [
             'filters' => ['date_from' => $from->toDateString(), 'date_to' => $to->toDateString()],
             'metrics' => [
-                'total_inquiries' => $request->user()->contacts()->count(),
-                'new_inquiries' => (clone $periodContacts)->count(),
+                'total_inquiries' => $totalInquiries,
+                'new_inquiries' => $newInquiries,
+                'total_leads' => $request->user()->contacts()->count(),
                 'qualified_leads' => (clone $periodContacts)->where('status', 'qualified')->count(),
                 'status_counts' => $statusCounts,
                 'service_counts' => $serviceCounts,

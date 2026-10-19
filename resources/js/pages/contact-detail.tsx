@@ -5,7 +5,21 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type BusinessAuditData } from '@/types/business-audit';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, BriefcaseBusiness, CalendarClock, Check, Clock, Mail, MessageSquare, Phone, Plus, Send, UserRound, Workflow } from 'lucide-react';
+import {
+    ArrowLeft,
+    BriefcaseBusiness,
+    CalendarClock,
+    Check,
+    Clock,
+    Mail,
+    MessageSquare,
+    Phone,
+    Plus,
+    Save,
+    Send,
+    UserRound,
+    Workflow,
+} from 'lucide-react';
 import { useState } from 'react';
 
 interface ContactSubmission {
@@ -45,11 +59,13 @@ interface ContactDetailProps {
             business_name: string | null;
             market: 'ethiopia' | 'international';
             country: string;
+            budget: string;
             service_interests: string[];
             service_labels: string[];
             project_description: string;
             budget_label: string;
             timeline_label: string;
+            timeline: string;
             website: string | null;
             social_links: string[];
             preferred_contact: string;
@@ -135,6 +151,11 @@ interface ContactDetailProps {
         }>;
     };
     statusOptions: string[];
+    projectOptions: {
+        services: Array<{ key: string; label: string }>;
+        budgets: Array<{ key: string; label: string; currency: string }>;
+        timelines: Array<{ key: string; label: string }>;
+    };
 }
 
 function formatOpportunityValue(cents: number, currency: string): string {
@@ -145,7 +166,7 @@ function formatOpportunityValue(cents: number, currency: string): string {
     }
 }
 
-export default function ContactDetail({ contact, statusOptions }: ContactDetailProps) {
+export default function ContactDetail({ contact, statusOptions, projectOptions }: ContactDetailProps) {
     const [lostReason, setLostReason] = useState(contact.lost_reason ?? '');
     const [taskDueValues, setTaskDueValues] = useState<Record<number, string>>(
         Object.fromEntries(contact.follow_up_tasks.map((task) => [task.id, task.due_at])),
@@ -169,6 +190,21 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
     const contactAttemptForm = useForm({
         note: '',
     });
+    const detailForm = useForm({
+        name: contact.name ?? '',
+        email: contact.email,
+        phone: contact.phone ?? '',
+        business_name: contact.client_project?.business_name ?? '',
+        market: contact.client_project?.market ?? 'ethiopia',
+        country: contact.client_project?.country ?? '',
+        service_interests: contact.client_project?.service_interests ?? [],
+        project_description: contact.client_project?.project_description ?? '',
+        budget: contact.client_project?.budget ?? '',
+        timeline: contact.client_project?.timeline ?? '',
+        website: contact.client_project?.website ?? '',
+        additional_requirements: contact.client_project?.additional_requirements ?? '',
+        preferred_contact: contact.client_project?.preferred_contact ?? 'email',
+    });
 
     const updateStatus = (status: string) => {
         router.patch(route('contacts.update', contact.id), { status, lost_reason: status === 'lost' ? lostReason : null }, { preserveScroll: true });
@@ -188,6 +224,11 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
             preserveScroll: true,
             onSuccess: () => taskForm.reset(),
         });
+    };
+
+    const updateDetails = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        detailForm.put(route('contacts.details.update', contact.id), { preserveScroll: true });
     };
 
     const recordContactAttempt = (event: React.FormEvent<HTMLFormElement>) => {
@@ -220,7 +261,8 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
             return;
         }
 
-        void navigator.clipboard.writeText(renderTemplate(template.body_en))
+        void navigator.clipboard
+            .writeText(renderTemplate(template.body_en))
             .then(() => setCopyState('Template copied. You still need to send it yourself.'))
             .catch(() => setCopyState('Could not access the clipboard. Select and copy the preview manually.'));
     };
@@ -260,7 +302,14 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        {(contact.business_audit || contact.client_project) && <div className="flex flex-wrap items-center gap-2"><LeadScoreBadge score={contact.lead_score} /><span className="rounded-full border border-border px-2.5 py-1 text-xs font-medium capitalize text-muted-foreground">{contact.lead_priority} operational priority</span></div>}
+                        {(contact.business_audit || contact.client_project) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                                <LeadScoreBadge score={contact.lead_score} />
+                                <span className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground capitalize">
+                                    {contact.lead_priority} operational priority
+                                </span>
+                            </div>
+                        )}
                         <select
                             value={contact.status}
                             onChange={(event) => updateStatus(event.target.value)}
@@ -273,12 +322,25 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                             ))}
                         </select>
                         {contact.status === 'lost' && (
-                            <select aria-label="Reason lead was lost" value={lostReason} onChange={(event) => {
-                                setLostReason(event.target.value);
-                                router.patch(route('contacts.update', contact.id), { status: 'lost', lost_reason: event.target.value || null }, { preserveScroll: true });
-                            }} className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground">
+                            <select
+                                aria-label="Reason lead was lost"
+                                value={lostReason}
+                                onChange={(event) => {
+                                    setLostReason(event.target.value);
+                                    router.patch(
+                                        route('contacts.update', contact.id),
+                                        { status: 'lost', lost_reason: event.target.value || null },
+                                        { preserveScroll: true },
+                                    );
+                                }}
+                                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            >
                                 <option value="">No loss reason</option>
-                                <option value="budget_mismatch">Budget mismatch</option><option value="timing">Timing</option><option value="scope_mismatch">Scope mismatch</option><option value="no_response">No response</option><option value="other">Other</option>
+                                <option value="budget_mismatch">Budget mismatch</option>
+                                <option value="timing">Timing</option>
+                                <option value="scope_mismatch">Scope mismatch</option>
+                                <option value="no_response">No response</option>
+                                <option value="other">Other</option>
                             </select>
                         )}
                     </div>
@@ -359,7 +421,9 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                     </div>
                                     <div>
                                         <dt className="text-muted-foreground">Budget range</dt>
-                                        <dd className="text-foreground">{contact.client_project.budget_label} ({contact.client_project.market === 'ethiopia' ? 'ETB' : 'USD'})</dd>
+                                        <dd className="text-foreground">
+                                            {contact.client_project.budget_label} ({contact.client_project.market === 'ethiopia' ? 'ETB' : 'USD'})
+                                        </dd>
                                     </div>
                                     <div>
                                         <dt className="text-muted-foreground">Timeline</dt>
@@ -416,19 +480,209 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                         <dt className="text-muted-foreground">Marketing consent</dt>
                                         <dd className="text-foreground">{contact.client_project.marketing_consent ? 'Granted' : 'Not granted'}</dd>
                                     </div>
-                                    {contact.client_project.attribution && Object.entries(contact.client_project.attribution).some(([, value]) => Boolean(value)) && (
-                                        <div>
-                                            <dt className="text-muted-foreground">Original attribution</dt>
-                                            <dd className="space-y-1 text-foreground">
-                                                {Object.entries(contact.client_project.attribution).filter(([, value]) => Boolean(value)).map(([key, value]) => <div key={key}>{key.replaceAll('_', ' ')}: {value}</div>)}
-                                            </dd>
-                                        </div>
-                                    )}
+                                    {contact.client_project.attribution &&
+                                        Object.entries(contact.client_project.attribution).some(([, value]) => Boolean(value)) && (
+                                            <div>
+                                                <dt className="text-muted-foreground">Original attribution</dt>
+                                                <dd className="space-y-1 text-foreground">
+                                                    {Object.entries(contact.client_project.attribution)
+                                                        .filter(([, value]) => Boolean(value))
+                                                        .map(([key, value]) => (
+                                                            <div key={key}>
+                                                                {key.replaceAll('_', ' ')}: {value}
+                                                            </div>
+                                                        ))}
+                                                </dd>
+                                            </div>
+                                        )}
                                 </dl>
+                                <details className="mt-5 border-t border-border pt-4">
+                                    <summary className="cursor-pointer font-medium text-primary">Edit contact and project details</summary>
+                                    <form onSubmit={updateDetails} className="mt-4 space-y-3">
+                                        <div className="grid gap-3 sm:grid-cols-2">
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Name
+                                                <input
+                                                    required
+                                                    maxLength={255}
+                                                    value={detailForm.data.name}
+                                                    onChange={(event) => detailForm.setData('name', event.target.value)}
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                />
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Email
+                                                <input
+                                                    required
+                                                    type="email"
+                                                    maxLength={255}
+                                                    value={detailForm.data.email}
+                                                    onChange={(event) => detailForm.setData('email', event.target.value)}
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                />
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Phone
+                                                <input
+                                                    type="tel"
+                                                    maxLength={50}
+                                                    value={detailForm.data.phone}
+                                                    onChange={(event) => detailForm.setData('phone', event.target.value)}
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                />
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Company
+                                                <input
+                                                    maxLength={255}
+                                                    value={detailForm.data.business_name}
+                                                    onChange={(event) => detailForm.setData('business_name', event.target.value)}
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                />
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Market
+                                                <select
+                                                    value={detailForm.data.market}
+                                                    onChange={(event) =>
+                                                        detailForm.setData('market', event.target.value as 'ethiopia' | 'international')
+                                                    }
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                >
+                                                    <option value="ethiopia">Ethiopia</option>
+                                                    <option value="international">International</option>
+                                                </select>
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Country
+                                                <input
+                                                    required
+                                                    maxLength={120}
+                                                    value={detailForm.data.country}
+                                                    onChange={(event) => detailForm.setData('country', event.target.value)}
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                />
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground sm:col-span-2">
+                                                Services
+                                                <select
+                                                    multiple
+                                                    value={detailForm.data.service_interests}
+                                                    onChange={(event) =>
+                                                        detailForm.setData(
+                                                            'service_interests',
+                                                            Array.from(event.target.selectedOptions, (option) => option.value),
+                                                        )
+                                                    }
+                                                    className="min-h-24 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                >
+                                                    {projectOptions.services.map((option) => (
+                                                        <option key={option.key} value={option.key}>
+                                                            {option.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <span className="block">Use Ctrl/Command to select up to five services.</span>
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground sm:col-span-2">
+                                                Project description
+                                                <textarea
+                                                    required
+                                                    minLength={30}
+                                                    maxLength={5000}
+                                                    value={detailForm.data.project_description}
+                                                    onChange={(event) => detailForm.setData('project_description', event.target.value)}
+                                                    className="min-h-24 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                />
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Budget range
+                                                <select
+                                                    required
+                                                    value={detailForm.data.budget}
+                                                    onChange={(event) => detailForm.setData('budget', event.target.value)}
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                >
+                                                    {projectOptions.budgets
+                                                        .filter(
+                                                            (option) => option.currency === (detailForm.data.market === 'ethiopia' ? 'ETB' : 'USD'),
+                                                        )
+                                                        .map((option) => (
+                                                            <option key={option.key} value={option.key}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                </select>
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Timeline
+                                                <select
+                                                    required
+                                                    value={detailForm.data.timeline}
+                                                    onChange={(event) => detailForm.setData('timeline', event.target.value)}
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                >
+                                                    {projectOptions.timelines.map((option) => (
+                                                        <option key={option.key} value={option.key}>
+                                                            {option.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Website
+                                                <input
+                                                    type="url"
+                                                    value={detailForm.data.website}
+                                                    onChange={(event) => detailForm.setData('website', event.target.value)}
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                />
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground">
+                                                Preferred contact
+                                                <select
+                                                    value={detailForm.data.preferred_contact}
+                                                    onChange={(event) =>
+                                                        detailForm.setData('preferred_contact', event.target.value as 'email' | 'phone' | 'whatsapp')
+                                                    }
+                                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                >
+                                                    <option value="email">Email</option>
+                                                    <option value="phone">Phone</option>
+                                                    <option value="whatsapp">WhatsApp</option>
+                                                </select>
+                                            </label>
+                                            <label className="space-y-1 text-xs text-muted-foreground sm:col-span-2">
+                                                Additional requirements
+                                                <textarea
+                                                    maxLength={3000}
+                                                    value={detailForm.data.additional_requirements}
+                                                    onChange={(event) => detailForm.setData('additional_requirements', event.target.value)}
+                                                    className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                />
+                                            </label>
+                                        </div>
+                                        {Object.values(detailForm.errors).length > 0 && (
+                                            <p role="alert" className="text-sm text-destructive">
+                                                {Object.values(detailForm.errors)[0]}
+                                            </p>
+                                        )}
+                                        <button
+                                            type="submit"
+                                            disabled={detailForm.processing}
+                                            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                                        >
+                                            <Save className="h-4 w-4" />
+                                            Save and recalculate score
+                                        </button>
+                                    </form>
+                                </details>
                                 <div className="mt-5 border-t border-border pt-4">
                                     <h3 className="mb-3 font-medium text-foreground">Lead score rationale</h3>
                                     <p className="mb-3 text-xs text-muted-foreground">
-                                        Operational follow-up suggestion only; it is not an objective judgment about the person. High ≥{contact.priority_thresholds.high}, medium ≥{contact.priority_thresholds.medium}. Last calculated {contact.last_scored_at || 'not recorded'}.
+                                        Operational follow-up suggestion only; it is not an objective judgment about the person. High ≥
+                                        {contact.priority_thresholds.high}, medium ≥{contact.priority_thresholds.medium}. Last calculated{' '}
+                                        {contact.last_scored_at || 'not recorded'}.
                                     </p>
                                     <LeadScoreBreakdown breakdown={contact.lead_score_breakdown} />
                                     {contact.lead_score_reasons.length > 0 && (
@@ -555,12 +809,45 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                 <CalendarClock className="h-4 w-4" />
                                 Follow-up tasks
                             </h2>
-                            <p className="mb-4 text-xs text-muted-foreground">Tasks are internal reminders only. No scheduled reminder or message is sent.</p>
+                            <p className="mb-4 text-xs text-muted-foreground">
+                                Tasks are internal reminders only. No scheduled reminder or message is sent.
+                            </p>
                             <form onSubmit={addTask} className="space-y-3">
-                                <input aria-label="Task title" required maxLength={160} value={taskForm.data.title} onChange={(event) => taskForm.setData('title', event.target.value)} placeholder="Task title" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-                                <textarea aria-label="Task description" maxLength={2000} value={taskForm.data.description} onChange={(event) => taskForm.setData('description', event.target.value)} placeholder="Optional details" className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-                                <label className="block space-y-1 text-xs text-muted-foreground">Due date and time<input aria-label="Task due date and time" type="datetime-local" required value={taskForm.data.due_at} onChange={(event) => taskForm.setData('due_at', event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" /></label>
-                                <button type="submit" disabled={taskForm.processing} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">Create task</button>
+                                <input
+                                    aria-label="Task title"
+                                    required
+                                    maxLength={160}
+                                    value={taskForm.data.title}
+                                    onChange={(event) => taskForm.setData('title', event.target.value)}
+                                    placeholder="Task title"
+                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                                />
+                                <textarea
+                                    aria-label="Task description"
+                                    maxLength={2000}
+                                    value={taskForm.data.description}
+                                    onChange={(event) => taskForm.setData('description', event.target.value)}
+                                    placeholder="Optional details"
+                                    className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                                />
+                                <label className="block space-y-1 text-xs text-muted-foreground">
+                                    Due date and time
+                                    <input
+                                        aria-label="Task due date and time"
+                                        type="datetime-local"
+                                        required
+                                        value={taskForm.data.due_at}
+                                        onChange={(event) => taskForm.setData('due_at', event.target.value)}
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                    />
+                                </label>
+                                <button
+                                    type="submit"
+                                    disabled={taskForm.processing}
+                                    className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                                >
+                                    Create task
+                                </button>
                             </form>
                             <div className="mt-4 space-y-3">
                                 {contact.follow_up_tasks.map((task) => (
@@ -568,41 +855,150 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                         <div className="flex items-start justify-between gap-2">
                                             <div>
                                                 <p className="font-medium text-foreground">{task.title}</p>
-                                                <p className="mt-1 text-xs text-muted-foreground">{task.due_label} · {task.status}</p>
-                                                {task.description && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {task.due_label} · {task.status}
+                                                </p>
+                                                {task.description && (
+                                                    <p className="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">{task.description}</p>
+                                                )}
                                             </div>
-                                            {task.status === 'pending' && <button type="button" aria-label={`Complete ${task.title}`} onClick={() => router.patch(route('follow-up-tasks.update', task.id), { status: 'completed' }, { preserveScroll: true })} className="rounded-md border border-border p-2 hover:bg-muted"><Check className="h-4 w-4" /></button>}
+                                            {task.status === 'pending' && (
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Complete ${task.title}`}
+                                                    onClick={() =>
+                                                        router.patch(
+                                                            route('follow-up-tasks.update', task.id),
+                                                            { status: 'completed' },
+                                                            { preserveScroll: true },
+                                                        )
+                                                    }
+                                                    className="rounded-md border border-border p-2 hover:bg-muted"
+                                                >
+                                                    <Check className="h-4 w-4" />
+                                                </button>
+                                            )}
                                         </div>
-                                        {task.status === 'pending' && <div className="mt-3 flex gap-2"><label className="flex-1 space-y-1 text-xs text-muted-foreground">Reschedule<input aria-label={`Reschedule ${task.title}`} type="datetime-local" value={taskDueValues[task.id] ?? task.due_at} onChange={(event) => setTaskDueValues((current) => ({ ...current, [task.id]: event.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" /></label><button type="button" disabled={!taskDueValues[task.id] || taskDueValues[task.id] === task.due_at} onClick={() => router.patch(route('follow-up-tasks.update', task.id), { due_at: taskDueValues[task.id] }, { preserveScroll: true })} className="self-end rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50">Save</button></div>}
+                                        {task.status === 'pending' && (
+                                            <div className="mt-3 flex gap-2">
+                                                <label className="flex-1 space-y-1 text-xs text-muted-foreground">
+                                                    Reschedule
+                                                    <input
+                                                        aria-label={`Reschedule ${task.title}`}
+                                                        type="datetime-local"
+                                                        value={taskDueValues[task.id] ?? task.due_at}
+                                                        onChange={(event) =>
+                                                            setTaskDueValues((current) => ({ ...current, [task.id]: event.target.value }))
+                                                        }
+                                                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                                    />
+                                                </label>
+                                                <button
+                                                    type="button"
+                                                    disabled={!taskDueValues[task.id] || taskDueValues[task.id] === task.due_at}
+                                                    onClick={() =>
+                                                        router.patch(
+                                                            route('follow-up-tasks.update', task.id),
+                                                            { due_at: taskDueValues[task.id] },
+                                                            { preserveScroll: true },
+                                                        )
+                                                    }
+                                                    className="self-end rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                                                >
+                                                    Save
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
-                                {contact.follow_up_tasks.length === 0 && <p className="text-sm text-muted-foreground">No follow-up tasks are scheduled.</p>}
+                                {contact.follow_up_tasks.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">No follow-up tasks are scheduled.</p>
+                                )}
                             </div>
-                            <Link href={route('follow-up-tasks.index')} className="mt-4 inline-block text-sm font-medium text-primary hover:underline">View all tasks</Link>
+                            <Link
+                                href={route('follow-up-tasks.index')}
+                                className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
+                            >
+                                View all tasks
+                            </Link>
                         </section>
 
                         <section className="rounded-xl border border-border bg-card p-5">
                             <h2 className="mb-3 font-semibold text-foreground">Record a contact attempt</h2>
                             <p className="mb-4 text-xs text-muted-foreground">This records an activity only; it does not send a message.</p>
                             <form onSubmit={recordContactAttempt} className="space-y-3">
-                                <select aria-label="Contact attempt channel" value={contactChannel} onChange={(event) => setContactChannel(event.target.value as typeof contactChannel)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-                                    <option value="email">Email</option><option value="phone">Phone</option><option value="whatsapp">WhatsApp</option><option value="meeting">Meeting</option><option value="proposal">Proposal</option>
+                                <select
+                                    aria-label="Contact attempt channel"
+                                    value={contactChannel}
+                                    onChange={(event) => setContactChannel(event.target.value as typeof contactChannel)}
+                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                                >
+                                    <option value="email">Email</option>
+                                    <option value="phone">Phone</option>
+                                    <option value="whatsapp">WhatsApp</option>
+                                    <option value="meeting">Meeting</option>
+                                    <option value="proposal">Proposal</option>
                                 </select>
-                                <textarea aria-label="Contact attempt note" value={contactAttemptForm.data.note} onChange={(event) => contactAttemptForm.setData('note', event.target.value)} maxLength={1000} placeholder="Optional internal context" className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-                                <button type="submit" disabled={contactAttemptForm.processing} className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50">Record contact attempt</button>
+                                <textarea
+                                    aria-label="Contact attempt note"
+                                    value={contactAttemptForm.data.note}
+                                    onChange={(event) => contactAttemptForm.setData('note', event.target.value)}
+                                    maxLength={1000}
+                                    placeholder="Optional internal context"
+                                    className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={contactAttemptForm.processing}
+                                    className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                                >
+                                    Record contact attempt
+                                </button>
                             </form>
                         </section>
 
                         <section className="rounded-xl border border-border bg-card p-5">
                             <h2 className="mb-3 font-semibold text-foreground">Manual follow-up message</h2>
-                            <p className="mb-3 text-xs text-muted-foreground">Preview and copy only. Nothing is sent. Promotional templates are available only when marketing consent is recorded.</p>
-                            <select aria-label="Choose a follow-up template" value={selectedTemplate} onChange={(event) => { setSelectedTemplate(event.target.value); setCopyState(''); }} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                            <p className="mb-3 text-xs text-muted-foreground">
+                                Preview and copy only. Nothing is sent. Promotional templates are available only when marketing consent is recorded.
+                            </p>
+                            <select
+                                aria-label="Choose a follow-up template"
+                                value={selectedTemplate}
+                                onChange={(event) => {
+                                    setSelectedTemplate(event.target.value);
+                                    setCopyState('');
+                                }}
+                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                            >
                                 <option value="">Choose template</option>
-                                {contact.follow_up_templates.map((template) => <option key={template.key} value={template.key}>{template.label_en} · {template.kind}</option>)}
+                                {contact.follow_up_templates.map((template) => (
+                                    <option key={template.key} value={template.key}>
+                                        {template.label_en} · {template.kind}
+                                    </option>
+                                ))}
                             </select>
-                            {selectedTemplate && <textarea readOnly aria-label="Follow-up template preview" value={renderTemplate(contact.follow_up_templates.find((item) => item.key === selectedTemplate)?.body_en ?? '')} className="mt-3 min-h-32 w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-sm" />}
-                            <button type="button" disabled={!selectedTemplate} onClick={copyTemplate} className="mt-3 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50">Copy preview</button>
-                            {copyState && <p role="status" className="mt-2 text-sm text-muted-foreground">{copyState}</p>}
+                            {selectedTemplate && (
+                                <textarea
+                                    readOnly
+                                    aria-label="Follow-up template preview"
+                                    value={renderTemplate(contact.follow_up_templates.find((item) => item.key === selectedTemplate)?.body_en ?? '')}
+                                    className="mt-3 min-h-32 w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-sm"
+                                />
+                            )}
+                            <button
+                                type="button"
+                                disabled={!selectedTemplate}
+                                onClick={copyTemplate}
+                                className="mt-3 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                            >
+                                Copy preview
+                            </button>
+                            {copyState && (
+                                <p role="status" className="mt-2 text-sm text-muted-foreground">
+                                    {copyState}
+                                </p>
+                            )}
                         </section>
 
                         <div className="rounded-xl border border-border bg-card p-5">
@@ -696,16 +1092,24 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
 
                     <div className="rounded-xl border border-border bg-card">
                         <div className="border-b border-border px-5 py-4">
-                            <h2 className="flex items-center gap-2 font-semibold text-foreground"><Clock className="h-4 w-4" />Contact activity</h2>
+                            <h2 className="flex items-center gap-2 font-semibold text-foreground">
+                                <Clock className="h-4 w-4" />
+                                Contact activity
+                            </h2>
                         </div>
                         <div className="divide-y divide-border">
                             {contact.activities.map((activity) => (
                                 <div key={activity.id} className="px-5 py-4">
                                     <p className="text-sm text-foreground">{activityDescription(activity.type, activity.payload)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">{activity.actor ? `${activity.actor} · ` : ''}{activity.created_at}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {activity.actor ? `${activity.actor} · ` : ''}
+                                        {activity.created_at}
+                                    </p>
                                 </div>
                             ))}
-                            {contact.activities.length === 0 && <div className="px-5 py-6 text-sm text-muted-foreground">No contact activities recorded.</div>}
+                            {contact.activities.length === 0 && (
+                                <div className="px-5 py-6 text-sm text-muted-foreground">No contact activities recorded.</div>
+                            )}
                         </div>
                     </div>
                     <div className="rounded-xl border border-border bg-card">
