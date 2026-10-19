@@ -25,6 +25,7 @@ use App\Http\Controllers\FunnelOpportunitySettingController;
 use App\Http\Controllers\FunnelResponseController;
 use App\Http\Controllers\FunnelSupportChatController;
 use App\Http\Controllers\FunnelVariantController;
+use App\Http\Controllers\FollowUpTaskController;
 use App\Http\Controllers\GitHubProfileController;
 use App\Http\Controllers\LeadCaptureController;
 use App\Http\Controllers\LocaleController;
@@ -215,6 +216,10 @@ Route::domain($appDomain)->group(function () {
         Route::get('contacts/{contact}', [ContactController::class, 'show'])->name('contacts.show');
         Route::patch('contacts/{contact}', [ContactController::class, 'update'])->name('contacts.update');
         Route::post('contacts/{contact}/notes', [ContactController::class, 'storeNote'])->name('contacts.notes.store');
+        Route::post('contacts/{contact}/contact-attempts', [ContactController::class, 'storeContactAttempt'])->name('contacts.contact-attempts.store');
+        Route::get('follow-up-tasks', [FollowUpTaskController::class, 'index'])->name('follow-up-tasks.index');
+        Route::post('contacts/{contact}/follow-up-tasks', [FollowUpTaskController::class, 'store'])->name('follow-up-tasks.store');
+        Route::patch('follow-up-tasks/{task}', [FollowUpTaskController::class, 'update'])->name('follow-up-tasks.update');
         Route::get('opportunities', [OpportunityController::class, 'index'])->name('opportunities.index');
         Route::post('opportunities', [OpportunityController::class, 'store'])->name('opportunities.store');
         Route::patch('opportunities/{opportunity}', [OpportunityController::class, 'update'])->name('opportunities.update');

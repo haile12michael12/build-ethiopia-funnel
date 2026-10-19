@@ -13,6 +13,15 @@ export interface ClientAcquisitionTimeline extends ClientAcquisitionOption {
     score: number;
 }
 
+export interface ClientAcquisitionFollowUpTemplate {
+    key: string;
+    label_en: string;
+    label_am: string | null;
+    body_en: string;
+    body_am: string | null;
+    kind: 'transactional' | 'promotional';
+}
+
 export interface ClientAcquisitionSettings {
     services: ClientAcquisitionOption[];
     budgets: ClientAcquisitionBudget[];
@@ -22,8 +31,10 @@ export interface ClientAcquisitionSettings {
         project_clarity: number;
         budget: number;
         timeline: number;
-        consultation: number;
+        scope_completeness: number;
+        contact_completeness: number;
     };
+    follow_up_templates: ClientAcquisitionFollowUpTemplate[];
     qualified_score: number;
     response_time_hours: number | null;
     response_email: string | null;

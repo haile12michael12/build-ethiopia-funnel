@@ -20,7 +20,7 @@ class ClientAcquisitionConfiguration
             return $defaults;
         }
 
-        return array_replace($defaults, $settings->only([
+        $configured = array_replace($defaults, $settings->only([
             'services',
             'budgets',
             'timelines',
@@ -31,6 +31,14 @@ class ClientAcquisitionConfiguration
             'whatsapp_url',
             'meeting_url',
             'analytics_funnel_id',
+            'follow_up_templates',
         ]));
+
+        $configured['scoring_weights'] = array_replace(
+            $defaults['scoring_weights'],
+            $configured['scoring_weights'] ?? [],
+        );
+
+        return $configured;
     }
 }

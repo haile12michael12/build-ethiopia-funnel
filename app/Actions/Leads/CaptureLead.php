@@ -115,19 +115,25 @@ class CaptureLead
             $contact = Contact::firstOrNew(['user_id' => $owner->id, 'email' => $email]);
             $isNewContact = ! $contact->exists;
             $project = [
+                'name' => trim($validated['name']),
+                'email' => $email,
+                'phone' => trim((string) ($validated['phone'] ?? '')),
                 'business_name' => $validated['business_name'] ?? null,
                 'market' => $validated['market'],
                 'country' => trim($validated['country']),
                 'service_interests' => $validated['service_interests'],
                 'project_description' => trim($validated['project_description']),
                 'budget' => $validated['budget'],
+                'budget_currency' => $validated['market'] === 'ethiopia' ? 'ETB' : 'USD',
                 'timeline' => $validated['timeline'],
                 'website' => $validated['website'] ?? null,
                 'social_links' => $validated['social_links'] ?? [],
                 'preferred_contact' => $validated['preferred_contact'],
                 'additional_requirements' => $validated['additional_requirements'] ?? null,
                 'marketing_consent' => (bool) ($validated['marketing_consent'] ?? false),
-                'attribution' => $validated['attribution'] ?? [],
+                'attribution' => $contact->exists
+                    ? ($contact->client_project['attribution'] ?? ($validated['attribution'] ?? []))
+                    : ($validated['attribution'] ?? []),
             ];
             $serviceLabels = collect($settings['services'])
                 ->filter(fn (array $service) => in_array($service['key'], $project['service_interests'], true))
@@ -157,6 +163,7 @@ class CaptureLead
                 'lead_score' => $score['score'],
                 'lead_score_breakdown' => $score['breakdown'],
                 'lead_score_reasons' => $score['reasons'],
+                'last_scored_at' => now(),
                 'metadata' => [
                     ...($contact->metadata ?? []),
                     'submission_count' => $submissionCount,

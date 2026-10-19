@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClientAcquisitionSettings;
+use App\Models\Contact;
+use App\Services\LeadScoringService;
 use App\Services\ClientAcquisitionConfiguration;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,9 +32,10 @@ class ClientAcquisitionSettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request, ClientAcquisitionConfiguration $configuration): RedirectResponse
+    public function update(Request $request, ClientAcquisitionConfiguration $configuration, LeadScoringService $scoring): RedirectResponse
     {
         $this->authorizeOwner($request);
+        $previous = $configuration->forOwner($request->user()->id);
         $validated = $request->validate([
             'services' => ['required', 'array', 'min:1', 'max:20'],
             'services.*.key' => ['required', 'string', 'alpha_dash', 'max:40'],
@@ -50,11 +53,19 @@ class ClientAcquisitionSettingsController extends Controller
             'timelines.*.label_am' => ['nullable', 'string', 'max:120'],
             'timelines.*.score' => ['required', 'integer', 'min:0', 'max:100'],
             'scoring_weights' => ['required', 'array'],
-            'scoring_weights.service_fit' => ['required', 'integer', 'min:0', 'max:100'],
-            'scoring_weights.project_clarity' => ['required', 'integer', 'min:0', 'max:100'],
-            'scoring_weights.budget' => ['required', 'integer', 'min:0', 'max:100'],
-            'scoring_weights.timeline' => ['required', 'integer', 'min:0', 'max:100'],
-            'scoring_weights.consultation' => ['required', 'integer', 'min:0', 'max:100'],
+            'scoring_weights.service_fit' => ['required', 'integer', 'min:0', 'max:25'],
+            'scoring_weights.project_clarity' => ['required', 'integer', 'min:0', 'max:15'],
+            'scoring_weights.budget' => ['required', 'integer', 'min:0', 'max:25'],
+            'scoring_weights.timeline' => ['required', 'integer', 'min:0', 'max:15'],
+            'scoring_weights.scope_completeness' => ['required', 'integer', 'min:0', 'max:10'],
+            'scoring_weights.contact_completeness' => ['required', 'integer', 'min:0', 'max:10'],
+            'follow_up_templates' => ['required', 'array', 'min:1', 'max:20'],
+            'follow_up_templates.*.key' => ['required', 'string', 'alpha_dash', 'max:40'],
+            'follow_up_templates.*.label_en' => ['required', 'string', 'max:120'],
+            'follow_up_templates.*.label_am' => ['nullable', 'string', 'max:120'],
+            'follow_up_templates.*.body_en' => ['required', 'string', 'max:3000'],
+            'follow_up_templates.*.body_am' => ['nullable', 'string', 'max:3000'],
+            'follow_up_templates.*.kind' => ['required', 'in:transactional,promotional'],
             'qualified_score' => ['required', 'integer', 'min:0', 'max:100'],
             'response_time_hours' => ['nullable', 'integer', 'min:1', 'max:720'],
             'response_email' => ['nullable', 'email:rfc', 'max:255'],
@@ -64,6 +75,12 @@ class ClientAcquisitionSettingsController extends Controller
         ]);
 
         $this->validateUniqueKeys($validated);
+        $templateKeys = collect($validated['follow_up_templates'])->pluck('key');
+        if ($templateKeys->unique()->count() !== $templateKeys->count()) {
+            throw ValidationException::withMessages([
+                'follow_up_templates' => 'Each follow-up template must have a unique key.',
+            ]);
+        }
         $weights = $validated['scoring_weights'];
         if (array_sum($weights) > 100) {
             throw ValidationException::withMessages([
@@ -109,6 +126,32 @@ class ClientAcquisitionSettingsController extends Controller
                 'analytics_funnel_id' => $analyticsFunnelId,
             ],
         );
+
+        $updated = $configuration->forOwner($request->user()->id);
+        if (array_diff_assoc($updated['scoring_weights'], $previous['scoring_weights'])
+            || $updated['budgets'] !== $previous['budgets']
+            || $updated['timelines'] !== $previous['timelines']
+            || $updated['services'] !== $previous['services']) {
+            $request->user()->contacts()
+                ->whereNotNull('client_project')
+                ->chunkById(100, function ($contacts) use ($scoring, $updated): void {
+                    foreach ($contacts as $contact) {
+                        $project = [
+                            ...($contact->client_project ?? []),
+                            'name' => $contact->name,
+                            'email' => $contact->email,
+                            'phone' => $contact->phone,
+                        ];
+                        $score = $scoring->scoreClientProject($project, $updated);
+                        $contact->forceFill([
+                            'lead_score' => $score['score'],
+                            'lead_score_breakdown' => $score['breakdown'],
+                            'lead_score_reasons' => $score['reasons'],
+                            'last_scored_at' => now(),
+                        ])->save();
+                    }
+                });
+        }
 
         return back()->with('success', 'Client acquisition settings updated.');
     }

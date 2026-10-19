@@ -5,7 +5,8 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type BusinessAuditData } from '@/types/business-audit';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, BriefcaseBusiness, Clock, Mail, MessageSquare, Phone, Plus, Send, UserRound, Workflow } from 'lucide-react';
+import { ArrowLeft, BriefcaseBusiness, CalendarClock, Check, Clock, Mail, MessageSquare, Phone, Plus, Send, UserRound, Workflow } from 'lucide-react';
+import { useState } from 'react';
 
 interface ContactSubmission {
     id: number;
@@ -50,6 +51,7 @@ interface ContactDetailProps {
             preferred_contact: string;
             additional_requirements: string | null;
             marketing_consent: boolean;
+            attribution?: Record<string, string>;
         } | null;
         tags: string[];
         metadata: Record<string, unknown>;
@@ -72,9 +74,34 @@ interface ContactDetailProps {
         ip_address: string | null;
         user_agent: string | null;
         last_submitted_at: string | null;
+        last_contacted_at: string | null;
         created_at: string;
         updated_at: string;
         submissions: ContactSubmission[];
+        activities: Array<{
+            id: number;
+            type: string;
+            payload: Record<string, string | number | null>;
+            actor: string | null;
+            created_at: string;
+        }>;
+        follow_up_tasks: Array<{
+            id: number;
+            title: string;
+            description: string | null;
+            due_at: string;
+            due_label: string;
+            status: 'pending' | 'completed' | 'cancelled';
+            completed_at: string | null;
+        }>;
+        follow_up_templates: Array<{
+            key: string;
+            label_en: string;
+            label_am: string | null;
+            body_en: string;
+            body_am: string | null;
+            kind: 'transactional' | 'promotional';
+        }>;
         opportunities: Array<{
             id: number;
             title: string;
@@ -115,6 +142,10 @@ function formatOpportunityValue(cents: number, currency: string): string {
 }
 
 export default function ContactDetail({ contact, statusOptions }: ContactDetailProps) {
+    const [lostReason, setLostReason] = useState(contact.lost_reason ?? '');
+    const [contactChannel, setContactChannel] = useState<'email' | 'phone' | 'whatsapp' | 'meeting' | 'proposal'>('email');
+    const [selectedTemplate, setSelectedTemplate] = useState('');
+    const [copyState, setCopyState] = useState('');
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Contacts', href: '/contacts' },
         { title: contact.name || contact.email, href: `/contacts/${contact.id}` },
@@ -123,9 +154,17 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
     const noteForm = useForm({
         note: '',
     });
+    const taskForm = useForm({
+        title: '',
+        description: '',
+        due_at: '',
+    });
+    const contactAttemptForm = useForm({
+        note: '',
+    });
 
     const updateStatus = (status: string) => {
-        router.patch(route('contacts.update', contact.id), { status }, { preserveScroll: true });
+        router.patch(route('contacts.update', contact.id), { status, lost_reason: status === 'lost' ? lostReason : null }, { preserveScroll: true });
     };
 
     const addNote = (event: React.FormEvent<HTMLFormElement>) => {
@@ -134,6 +173,54 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
             preserveScroll: true,
             onSuccess: () => noteForm.reset(),
         });
+    };
+
+    const addTask = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        taskForm.post(route('follow-up-tasks.store', contact.id), {
+            preserveScroll: true,
+            onSuccess: () => taskForm.reset(),
+        });
+    };
+
+    const recordContactAttempt = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        contactAttemptForm.transform((data) => ({ ...data, channel: contactChannel }));
+        contactAttemptForm.post(route('contacts.contact-attempts.store', contact.id), {
+            preserveScroll: true,
+            onSuccess: () => contactAttemptForm.reset(),
+        });
+    };
+
+    const renderTemplate = (body: string) => {
+        const project = contact.client_project;
+        const service = project?.service_labels.join(', ') || project?.service_interests.join(', ') || 'your project';
+        const replacements: Record<string, string> = {
+            name: contact.name || 'there',
+            service,
+            company: project?.business_name || 'your company',
+            timeline: project?.timeline_label || 'your preferred timeline',
+        };
+
+        return body.replace(/\{\{(name|service|company|timeline)\}\}/g, (_, key: string) => replacements[key] ?? '');
+    };
+
+    const copyTemplate = () => {
+        const template = contact.follow_up_templates.find((item) => item.key === selectedTemplate);
+        if (!template) return;
+
+        void navigator.clipboard.writeText(renderTemplate(template.body_en))
+            .then(() => setCopyState('Template copied. You still need to send it yourself.'))
+            .catch(() => setCopyState('Could not access the clipboard. Select and copy the preview manually.'));
+    };
+
+    const activityDescription = (type: string, payload: Record<string, string | number | null>) => {
+        if (type === 'status_changed') return `Status changed from ${payload.from ?? 'unknown'} to ${payload.to ?? 'unknown'}.`;
+        if (type === 'note_added') return `Internal note: ${payload.body ?? ''}`;
+        if (type === 'contact_attempt') return `Recorded ${payload.channel ?? 'contact'} attempt. No message was sent. ${payload.note ?? ''}`;
+        if (type.startsWith('task_')) return `${type.replaceAll('_', ' ')}: ${payload.title ?? 'follow-up task'}.`;
+
+        return type.replaceAll('_', ' ');
     };
 
     return (
@@ -174,6 +261,12 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                 </option>
                             ))}
                         </select>
+                        {contact.status === 'lost' && (
+                            <select aria-label="Reason lead was lost" value={lostReason} onChange={(event) => setLostReason(event.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground">
+                                <option value="">No loss reason</option>
+                                <option value="budget_mismatch">Budget mismatch</option><option value="timing">Timing</option><option value="scope_mismatch">Scope mismatch</option><option value="no_response">No response</option><option value="other">Other</option>
+                            </select>
+                        )}
                     </div>
                 </div>
 
@@ -214,6 +307,10 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                     <div className="text-foreground">{contact.last_submitted_at || 'Not available'}</div>
                                 </div>
                                 <div>
+                                    <div className="text-muted-foreground">Last contact attempt</div>
+                                    <div className="text-foreground">{contact.last_contacted_at || 'Not recorded'}</div>
+                                </div>
+                                <div>
                                     <div className="text-muted-foreground">IP address</div>
                                     <div className="text-foreground">{contact.ip_address || 'Not available'}</div>
                                 </div>
@@ -248,7 +345,7 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                     </div>
                                     <div>
                                         <dt className="text-muted-foreground">Budget range</dt>
-                                        <dd className="text-foreground">{contact.client_project.budget_label}</dd>
+                                        <dd className="text-foreground">{contact.client_project.budget_label} ({contact.client_project.market === 'ethiopia' ? 'ETB' : 'USD'})</dd>
                                     </div>
                                     <div>
                                         <dt className="text-muted-foreground">Timeline</dt>
@@ -305,6 +402,14 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                         <dt className="text-muted-foreground">Marketing consent</dt>
                                         <dd className="text-foreground">{contact.client_project.marketing_consent ? 'Granted' : 'Not granted'}</dd>
                                     </div>
+                                    {contact.client_project.attribution && Object.entries(contact.client_project.attribution).some(([, value]) => Boolean(value)) && (
+                                        <div>
+                                            <dt className="text-muted-foreground">Original attribution</dt>
+                                            <dd className="space-y-1 text-foreground">
+                                                {Object.entries(contact.client_project.attribution).filter(([, value]) => Boolean(value)).map(([key, value]) => <div key={key}>{key.replaceAll('_', ' ')}: {value}</div>)}
+                                            </dd>
+                                        </div>
+                                    )}
                                 </dl>
                                 <div className="mt-5 border-t border-border pt-4">
                                     <h3 className="mb-3 font-medium text-foreground">Lead score rationale</h3>

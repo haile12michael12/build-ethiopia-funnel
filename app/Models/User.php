@@ -68,6 +68,11 @@ class User extends Authenticatable
         return $this->hasMany(Contact::class);
     }
 
+    public function followUpTasks(): HasMany
+    {
+        return $this->hasMany(FollowUpTask::class);
+    }
+
     public function pipelines(): HasMany
     {
         return $this->hasMany(Pipeline::class);

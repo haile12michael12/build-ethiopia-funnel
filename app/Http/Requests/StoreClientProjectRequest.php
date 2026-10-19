@@ -43,6 +43,7 @@ class StoreClientProjectRequest extends FormRequest
             'attribution.utm_term' => ['nullable', 'string', 'max:255'],
             'attribution.utm_content' => ['nullable', 'string', 'max:255'],
             'attribution.referrer' => ['nullable', 'url', 'max:2000'],
+            'attribution.landing_page' => ['nullable', 'string', 'max:2048'],
             'attribution.device' => ['nullable', Rule::in(['mobile', 'tablet', 'desktop'])],
             'session_id' => ['nullable', 'uuid'],
             'variant_id' => ['nullable', 'integer', 'min:1'],

@@ -9,6 +9,19 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Contact extends Model
 {
+    public const STATUSES = [
+        'new',
+        'reviewing',
+        'qualified',
+        'contacted',
+        'consultation_scheduled',
+        'proposal_sent',
+        'negotiation',
+        'won',
+        'lost',
+        'nurture',
+    ];
+
     protected $fillable = [
         'user_id',
         'funnel_id',
@@ -17,11 +30,13 @@ class Contact extends Model
         'phone',
         'source',
         'status',
+        'lost_reason',
         'tags',
         'metadata',
         'ip_address',
         'user_agent',
         'last_submitted_at',
+        'last_contacted_at',
         'last_scored_at',
         'business_audit',
         'client_project',
@@ -34,6 +49,7 @@ class Contact extends Model
         'tags' => 'array',
         'metadata' => 'array',
         'last_submitted_at' => 'datetime',
+        'last_contacted_at' => 'datetime',
         'last_scored_at' => 'datetime',
         'business_audit' => 'array',
         'client_project' => 'array',
@@ -65,6 +81,16 @@ class Contact extends Model
     public function submissions(): HasMany
     {
         return $this->hasMany(ContactSubmission::class);
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(ContactActivity::class)->latest();
+    }
+
+    public function followUpTasks(): HasMany
+    {
+        return $this->hasMany(FollowUpTask::class);
     }
 
     public function opportunities(): HasMany

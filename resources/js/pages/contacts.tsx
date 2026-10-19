@@ -17,7 +17,15 @@ interface ContactItem {
     name: string | null;
     phone: string | null;
     status: string;
+    lost_reason: string | null;
     source: string;
+    lead_score: number;
+    market: string | null;
+    service: string;
+    budget_label: string | null;
+    budget_currency: string | null;
+    last_contacted_at: string | null;
+    next_follow_up_at: string | null;
     funnel: {
         id: number;
         name: string;
@@ -48,6 +56,14 @@ interface ContactFilters {
     funnel_id: string;
     date_from: string;
     date_to: string;
+    market: string;
+    service: string;
+    budget_currency: string;
+    budget: string;
+    score_min: string;
+    score_max: string;
+    follow_up_due: string;
+    sort: string;
 }
 
 interface ContactsPageProps {
@@ -60,6 +76,8 @@ interface ContactsPageProps {
     filters: ContactFilters;
     filterOptions: {
         statuses: string[];
+        services: Array<{ key: string; label: string }>;
+        budgets: Array<{ key: string; label: string; currency: string }>;
         funnels: Array<{
             id: number;
             name: string;
@@ -88,7 +106,7 @@ function paginationLabel(label: string): string {
 
 export default function Contacts({ contacts, stats, filters, filterOptions }: ContactsPageProps) {
     const [form, setForm] = useState<ContactFilters>(filters);
-    const hasFilters = Object.values(filters).some(Boolean);
+    const hasFilters = Object.entries(filters).some(([key, value]) => key !== 'sort' && Boolean(value));
 
     const updateFilter = (key: keyof ContactFilters, value: string) => {
         setForm((current) => ({ ...current, [key]: value }));
@@ -104,6 +122,14 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                 funnel_id: form.funnel_id,
                 date_from: form.date_from,
                 date_to: form.date_to,
+                market: form.market,
+                service: form.service,
+                budget_currency: form.budget_currency,
+                budget: form.budget,
+                score_min: form.score_min,
+                score_max: form.score_max,
+                follow_up_due: form.follow_up_due,
+                sort: form.sort,
             },
             {
                 preserveScroll: true,
@@ -120,6 +146,14 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
             funnel_id: '',
             date_from: '',
             date_to: '',
+            market: '',
+            service: '',
+            budget_currency: '',
+            budget: '',
+            score_min: '',
+            score_max: '',
+            follow_up_due: '',
+            sort: 'created_at',
         };
 
         setForm(emptyFilters);
@@ -138,13 +172,7 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                     <div className="flex flex-wrap gap-2">
                         {contacts.total > 0 ? (
                             <a
-                                href={route('contacts.export', {
-                                    search: filters.search,
-                                    status: filters.status,
-                                    funnel_id: filters.funnel_id,
-                                    date_from: filters.date_from,
-                                    date_to: filters.date_to,
-                                })}
+                                href={route('contacts.export', filters)}
                                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                             >
                                 <Download className="h-4 w-4" />
@@ -204,7 +232,7 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                         <Filter className="h-4 w-4" />
                         Filter contacts
                     </div>
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_1fr_auto]">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <label className="relative">
                             <span className="sr-only">Search contacts</span>
                             <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -263,6 +291,48 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                                 className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground"
                             />
                         </label>
+                        <label>
+                            <span className="sr-only">Filter by market</span>
+                            <select value={form.market} onChange={(event) => updateFilter('market', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
+                                <option value="">All markets</option><option value="ethiopia">Ethiopia</option><option value="international">International</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by service</span>
+                            <select value={form.service} onChange={(event) => updateFilter('service', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
+                                <option value="">All services</option>{filterOptions.services.map((service) => <option key={service.key} value={service.key}>{service.label}</option>)}
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by budget range</span>
+                            <select value={form.budget} onChange={(event) => updateFilter('budget', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
+                                <option value="">All budget ranges</option>{filterOptions.budgets.map((budget) => <option key={budget.key} value={budget.key}>{budget.label}</option>)}
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by currency</span>
+                            <select value={form.budget_currency} onChange={(event) => updateFilter('budget_currency', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
+                                <option value="">All currencies</option><option value="ETB">ETB</option><option value="USD">USD</option>
+                            </select>
+                        </label>
+                        <label className="flex items-center gap-2 rounded-lg border border-border px-3 text-sm">
+                            <span className="text-muted-foreground">Score</span>
+                            <input aria-label="Minimum lead score" type="number" min="0" max="100" value={form.score_min} onChange={(event) => updateFilter('score_min', event.target.value)} placeholder="Min" className="w-full bg-transparent py-2 outline-none" />
+                            <span>–</span>
+                            <input aria-label="Maximum lead score" type="number" min="0" max="100" value={form.score_max} onChange={(event) => updateFilter('score_max', event.target.value)} placeholder="Max" className="w-full bg-transparent py-2 outline-none" />
+                        </label>
+                        <label>
+                            <span className="sr-only">Filter by follow-up due date</span>
+                            <select value={form.follow_up_due} onChange={(event) => updateFilter('follow_up_due', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
+                                <option value="">Any follow-up</option><option value="overdue">Overdue</option><option value="today">Due today</option><option value="upcoming">Upcoming</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span className="sr-only">Sort contacts</span>
+                            <select value={form.sort} onChange={(event) => updateFilter('sort', event.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground">
+                                <option value="created_at">Newest first</option><option value="score">Highest score</option><option value="next_follow_up_at">Next follow-up</option>
+                            </select>
+                        </label>
                         <button
                             type="submit"
                             className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
@@ -270,7 +340,7 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                             Apply
                         </button>
                     </div>
-                    {(hasFilters || Object.values(form).some(Boolean)) && (
+                    {                    (hasFilters || Object.entries(form).some(([key, value]) => key !== 'sort' && Boolean(value))) && (
                         <button
                             type="button"
                             onClick={clearFilters}
@@ -289,18 +359,19 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
 
                     <div className="overflow-hidden rounded-xl border border-border bg-card">
                         <div className="overflow-x-auto">
-                            <div className="min-w-[760px]">
-                                <div className="grid grid-cols-[minmax(220px,1.3fr)_minmax(160px,1fr)_120px_160px] gap-4 border-b border-border px-5 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                            <div className="min-w-[1000px]">
+                                <div className="grid grid-cols-[minmax(220px,1.4fr)_minmax(160px,1fr)_120px_100px_200px] gap-4 border-b border-border px-5 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                     <div>Contact</div>
                                     <div>Funnel</div>
                                     <div>Status</div>
+                                    <div>Score</div>
                                     <div>Last Activity</div>
                                 </div>
 
                                 {contacts.data.map((contact) => (
                                     <div
                                         key={contact.id}
-                                        className="grid grid-cols-[minmax(220px,1.3fr)_minmax(160px,1fr)_120px_160px] items-center gap-4 border-b border-border px-5 py-4 last:border-b-0"
+                                        className="grid grid-cols-[minmax(220px,1.4fr)_minmax(160px,1fr)_120px_100px_200px] items-center gap-4 border-b border-border px-5 py-4 last:border-b-0"
                                     >
                                         <div className="min-w-0">
                                             <Link
@@ -321,6 +392,12 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                                                     </span>
                                                 )}
                                             </div>
+                                            {(contact.service || contact.market || contact.budget_label) && (
+                                                <div className="mt-1 truncate text-xs text-muted-foreground">
+                                                    {[contact.service, contact.market, contact.budget_label].filter(Boolean).join(' · ')}
+                                                    {contact.budget_currency ? ` (${contact.budget_currency})` : ''}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="min-w-0 text-sm text-muted-foreground">
                                             {contact.funnel ? (
@@ -346,7 +423,11 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                                                 {titleCase(contact.status)}
                                             </span>
                                         </div>
-                                        <div className="text-sm text-muted-foreground">{contact.last_submitted_at || contact.created_at}</div>
+                                        <div className="font-medium tabular-nums text-foreground">{contact.lead_score}/100</div>
+                                        <div className="text-sm text-muted-foreground">
+                                            <div>{contact.last_contacted_at ? `Contacted ${contact.last_contacted_at}` : contact.last_submitted_at || contact.created_at}</div>
+                                            {contact.next_follow_up_at && <div className="mt-1 text-xs">Follow-up {new Date(contact.next_follow_up_at).toLocaleString()}</div>}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contact;
+use App\Models\ContactActivity;
 use App\Services\Automation\AutomationEventRecorder;
+use App\Services\ClientAcquisitionConfiguration;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,13 +14,15 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ContactController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, ClientAcquisitionConfiguration $configuration)
     {
         $filters = $this->validatedFilters($request);
         $contacts = $this->filteredContacts($request, $filters)
             ->with('funnel:id,name,slug')
-            ->latest('last_submitted_at')
-            ->latest()
+            ->withMin(['followUpTasks as next_follow_up_at' => fn (Builder $query) => $query->where('status', 'pending')], 'due_at')
+            ->when(($filters['sort'] ?? 'created_at') === 'score', fn (Builder $query) => $query->orderByDesc('lead_score'))
+            ->when(($filters['sort'] ?? 'created_at') === 'next_follow_up_at', fn (Builder $query) => $query->orderByRaw('next_follow_up_at IS NULL')->orderBy('next_follow_up_at'))
+            ->when(($filters['sort'] ?? 'created_at') === 'created_at', fn (Builder $query) => $query->latest())
             ->paginate(25)
             ->withQueryString()
             ->through(fn (Contact $contact) => [
@@ -27,7 +31,15 @@ class ContactController extends Controller
                 'name' => $contact->name,
                 'phone' => $contact->phone,
                 'status' => $contact->status,
+                'lost_reason' => $contact->lost_reason,
                 'source' => $contact->source,
+                'lead_score' => $contact->lead_score,
+                'market' => data_get($contact->client_project, 'market'),
+                'service' => implode(', ', data_get($contact->client_project, 'service_labels', [])),
+                'budget_label' => data_get($contact->client_project, 'budget_label'),
+                'budget_currency' => data_get($contact->client_project, 'budget_currency'),
+                'last_contacted_at' => $contact->last_contacted_at?->format('M j, Y g:i A'),
+                'next_follow_up_at' => $contact->next_follow_up_at,
                 'funnel' => $contact->funnel ? [
                     'id' => $contact->funnel->id,
                     'name' => $contact->funnel->name,
@@ -51,9 +63,23 @@ class ContactController extends Controller
                 'funnel_id' => isset($filters['funnel_id']) ? (string) $filters['funnel_id'] : '',
                 'date_from' => $filters['date_from'] ?? '',
                 'date_to' => $filters['date_to'] ?? '',
+                'market' => $filters['market'] ?? '',
+                'service' => $filters['service'] ?? '',
+                'budget_currency' => $filters['budget_currency'] ?? '',
+                'budget' => $filters['budget'] ?? '',
+                'score_min' => $filters['score_min'] ?? '',
+                'score_max' => $filters['score_max'] ?? '',
+                'follow_up_due' => $filters['follow_up_due'] ?? '',
+                'sort' => $filters['sort'] ?? 'created_at',
             ],
             'filterOptions' => [
-                'statuses' => ['new', 'contacted', 'qualified', 'won', 'lost'],
+                'statuses' => Contact::STATUSES,
+                'services' => collect($configuration->forOwner($request->user()->id)['services'])
+                    ->map(fn (array $service) => ['key' => $service['key'], 'label' => $service['label_en']])
+                    ->values(),
+                'budgets' => collect($configuration->forOwner($request->user()->id)['budgets'])
+                    ->map(fn (array $budget) => ['key' => $budget['key'], 'label' => $budget['label_en'], 'currency' => $budget['currency']])
+                    ->values(),
                 'funnels' => $request->user()
                     ->funnels()
                     ->orderBy('name')
@@ -130,7 +156,11 @@ class ContactController extends Controller
             'opportunities' => fn ($query) => $query
                 ->with(['pipeline:id,name,currency', 'stage:id,name'])
                 ->latest(),
+            'activities.actor:id,name',
+            'followUpTasks' => fn ($query) => $query->latest('due_at'),
         ]);
+        $settings = app(ClientAcquisitionConfiguration::class)->forOwner($contact->user_id);
+        $emailPreference = $contact->emailPreference;
 
         return Inertia::render('contact-detail', [
             'contact' => [
@@ -139,6 +169,7 @@ class ContactController extends Controller
                 'name' => $contact->name,
                 'phone' => $contact->phone,
                 'status' => $contact->status,
+                'lost_reason' => $contact->lost_reason,
                 'source' => $contact->source,
                 'lead_score' => $contact->lead_score,
                 'lead_score_breakdown' => $contact->lead_score_breakdown ?? [],
@@ -167,6 +198,7 @@ class ContactController extends Controller
                 'ip_address' => $contact->ip_address,
                 'user_agent' => $contact->user_agent,
                 'last_submitted_at' => $contact->last_submitted_at?->format('M j, Y g:i A'),
+                'last_contacted_at' => $contact->last_contacted_at?->format('M j, Y g:i A'),
                 'created_at' => $contact->created_at->format('M j, Y g:i A'),
                 'updated_at' => $contact->updated_at->format('M j, Y g:i A'),
                 'submissions' => $contact->submissions->map(fn ($submission) => [
@@ -185,6 +217,25 @@ class ContactController extends Controller
                         'slug' => $submission->funnel->slug,
                     ] : null,
                 ]),
+                'activities' => $contact->activities->map(fn (ContactActivity $activity) => [
+                    'id' => $activity->id,
+                    'type' => $activity->type,
+                    'payload' => $activity->payload ?? [],
+                    'actor' => $activity->actor?->name,
+                    'created_at' => $activity->created_at->format('M j, Y g:i A'),
+                ]),
+                'follow_up_tasks' => $contact->followUpTasks->map(fn ($task) => [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'due_at' => $task->due_at->format('Y-m-d\TH:i'),
+                    'due_label' => $task->due_at->format('M j, Y g:i A'),
+                    'status' => $task->status,
+                    'completed_at' => $task->completed_at?->format('M j, Y g:i A'),
+                ]),
+                'follow_up_templates' => collect($settings['follow_up_templates'])
+                    ->filter(fn (array $template) => $template['kind'] !== 'promotional' || $emailPreference?->status === 'subscribed')
+                    ->values(),
                 'opportunities' => $contact->opportunities->map(fn ($opportunity) => [
                     'id' => $opportunity->id,
                     'title' => $opportunity->title,
@@ -209,7 +260,7 @@ class ContactController extends Controller
                     'created_at' => $recommendation->created_at->format('M j, Y g:i A'),
                 ]),
             ],
-            'statusOptions' => ['new', 'contacted', 'qualified', 'won', 'lost'],
+            'statusOptions' => Contact::STATUSES,
         ]);
     }
 
@@ -218,14 +269,27 @@ class ContactController extends Controller
         abort_unless($contact->user_id === $request->user()->id, 403);
 
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:new,contacted,qualified,won,lost'],
+            'status' => ['required', 'string', 'in:'.implode(',', Contact::STATUSES)],
+            'lost_reason' => ['nullable', 'string', 'in:budget_mismatch,timing,scope_mismatch,no_response,other'],
         ]);
 
         DB::transaction(function () use ($request, $contact, $validated, $automationEvents): void {
             $previousStatus = $contact->status;
-            $contact->update($validated);
+            $contact->update([
+                'status' => $validated['status'],
+                'lost_reason' => $validated['status'] === 'lost' ? ($validated['lost_reason'] ?? $contact->lost_reason) : null,
+            ]);
 
             if ($contact->status !== $previousStatus) {
+                $contact->activities()->create([
+                    'actor_user_id' => $request->user()->id,
+                    'type' => 'status_changed',
+                    'payload' => [
+                        'from' => $previousStatus,
+                        'to' => $contact->status,
+                        'lost_reason' => $contact->lost_reason,
+                    ],
+                ]);
                 $automationEvents->record(
                     $request->user(),
                     'contact.status_changed',
@@ -256,9 +320,37 @@ class ContactController extends Controller
         ];
 
         data_set($metadata, 'notes', $notes);
-        $contact->update(['metadata' => $metadata]);
+        DB::transaction(function () use ($contact, $metadata, $request, $validated): void {
+            $contact->update(['metadata' => $metadata]);
+            $contact->activities()->create([
+                'actor_user_id' => $request->user()->id,
+                'type' => 'note_added',
+                'payload' => ['body' => $validated['note']],
+            ]);
+        });
 
         return back()->with('success', 'Note added.');
+    }
+
+    public function storeContactAttempt(Request $request, Contact $contact)
+    {
+        abort_unless($contact->user_id === $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'channel' => ['required', 'string', 'in:email,phone,whatsapp,meeting,proposal'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        DB::transaction(function () use ($contact, $request, $validated): void {
+            $contact->update(['last_contacted_at' => now()]);
+            $contact->activities()->create([
+                'actor_user_id' => $request->user()->id,
+                'type' => 'contact_attempt',
+                'payload' => $validated,
+            ]);
+        });
+
+        return back()->with('success', 'Contact attempt recorded. No message was sent.');
     }
 
     /**
@@ -268,10 +360,18 @@ class ContactController extends Controller
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'string', 'in:new,contacted,qualified,won,lost'],
+            'status' => ['nullable', 'string', 'in:'.implode(',', Contact::STATUSES)],
             'funnel_id' => ['nullable', 'integer'],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+            'market' => ['nullable', 'in:ethiopia,international'],
+            'service' => ['nullable', 'string', 'alpha_dash', 'max:40'],
+            'budget_currency' => ['nullable', 'in:ETB,USD'],
+            'budget' => ['nullable', 'string', 'alpha_dash', 'max:40'],
+            'score_min' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'score_max' => ['nullable', 'integer', 'min:0', 'max:100', 'gte:score_min'],
+            'follow_up_due' => ['nullable', 'in:overdue,today,upcoming'],
+            'sort' => ['nullable', 'in:created_at,score,next_follow_up_at'],
         ]);
 
         if (isset($filters['search'])) {
@@ -300,7 +400,21 @@ class ContactController extends Controller
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['funnel_id'] ?? null, fn (Builder $query, int $funnelId) => $query->where('funnel_id', $funnelId))
             ->when($filters['date_from'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '>=', $date))
-            ->when($filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '<=', $date));
+            ->when($filters['date_to'] ?? null, fn (Builder $query, string $date) => $query->whereDate('created_at', '<=', $date))
+            ->when($filters['market'] ?? null, fn (Builder $query, string $market) => $query->where('client_project->market', $market))
+            ->when($filters['service'] ?? null, fn (Builder $query, string $service) => $query->whereJsonContains('client_project->service_interests', $service))
+            ->when($filters['budget_currency'] ?? null, fn (Builder $query, string $currency) => $query->where('client_project->budget_currency', $currency))
+            ->when($filters['budget'] ?? null, fn (Builder $query, string $budget) => $query->where('client_project->budget', $budget))
+            ->when(isset($filters['score_min']), fn (Builder $query) => $query->where('lead_score', '>=', $filters['score_min']))
+            ->when(isset($filters['score_max']), fn (Builder $query) => $query->where('lead_score', '<=', $filters['score_max']))
+            ->when($filters['follow_up_due'] ?? null, function (Builder $query, string $due): void {
+                $query->whereHas('followUpTasks', function (Builder $taskQuery) use ($due): void {
+                    $taskQuery->where('status', 'pending')
+                        ->when($due === 'overdue', fn (Builder $builder) => $builder->where('due_at', '<', now()))
+                        ->when($due === 'today', fn (Builder $builder) => $builder->whereDate('due_at', today()))
+                        ->when($due === 'upcoming', fn (Builder $builder) => $builder->where('due_at', '>', now()->endOfDay()));
+                });
+            });
     }
 
     private function sanitizeCsvCell(mixed $value): string

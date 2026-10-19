@@ -12,11 +12,12 @@ interface SettingsPageProps {
 }
 
 const weightLabels: Array<{ key: keyof ClientAcquisitionSettings['scoring_weights']; label: string }> = [
-    { key: 'service_fit', label: 'Selected service fit' },
-    { key: 'project_clarity', label: 'Project brief clarity' },
-    { key: 'budget', label: 'Self-reported budget readiness' },
-    { key: 'timeline', label: 'Self-reported timeline' },
-    { key: 'consultation', label: 'Consultation/custom project request' },
+    { key: 'service_fit', label: 'Selected service fit (max 25)' },
+    { key: 'project_clarity', label: 'Project brief clarity (max 15)' },
+    { key: 'budget', label: 'Self-reported budget readiness (max 25)' },
+    { key: 'timeline', label: 'Self-reported timeline (max 15)' },
+    { key: 'scope_completeness', label: 'Scope completeness (max 10)' },
+    { key: 'contact_completeness', label: 'Contact completeness (max 10)' },
 ];
 
 export default function ClientAcquisitionSettingsPage({ settings, funnels, analyticsFunnelUnavailable }: SettingsPageProps) {
@@ -109,7 +110,7 @@ export default function ClientAcquisitionSettingsPage({ settings, funnels, analy
                     <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
                         <div className="mb-5">
                             <h2 className="text-lg font-semibold">Timeline options and lead priority</h2>
-                            <p className="mt-1 text-sm text-muted-foreground">Scores are transparent prioritization aids based only on the project details a visitor voluntarily provides; market and personal identity are not scored.</p>
+                            <p className="mt-1 text-sm text-muted-foreground">Scores are operational follow-up suggestions based only on project details a visitor voluntarily provides. Market and personal identity are not scored. Set any weight to zero to disable that rule.</p>
                         </div>
                         <div className="space-y-3">
                             {form.data.timelines.map((timeline, index) => (
@@ -134,6 +135,34 @@ export default function ClientAcquisitionSettingsPage({ settings, funnels, analy
                                 Qualified status threshold
                                 <input type="number" min={0} max={100} value={form.data.qualified_score} onChange={(event) => form.setData('qualified_score', Number(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" />
                             </label>
+                        </div>
+                    </section>
+
+                    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+                        <div className="mb-5">
+                            <h2 className="text-lg font-semibold">Manual follow-up templates</h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Templates are copied for manual use only; saving a task or template does not send a message. Supported placeholders: {'{{name}}'}, {'{{service}}'}, {'{{company}}'}, and {'{{timeline}}'}.
+                            </p>
+                        </div>
+                        <div className="space-y-4">
+                            {form.data.follow_up_templates.map((template, index) => (
+                                <div key={template.key || index} className="space-y-3 rounded-lg border border-border p-4">
+                                    <div className="grid gap-3 sm:grid-cols-[1fr_1fr_180px_auto]">
+                                        <input aria-label="Template key" value={template.key} onChange={(event) => form.setData('follow_up_templates', form.data.follow_up_templates.map((item, itemIndex) => itemIndex === index ? { ...item, key: event.target.value } : item))} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                                        <input aria-label="Template name" value={template.label_en} onChange={(event) => form.setData('follow_up_templates', form.data.follow_up_templates.map((item, itemIndex) => itemIndex === index ? { ...item, label_en: event.target.value } : item))} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                                        <select aria-label="Template communication type" value={template.kind} onChange={(event) => form.setData('follow_up_templates', form.data.follow_up_templates.map((item, itemIndex) => itemIndex === index ? { ...item, kind: event.target.value as typeof item.kind } : item))} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+                                            <option value="transactional">Transactional</option>
+                                            <option value="promotional">Promotional (consent required)</option>
+                                        </select>
+                                        <button type="button" aria-label="Remove template" onClick={() => form.setData('follow_up_templates', form.data.follow_up_templates.filter((_, itemIndex) => itemIndex !== index))} className="flex h-10 items-center justify-center rounded-md px-3 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+                                    </div>
+                                    <input aria-label="Amharic template name" value={template.label_am ?? ''} onChange={(event) => form.setData('follow_up_templates', form.data.follow_up_templates.map((item, itemIndex) => itemIndex === index ? { ...item, label_am: event.target.value || null } : item))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="Amharic name (optional)" />
+                                    <textarea aria-label="English follow-up message" value={template.body_en} onChange={(event) => form.setData('follow_up_templates', form.data.follow_up_templates.map((item, itemIndex) => itemIndex === index ? { ...item, body_en: event.target.value } : item))} className="min-h-24 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                                    <textarea aria-label="Amharic follow-up message" value={template.body_am ?? ''} onChange={(event) => form.setData('follow_up_templates', form.data.follow_up_templates.map((item, itemIndex) => itemIndex === index ? { ...item, body_am: event.target.value || null } : item))} className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="Amharic message (optional)" />
+                                </div>
+                            ))}
+                            <button type="button" onClick={() => form.setData('follow_up_templates', [...form.data.follow_up_templates, { key: '', label_en: '', label_am: null, body_en: '', body_am: null, kind: 'transactional' }])} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"><Plus className="h-4 w-4" /> Add template</button>
                         </div>
                     </section>
 

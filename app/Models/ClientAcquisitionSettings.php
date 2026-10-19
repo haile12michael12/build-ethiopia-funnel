@@ -19,6 +19,7 @@ class ClientAcquisitionSettings extends Model
         'whatsapp_url',
         'meeting_url',
         'analytics_funnel_id',
+        'follow_up_templates',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class ClientAcquisitionSettings extends Model
             'qualified_score' => 'integer',
             'response_time_hours' => 'integer',
             'analytics_funnel_id' => 'integer',
+            'follow_up_templates' => 'array',
         ];
     }
 
