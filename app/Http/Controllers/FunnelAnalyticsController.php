@@ -6,6 +6,7 @@ use App\Jobs\CalculateLeadScore;
 use App\Models\Contact;
 use App\Models\Funnel;
 use App\Models\FunnelEvent;
+use App\Services\FunnelAnalyticsSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,7 @@ use Illuminate\Validation\Rule;
 
 class FunnelAnalyticsController extends Controller
 {
-    public function store(Request $request, Funnel $funnel): JsonResponse
+    public function store(Request $request, Funnel $funnel, FunnelAnalyticsSanitizer $sanitizer): JsonResponse
     {
         abort_unless($funnel->is_published || $request->user()?->can('update', $funnel), 404);
 
@@ -23,7 +24,10 @@ class FunnelAnalyticsController extends Controller
                 'cta_click',
                 'form_start',
                 'form_step',
+                'form_validation_error',
                 'page_viewed',
+                'service_page_viewed',
+                'portfolio_item_viewed',
                 'form_started',
                 'form_submitted',
                 'quiz_completed',
@@ -41,12 +45,24 @@ class FunnelAnalyticsController extends Controller
                 'starter_exported',
             ])],
             'session_id' => ['nullable', 'uuid'],
+            'event_id' => ['nullable', 'uuid'],
             'form_id' => ['nullable', 'string', 'max:100'],
             'variant_id' => ['nullable', 'integer'],
-            'attribution' => ['nullable', 'array'],
-            'attribution.*' => ['nullable', 'string', 'max:255'],
-            'metadata' => ['nullable', 'array', 'max:20'],
-            'metadata.*' => ['nullable', 'string', 'max:500'],
+            'attribution' => ['nullable', 'array:utm_source,utm_medium,utm_campaign,utm_term,utm_content,referrer,landing_page,device'],
+            'attribution.utm_source' => ['nullable', 'string', 'max:100', 'not_regex:/@/'],
+            'attribution.utm_medium' => ['nullable', 'string', 'max:100', 'not_regex:/@/'],
+            'attribution.utm_campaign' => ['nullable', 'string', 'max:100', 'not_regex:/@/'],
+            'attribution.utm_term' => ['nullable', 'string', 'max:100', 'not_regex:/@/'],
+            'attribution.utm_content' => ['nullable', 'string', 'max:100', 'not_regex:/@/'],
+            'attribution.referrer' => ['nullable', 'url', 'max:2000'],
+            'attribution.landing_page' => ['nullable', 'string', 'max:255'],
+            'attribution.device' => ['nullable', Rule::in(['mobile', 'tablet', 'desktop'])],
+            'metadata' => ['nullable', 'array:page,device,step,cta,block_id', 'max:5'],
+            'metadata.page' => ['nullable', 'string', 'max:255'],
+            'metadata.device' => ['nullable', Rule::in(['mobile', 'tablet', 'desktop'])],
+            'metadata.step' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'metadata.cta' => ['nullable', 'string', 'max:80', 'regex:/^[a-zA-Z0-9_-]+$/'],
+            'metadata.block_id' => ['nullable', 'string', 'max:80', 'regex:/^[a-zA-Z0-9_-]+$/'],
         ]);
 
         $serverEvents = [
@@ -69,16 +85,16 @@ class FunnelAnalyticsController extends Controller
             403,
         );
 
-        if (isset($validated['variant_id']) && ! $funnel->variants()->whereKey($validated['variant_id'])->exists()) {
+        if (isset($validated['variant_id']) && ! $funnel->variants()->whereKey($validated['variant_id'])->where('is_active', true)->exists()) {
             abort(422, 'Invalid experiment variant.');
         }
 
         $sessionId = isset($validated['session_id']) ? hash('sha256', $validated['session_id']) : null;
         $contactId = $sessionId
             ? FunnelEvent::query()
+                ->where('funnel_id', $funnel->id)
                 ->where('session_id', $sessionId)
                 ->whereNotNull('contact_id')
-                ->whereHas('funnel', fn ($query) => $query->where('user_id', $funnel->user_id))
                 ->value('contact_id')
             : null;
         if ($contactId && ! Contact::query()->where('user_id', $funnel->user_id)->whereKey($contactId)->exists()) {
@@ -90,20 +106,29 @@ class FunnelAnalyticsController extends Controller
             'form_start' => ['form_start', 'form_started'],
             default => [$validated['event_type']],
         };
-        $scoreEventIds = DB::transaction(function () use ($funnel, $validated, $sessionId, $contactId, $eventTypes): array {
+        $attribution = $sanitizer->attribution($validated['attribution'] ?? []);
+        $metadata = $sanitizer->eventMetadata($validated['metadata'] ?? []);
+        $scoreEventIds = DB::transaction(function () use ($funnel, $validated, $sessionId, $contactId, $eventTypes, $attribution, $metadata): array {
             $ids = [];
             foreach ($eventTypes as $eventType) {
-                $event = $funnel->events()->create([
-                    ...$validated,
-                    'event_type' => $eventType,
+                $attributes = [
                     'contact_id' => $contactId,
                     'session_id' => $sessionId,
-                    'metadata' => [
-                        ...($validated['metadata'] ?? []),
-                    ],
+                    'form_id' => $validated['form_id'] ?? null,
+                    'variant_id' => $validated['variant_id'] ?? null,
+                    'client_event_id' => $validated['event_id'] ?? null,
+                    'attribution' => $attribution,
+                    'metadata' => $metadata,
                     'occurred_at' => now(),
-                ]);
-                if ($eventType === 'page_viewed' && $contactId) {
+                ];
+                $event = isset($validated['event_id'])
+                    ? $funnel->events()->firstOrCreate([
+                        'event_type' => $eventType,
+                        'client_event_id' => $validated['event_id'],
+                    ], $attributes)
+                    : $funnel->events()->create(['event_type' => $eventType, ...$attributes]);
+
+                if ($event->wasRecentlyCreated && $eventType === 'page_viewed' && $contactId) {
                     $ids[] = $event->id;
                 }
             }

@@ -107,7 +107,6 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
             trackedFormStart.current = true;
             trackFunnelEvent(settings.analytics_funnel_id, 'form_start', {
                 formId: 'client-acquisition',
-                metadata: { market: form.data.market || 'unselected' },
             }, experiment.variant_id);
         }
     };
@@ -140,7 +139,15 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
         const activeFields = formElement.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
             '[data-current-step]:not([hidden]) [required]',
         );
-        if (activeFields && !Array.from(activeFields).every((field) => field.reportValidity())) return;
+        if (activeFields && !Array.from(activeFields).every((field) => field.reportValidity())) {
+            if (settings.analytics_funnel_id) {
+                trackFunnelEvent(settings.analytics_funnel_id, 'form_validation_error', {
+                    formId: 'client-acquisition',
+                    metadata: { step: String(step + 1) },
+                }, experiment.variant_id);
+            }
+            return;
+        }
         if (step === 0 && (form.data.service_interests.length === 0 || !form.data.market)) {
             setServiceError(form.data.service_interests.length === 0);
             setMarketError(!form.data.market);
@@ -149,11 +156,7 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
         if (settings.analytics_funnel_id) {
             trackFunnelEvent(settings.analytics_funnel_id, 'form_step', {
                 formId: 'client-acquisition',
-                metadata: {
-                    step: String(step + 1),
-                    market: form.data.market,
-                    services: form.data.service_interests.join(','),
-                },
+                metadata: { step: String(step + 1) },
             }, experiment.variant_id);
         }
         setStep((current) => Math.min(current + 1, 2));

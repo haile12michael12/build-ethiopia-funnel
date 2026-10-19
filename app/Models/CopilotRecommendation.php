@@ -28,8 +28,15 @@ class CopilotRecommendation extends Model
         'supporting_metrics',
         'status',
         'pending_fingerprint',
+        'reviewed_by',
+        'review_note',
+        'outcome',
+        'review_history',
         'accepted_at',
         'dismissed_at',
+        'reviewed_at',
+        'applied_at',
+        'completed_at',
     ];
 
     protected $casts = [
@@ -38,6 +45,10 @@ class CopilotRecommendation extends Model
         'confidence_score' => 'integer',
         'accepted_at' => 'datetime',
         'dismissed_at' => 'datetime',
+        'reviewed_at' => 'datetime',
+        'applied_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'review_history' => 'array',
     ];
 
     public function user(): BelongsTo
@@ -82,6 +93,12 @@ class CopilotRecommendation extends Model
             'created_at' => $this->created_at?->toISOString(),
             'accepted_at' => $this->accepted_at?->toISOString(),
             'dismissed_at' => $this->dismissed_at?->toISOString(),
+            'review_note' => $this->review_note,
+            'outcome' => $this->outcome,
+            'review_history' => $this->review_history ?? [],
+            'reviewed_at' => $this->reviewed_at?->toISOString(),
+            'applied_at' => $this->applied_at?->toISOString(),
+            'completed_at' => $this->completed_at?->toISOString(),
         ];
     }
 }

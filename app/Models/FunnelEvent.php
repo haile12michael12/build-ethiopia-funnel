@@ -10,6 +10,8 @@ class FunnelEvent extends Model
     protected $fillable = [
         'funnel_id',
         'contact_id',
+        'submission_id',
+        'client_event_id',
         'variant_id',
         'event_type',
         'session_id',

@@ -249,7 +249,7 @@ export default function FunnelBlock({
                         href={isSafeHttpUrl(url) ? url : '#'}
                         target={contentBoolean(block.content, 'newTab') ? '_blank' : undefined}
                         rel="noreferrer"
-                        onClick={() => onAnalyticsEvent?.('cta_click', { block_id: block.id, destination: url })}
+                        onClick={() => onAnalyticsEvent?.('cta_click', { block_id: block.id })}
                         className={`inline-flex items-center justify-center rounded-lg font-semibold transition-opacity hover:opacity-90 ${variant === 'secondary' ? 'bg-gray-200 text-gray-900' : 'bg-blue-600 text-white'} ${size === 'small' ? 'px-3 py-2 text-sm' : size === 'large' ? 'px-7 py-4 text-lg' : 'px-5 py-3'} ${contentBoolean(block.content, 'fullWidth') ? 'w-full' : ''}`}
                     >
                         {contentString(block.content, 'text', 'Learn more')}
