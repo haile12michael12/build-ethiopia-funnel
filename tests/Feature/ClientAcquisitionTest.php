@@ -63,12 +63,13 @@ test('project submission persists explainable scoring, preferences and signed co
 
     expect($contact->source)->toBe('client_acquisition')
         ->and($contact->status)->toBe('qualified')
-        ->and($contact->lead_score)->toBe(93)
+        ->and($contact->lead_score)->toBe(83)
         ->and($contact->client_project['service_labels'])->toBe([
             'Website or web application',
             'Custom project or consultation',
         ])
-        ->and($contact->lead_score_reasons)->toHaveCount(5)
+        ->and($contact->lead_score_reasons)->toHaveCount(6)
+        ->and($contact->last_scored_at)->not->toBeNull()
         ->and($contact->submissions)->toHaveCount(1);
 
     $this->assertDatabaseHas('contact_email_preferences', [

@@ -22,10 +22,10 @@ return [
         ['key' => 'usd_over_5000', 'currency' => 'USD', 'label_en' => 'Over USD 5,000', 'label_am' => 'ከ5,000 ዶላር በላይ', 'score' => 25],
     ],
     'timelines' => [
-        ['key' => 'within_1_month', 'label_en' => 'Within one month', 'label_am' => 'በአንድ ወር ውስጥ', 'score' => 20],
-        ['key' => '1_to_3_months', 'label_en' => 'In 1–3 months', 'label_am' => 'በ1–3 ወራት ውስጥ', 'score' => 15],
-        ['key' => '3_to_6_months', 'label_en' => 'In 3–6 months', 'label_am' => 'በ3–6 ወራት ውስጥ', 'score' => 10],
-        ['key' => 'researching', 'label_en' => 'Exploring options', 'label_am' => 'አማራጮችን በመመርመር ላይ', 'score' => 5],
+        ['key' => 'within_1_month', 'label_en' => 'Within one month', 'label_am' => 'በአንድ ወር ውስጥ', 'score' => 15],
+        ['key' => '1_to_3_months', 'label_en' => 'In 1–3 months', 'label_am' => 'በ1–3 ወራት ውስጥ', 'score' => 12],
+        ['key' => '3_to_6_months', 'label_en' => 'In 3–6 months', 'label_am' => 'በ3–6 ወራት ውስጥ', 'score' => 8],
+        ['key' => 'researching', 'label_en' => 'Exploring options', 'label_am' => 'አማራጮችን በመመርመር ላይ', 'score' => 4],
     ],
     'scoring_weights' => [
         'service_fit' => 25,
@@ -36,6 +36,8 @@ return [
         'contact_completeness' => 10,
     ],
     'qualified_score' => 70,
+    'high_priority_score' => 75,
+    'medium_priority_score' => 50,
     'follow_up_templates' => [
         ['key' => 'new_inquiry', 'label_en' => 'Acknowledge a new inquiry', 'label_am' => null, 'body_en' => 'Hello {{name}}, thank you for contacting us about {{service}}. We have received your inquiry and will review the project details.', 'body_am' => null, 'kind' => 'transactional'],
         ['key' => 'missing_details', 'label_en' => 'Request project details', 'label_am' => null, 'body_en' => 'Hello {{name}}, to better understand your {{service}} project, could you share any additional details about the requirements and expected outcomes?', 'body_am' => null, 'kind' => 'transactional'],

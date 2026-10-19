@@ -32,8 +32,12 @@ interface ContactDetailProps {
         name: string | null;
         phone: string | null;
         status: string;
+        lost_reason: string | null;
         source: string;
         lead_score: number;
+        lead_priority: 'high' | 'medium' | 'low';
+        last_scored_at: string | null;
+        priority_thresholds: { high: number; medium: number };
         lead_score_breakdown: Record<string, number>;
         lead_score_reasons: Array<{ key: string; points: number; reason: string }>;
         business_audit: BusinessAuditData | null;
@@ -143,6 +147,9 @@ function formatOpportunityValue(cents: number, currency: string): string {
 
 export default function ContactDetail({ contact, statusOptions }: ContactDetailProps) {
     const [lostReason, setLostReason] = useState(contact.lost_reason ?? '');
+    const [taskDueValues, setTaskDueValues] = useState<Record<number, string>>(
+        Object.fromEntries(contact.follow_up_tasks.map((task) => [task.id, task.due_at])),
+    );
     const [contactChannel, setContactChannel] = useState<'email' | 'phone' | 'whatsapp' | 'meeting' | 'proposal'>('email');
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [copyState, setCopyState] = useState('');
@@ -208,6 +215,10 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
     const copyTemplate = () => {
         const template = contact.follow_up_templates.find((item) => item.key === selectedTemplate);
         if (!template) return;
+        if (!navigator.clipboard) {
+            setCopyState('Clipboard access is unavailable. Select and copy the preview manually.');
+            return;
+        }
 
         void navigator.clipboard.writeText(renderTemplate(template.body_en))
             .then(() => setCopyState('Template copied. You still need to send it yourself.'))
@@ -249,7 +260,7 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        {(contact.business_audit || contact.client_project) && <LeadScoreBadge score={contact.lead_score} />}
+                        {(contact.business_audit || contact.client_project) && <div className="flex flex-wrap items-center gap-2"><LeadScoreBadge score={contact.lead_score} /><span className="rounded-full border border-border px-2.5 py-1 text-xs font-medium capitalize text-muted-foreground">{contact.lead_priority} operational priority</span></div>}
                         <select
                             value={contact.status}
                             onChange={(event) => updateStatus(event.target.value)}
@@ -262,7 +273,10 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                             ))}
                         </select>
                         {contact.status === 'lost' && (
-                            <select aria-label="Reason lead was lost" value={lostReason} onChange={(event) => setLostReason(event.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground">
+                            <select aria-label="Reason lead was lost" value={lostReason} onChange={(event) => {
+                                setLostReason(event.target.value);
+                                router.patch(route('contacts.update', contact.id), { status: 'lost', lost_reason: event.target.value || null }, { preserveScroll: true });
+                            }} className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground">
                                 <option value="">No loss reason</option>
                                 <option value="budget_mismatch">Budget mismatch</option><option value="timing">Timing</option><option value="scope_mismatch">Scope mismatch</option><option value="no_response">No response</option><option value="other">Other</option>
                             </select>
@@ -413,6 +427,9 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                                 </dl>
                                 <div className="mt-5 border-t border-border pt-4">
                                     <h3 className="mb-3 font-medium text-foreground">Lead score rationale</h3>
+                                    <p className="mb-3 text-xs text-muted-foreground">
+                                        Operational follow-up suggestion only; it is not an objective judgment about the person. High ≥{contact.priority_thresholds.high}, medium ≥{contact.priority_thresholds.medium}. Last calculated {contact.last_scored_at || 'not recorded'}.
+                                    </p>
                                     <LeadScoreBreakdown breakdown={contact.lead_score_breakdown} />
                                     {contact.lead_score_reasons.length > 0 && (
                                         <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
@@ -533,6 +550,61 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                             )}
                         </div>
 
+                        <section className="rounded-xl border border-border bg-card p-5">
+                            <h2 className="mb-3 flex items-center gap-2 font-semibold text-foreground">
+                                <CalendarClock className="h-4 w-4" />
+                                Follow-up tasks
+                            </h2>
+                            <p className="mb-4 text-xs text-muted-foreground">Tasks are internal reminders only. No scheduled reminder or message is sent.</p>
+                            <form onSubmit={addTask} className="space-y-3">
+                                <input aria-label="Task title" required maxLength={160} value={taskForm.data.title} onChange={(event) => taskForm.setData('title', event.target.value)} placeholder="Task title" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                                <textarea aria-label="Task description" maxLength={2000} value={taskForm.data.description} onChange={(event) => taskForm.setData('description', event.target.value)} placeholder="Optional details" className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                                <label className="block space-y-1 text-xs text-muted-foreground">Due date and time<input aria-label="Task due date and time" type="datetime-local" required value={taskForm.data.due_at} onChange={(event) => taskForm.setData('due_at', event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" /></label>
+                                <button type="submit" disabled={taskForm.processing} className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">Create task</button>
+                            </form>
+                            <div className="mt-4 space-y-3">
+                                {contact.follow_up_tasks.map((task) => (
+                                    <div key={task.id} className="rounded-lg border border-border p-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                                <p className="font-medium text-foreground">{task.title}</p>
+                                                <p className="mt-1 text-xs text-muted-foreground">{task.due_label} · {task.status}</p>
+                                                {task.description && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}
+                                            </div>
+                                            {task.status === 'pending' && <button type="button" aria-label={`Complete ${task.title}`} onClick={() => router.patch(route('follow-up-tasks.update', task.id), { status: 'completed' }, { preserveScroll: true })} className="rounded-md border border-border p-2 hover:bg-muted"><Check className="h-4 w-4" /></button>}
+                                        </div>
+                                        {task.status === 'pending' && <div className="mt-3 flex gap-2"><label className="flex-1 space-y-1 text-xs text-muted-foreground">Reschedule<input aria-label={`Reschedule ${task.title}`} type="datetime-local" value={taskDueValues[task.id] ?? task.due_at} onChange={(event) => setTaskDueValues((current) => ({ ...current, [task.id]: event.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" /></label><button type="button" disabled={!taskDueValues[task.id] || taskDueValues[task.id] === task.due_at} onClick={() => router.patch(route('follow-up-tasks.update', task.id), { due_at: taskDueValues[task.id] }, { preserveScroll: true })} className="self-end rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50">Save</button></div>}
+                                    </div>
+                                ))}
+                                {contact.follow_up_tasks.length === 0 && <p className="text-sm text-muted-foreground">No follow-up tasks are scheduled.</p>}
+                            </div>
+                            <Link href={route('follow-up-tasks.index')} className="mt-4 inline-block text-sm font-medium text-primary hover:underline">View all tasks</Link>
+                        </section>
+
+                        <section className="rounded-xl border border-border bg-card p-5">
+                            <h2 className="mb-3 font-semibold text-foreground">Record a contact attempt</h2>
+                            <p className="mb-4 text-xs text-muted-foreground">This records an activity only; it does not send a message.</p>
+                            <form onSubmit={recordContactAttempt} className="space-y-3">
+                                <select aria-label="Contact attempt channel" value={contactChannel} onChange={(event) => setContactChannel(event.target.value as typeof contactChannel)} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                                    <option value="email">Email</option><option value="phone">Phone</option><option value="whatsapp">WhatsApp</option><option value="meeting">Meeting</option><option value="proposal">Proposal</option>
+                                </select>
+                                <textarea aria-label="Contact attempt note" value={contactAttemptForm.data.note} onChange={(event) => contactAttemptForm.setData('note', event.target.value)} maxLength={1000} placeholder="Optional internal context" className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                                <button type="submit" disabled={contactAttemptForm.processing} className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50">Record contact attempt</button>
+                            </form>
+                        </section>
+
+                        <section className="rounded-xl border border-border bg-card p-5">
+                            <h2 className="mb-3 font-semibold text-foreground">Manual follow-up message</h2>
+                            <p className="mb-3 text-xs text-muted-foreground">Preview and copy only. Nothing is sent. Promotional templates are available only when marketing consent is recorded.</p>
+                            <select aria-label="Choose a follow-up template" value={selectedTemplate} onChange={(event) => { setSelectedTemplate(event.target.value); setCopyState(''); }} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                                <option value="">Choose template</option>
+                                {contact.follow_up_templates.map((template) => <option key={template.key} value={template.key}>{template.label_en} · {template.kind}</option>)}
+                            </select>
+                            {selectedTemplate && <textarea readOnly aria-label="Follow-up template preview" value={renderTemplate(contact.follow_up_templates.find((item) => item.key === selectedTemplate)?.body_en ?? '')} className="mt-3 min-h-32 w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-sm" />}
+                            <button type="button" disabled={!selectedTemplate} onClick={copyTemplate} className="mt-3 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50">Copy preview</button>
+                            {copyState && <p role="status" className="mt-2 text-sm text-muted-foreground">{copyState}</p>}
+                        </section>
+
                         <div className="rounded-xl border border-border bg-card p-5">
                             <div className="mb-4 flex items-center justify-between gap-3">
                                 <h2 className="flex items-center gap-2 font-semibold text-foreground">
@@ -591,13 +663,13 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                         <div className="rounded-xl border border-border bg-card p-5">
                             <h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground">
                                 <MessageSquare className="h-4 w-4" />
-                                Notes
+                                Internal notes (not messages sent)
                             </h2>
                             <form onSubmit={addNote} className="space-y-3">
                                 <textarea
                                     value={noteForm.data.note}
                                     onChange={(event) => noteForm.setData('note', event.target.value)}
-                                    placeholder="Add a follow-up note..."
+                                    placeholder="Add internal context..."
                                     className="min-h-28 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
                                 />
                                 <button
@@ -622,6 +694,20 @@ export default function ContactDetail({ contact, statusOptions }: ContactDetailP
                         </div>
                     </div>
 
+                    <div className="rounded-xl border border-border bg-card">
+                        <div className="border-b border-border px-5 py-4">
+                            <h2 className="flex items-center gap-2 font-semibold text-foreground"><Clock className="h-4 w-4" />Contact activity</h2>
+                        </div>
+                        <div className="divide-y divide-border">
+                            {contact.activities.map((activity) => (
+                                <div key={activity.id} className="px-5 py-4">
+                                    <p className="text-sm text-foreground">{activityDescription(activity.type, activity.payload)}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">{activity.actor ? `${activity.actor} · ` : ''}{activity.created_at}</p>
+                                </div>
+                            ))}
+                            {contact.activities.length === 0 && <div className="px-5 py-6 text-sm text-muted-foreground">No contact activities recorded.</div>}
+                        </div>
+                    </div>
                     <div className="rounded-xl border border-border bg-card">
                         <div className="border-b border-border px-5 py-4">
                             <h2 className="flex items-center gap-2 font-semibold text-foreground">

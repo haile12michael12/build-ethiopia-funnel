@@ -8,6 +8,7 @@ import {
     BookOpen,
     BriefcaseBusiness,
     ClipboardCheck,
+    CalendarClock,
     FileText,
     FolderKanban,
     LayoutGrid,
@@ -77,6 +78,16 @@ const mainNavItems: NavItem[] = [
         title: 'Contacts',
         href: '/contacts',
         icon: Users,
+    },
+    {
+        title: 'Follow-up tasks',
+        href: '/follow-up-tasks',
+        icon: CalendarClock,
+    },
+    {
+        title: 'Lead analytics',
+        href: '/client-acquisition/analytics',
+        icon: BarChart3,
     },
     {
         title: 'Client Acquisition',

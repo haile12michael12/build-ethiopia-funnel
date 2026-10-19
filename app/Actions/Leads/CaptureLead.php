@@ -115,9 +115,6 @@ class CaptureLead
             $contact = Contact::firstOrNew(['user_id' => $owner->id, 'email' => $email]);
             $isNewContact = ! $contact->exists;
             $project = [
-                'name' => trim($validated['name']),
-                'email' => $email,
-                'phone' => trim((string) ($validated['phone'] ?? '')),
                 'business_name' => $validated['business_name'] ?? null,
                 'market' => $validated['market'],
                 'country' => trim($validated['country']),
@@ -145,7 +142,12 @@ class CaptureLead
             $project['service_labels'] = $serviceLabels;
             $project['budget_label'] = $budgetLabel;
             $project['timeline_label'] = $timelineLabel;
-            $score = $this->scoring->scoreClientProject($project, $settings);
+            $score = $this->scoring->scoreClientProject([
+                ...$project,
+                'name' => trim($validated['name']),
+                'email' => $email,
+                'phone' => trim((string) ($validated['phone'] ?? '')),
+            ], $settings);
             $submissionCount = (int) data_get($contact->metadata, 'submission_count', 0) + 1;
             $phone = trim((string) ($validated['phone'] ?? ''));
             if ($phone !== '' && $project['country'] === 'Ethiopia') {
@@ -176,7 +178,15 @@ class CaptureLead
                 'last_submitted_at' => now(),
             ]);
             $contact->save();
+            $previousStatus = $contact->status;
             $this->qualifyLead->handle($contact, (int) $settings['qualified_score']);
+            if ($contact->status !== $previousStatus) {
+                $contact->activities()->create([
+                    'actor_user_id' => $owner->id,
+                    'type' => 'status_changed',
+                    'payload' => ['from' => $previousStatus, 'to' => $contact->status, 'reason' => 'configured qualification threshold'],
+                ]);
+            }
 
             $submission = $contact->submissions()->create([
                 'funnel_id' => $analyticsFunnel?->id,

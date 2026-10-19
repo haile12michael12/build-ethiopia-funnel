@@ -32,6 +32,7 @@ export function currentAttribution(): Record<string, string> {
         const value = search.get(key);
         if (value) attribution[key] = value;
     }
+    attribution.landing_page = `${window.location.pathname}${window.location.search}`;
     if (document.referrer) attribution.referrer = document.referrer;
     attribution.device = window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
     return attribution;

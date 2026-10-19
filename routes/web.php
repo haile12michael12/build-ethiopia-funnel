@@ -6,6 +6,7 @@ use App\Http\Controllers\AutomationRunController;
 use App\Http\Controllers\ChapaWebhookController;
 use App\Http\Controllers\ClientAcquisitionController;
 use App\Http\Controllers\ClientAcquisitionSettingsController;
+use App\Http\Controllers\ClientAcquisitionAnalyticsController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\CopilotController;
@@ -157,6 +158,7 @@ Route::domain($appDomain)->group(function () {
 
         Route::get('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'edit'])->name('client-acquisition.settings.edit');
         Route::put('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'update'])->name('client-acquisition.settings.update');
+        Route::get('client-acquisition/analytics', ClientAcquisitionAnalyticsController::class)->name('client-acquisition.analytics');
         Route::get('dashboard', function () {
             $user = auth()->user();
             $funnels = $user->funnels();

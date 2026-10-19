@@ -20,6 +20,8 @@ class ClientAcquisitionSettings extends Model
         'meeting_url',
         'analytics_funnel_id',
         'follow_up_templates',
+        'high_priority_score',
+        'medium_priority_score',
     ];
 
     protected function casts(): array
@@ -33,6 +35,8 @@ class ClientAcquisitionSettings extends Model
             'response_time_hours' => 'integer',
             'analytics_funnel_id' => 'integer',
             'follow_up_templates' => 'array',
+            'high_priority_score' => 'integer',
+            'medium_priority_score' => 'integer',
         ];
     }
 

@@ -36,7 +36,7 @@ class StoreClientProjectRequest extends FormRequest
             'preferred_contact' => ['required', Rule::in(['email', 'phone', 'whatsapp'])],
             'additional_requirements' => ['nullable', 'string', 'max:3000'],
             'marketing_consent' => ['sometimes', 'boolean'],
-            'attribution' => ['nullable', 'array'],
+            'attribution' => ['nullable', 'array:utm_source,utm_medium,utm_campaign,utm_term,utm_content,referrer,landing_page,device'],
             'attribution.utm_source' => ['nullable', 'string', 'max:255'],
             'attribution.utm_medium' => ['nullable', 'string', 'max:255'],
             'attribution.utm_campaign' => ['nullable', 'string', 'max:255'],
@@ -64,6 +64,11 @@ class StoreClientProjectRequest extends FormRequest
 
             if ($budget && $budget['currency'] !== $expectedCurrency) {
                 $validator->errors()->add('budget', 'Choose a planning range in the selected market currency.');
+            }
+
+            $landingPage = data_get($this->input('attribution'), 'landing_page');
+            if (is_string($landingPage) && (! str_starts_with($landingPage, '/') || str_starts_with($landingPage, '//') || str_contains($landingPage, '\\'))) {
+                $validator->errors()->add('attribution.landing_page', 'The landing page must be a same-site path.');
             }
         });
     }

@@ -36,6 +36,8 @@ export interface ClientAcquisitionSettings {
     };
     follow_up_templates: ClientAcquisitionFollowUpTemplate[];
     qualified_score: number;
+    high_priority_score: number;
+    medium_priority_score: number;
     response_time_hours: number | null;
     response_email: string | null;
     whatsapp_url: string | null;

@@ -135,6 +135,14 @@ export default function ClientAcquisitionSettingsPage({ settings, funnels, analy
                                 Qualified status threshold
                                 <input type="number" min={0} max={100} value={form.data.qualified_score} onChange={(event) => form.setData('qualified_score', Number(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" />
                             </label>
+                            <label className="space-y-1.5 text-sm font-medium">
+                                High operational priority threshold
+                                <input type="number" min={0} max={100} value={form.data.high_priority_score} onChange={(event) => form.setData('high_priority_score', Number(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" />
+                            </label>
+                            <label className="space-y-1.5 text-sm font-medium">
+                                Medium operational priority threshold
+                                <input type="number" min={0} max={100} value={form.data.medium_priority_score} onChange={(event) => form.setData('medium_priority_score', Number(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" />
+                            </label>
                         </div>
                     </section>
 

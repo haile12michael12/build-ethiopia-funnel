@@ -16,6 +16,8 @@ return new class extends Migration
 
         Schema::table('client_acquisition_settings', function (Blueprint $table) {
             $table->json('follow_up_templates')->nullable();
+            $table->unsignedTinyInteger('high_priority_score')->default(75);
+            $table->unsignedTinyInteger('medium_priority_score')->default(50);
         });
 
         Schema::create('contact_activities', function (Blueprint $table) {
@@ -51,7 +53,7 @@ return new class extends Migration
         Schema::dropIfExists('contact_activities');
 
         Schema::table('client_acquisition_settings', function (Blueprint $table) {
-            $table->dropColumn('follow_up_templates');
+            $table->dropColumn(['follow_up_templates', 'high_priority_score', 'medium_priority_score']);
         });
 
         Schema::table('contacts', function (Blueprint $table) {

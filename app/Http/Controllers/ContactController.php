@@ -34,6 +34,14 @@ class ContactController extends Controller
                 'lost_reason' => $contact->lost_reason,
                 'source' => $contact->source,
                 'lead_score' => $contact->lead_score,
+                'lead_priority' => $contact->lead_score >= $settings['high_priority_score']
+                    ? 'high'
+                    : ($contact->lead_score >= $settings['medium_priority_score'] ? 'medium' : 'low'),
+                'last_scored_at' => $contact->last_scored_at?->format('M j, Y g:i A'),
+                'priority_thresholds' => [
+                    'high' => $settings['high_priority_score'],
+                    'medium' => $settings['medium_priority_score'],
+                ],
                 'market' => data_get($contact->client_project, 'market'),
                 'service' => implode(', ', data_get($contact->client_project, 'service_labels', [])),
                 'budget_label' => data_get($contact->client_project, 'budget_label'),

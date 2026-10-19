@@ -67,6 +67,8 @@ class ClientAcquisitionSettingsController extends Controller
             'follow_up_templates.*.body_am' => ['nullable', 'string', 'max:3000'],
             'follow_up_templates.*.kind' => ['required', 'in:transactional,promotional'],
             'qualified_score' => ['required', 'integer', 'min:0', 'max:100'],
+            'high_priority_score' => ['required', 'integer', 'min:0', 'max:100'],
+            'medium_priority_score' => ['required', 'integer', 'min:0', 'max:100'],
             'response_time_hours' => ['nullable', 'integer', 'min:1', 'max:720'],
             'response_email' => ['nullable', 'email:rfc', 'max:255'],
             'whatsapp_url' => ['nullable', 'url:https', 'max:2048'],
@@ -85,6 +87,11 @@ class ClientAcquisitionSettingsController extends Controller
         if (array_sum($weights) > 100) {
             throw ValidationException::withMessages([
                 'scoring_weights' => 'Scoring weights must add up to 100 points or fewer.',
+            ]);
+        }
+        if ($validated['high_priority_score'] <= $validated['medium_priority_score']) {
+            throw ValidationException::withMessages([
+                'high_priority_score' => 'The high-priority threshold must be greater than the medium-priority threshold.',
             ]);
         }
         foreach ($validated['budgets'] as $index => $budget) {
