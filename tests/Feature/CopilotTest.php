@@ -3,6 +3,7 @@
 use App\Contracts\CopilotAdvisor;
 use App\Models\CopilotAudit;
 use App\Models\CopilotRecommendation;
+use App\Models\FollowUpTask;
 use App\Models\Funnel;
 use App\Models\User;
 use App\Services\Ai\OpenAICopilotAdvisor;
@@ -678,6 +679,7 @@ test('OpenAI advisor reports rate limiting instead of returning partial advice',
         'findings' => [],
         'language' => 'en',
     ]))->toThrow(RuntimeException::class);
+    Http::assertSentCount(3);
 });
 
 test('OpenAI advisor strips markup from validated text and fixes the primary metric', function () {
@@ -714,14 +716,44 @@ test('OpenAI advisor strips markup from validated text and fixes the primary met
                 ]],
             ]],
         ],
-        'metrics' => [],
-        'findings' => [],
+        'metrics' => [
+            'traffic_sources' => [[
+                'label' => 'person@example.com',
+                'views' => 2,
+                'conversions' => 1,
+                'conversion_rate' => 50,
+            ]],
+            'form_steps' => [[
+                'form_id' => 'person@example.com',
+                'step' => 1,
+                'sessions' => 1,
+                'next_step_sessions' => 1,
+                'drop_offs' => 0,
+            ]],
+            'contacts' => [['email' => 'private-lead@example.com']],
+            'data_warnings' => ['Campaign contact@example.com was malformed'],
+        ],
+        'findings' => [[
+            'key' => 'test',
+            'title' => 'Test',
+            'category' => 'performance',
+            'evidence' => 'contact@example.com submitted',
+            'explanation' => 'Test explanation',
+            'suggested_action' => 'Test action',
+            'priority' => 10,
+            'confidence' => 'low',
+            'confidence_score' => 35,
+            'confidence_explanation' => 'test',
+        ]],
         'language' => 'en',
     ]);
 
     Http::assertSent(fn ($request) => ! str_contains($request->body(), 'private-funnel-secret')
         && ! str_contains($request->body(), 'private-block-secret')
-        && ! str_contains($request->body(), 'private.example/token'));
+        && ! str_contains($request->body(), 'private.example/token')
+        && ! str_contains($request->body(), 'person@example.com')
+        && ! str_contains($request->body(), 'private-lead@example.com')
+        && ! str_contains($request->body(), 'contact@example.com'));
     expect($advice['explanations'][0]['explanation'])->toBe('Observed fact')
         ->and($advice['copy_suggestions'][0]['suggestion'])->toBe('bad()Start now')
         ->and($advice['experiment_hypotheses'][0]['primary_metric'])->toBe('conversion_rate');
@@ -810,6 +842,86 @@ test('accepted and dismissed recommendations retain their status and allow later
         ->assertOk()
         ->assertJsonPath('recommendation.status', 'dismissed');
     expect($newPending->fresh()->dismissed_at)->not->toBeNull();
+});
+
+test('recommendation lifecycle records reviewer notes and measured outcome', function () {
+    $user = User::factory()->create();
+    $funnel = copilotFunnel($user, true, ['sections' => []]);
+    $audit = $this->actingAs($user)->postJson(route('copilot.audit', $funnel), [
+        'date_from' => now()->subDays(7)->toDateString(),
+        'date_to' => now()->toDateString(),
+    ])->assertOk()->json('audit');
+    $recommendation = CopilotRecommendation::findOrFail($audit['recommendations'][0]['id']);
+    $url = route('copilot.recommendations.review', [$funnel, $recommendation]);
+
+    $this->postJson($url, ['status' => 'applied'])->assertUnprocessable();
+    $this->postJson($url, ['status' => 'applied', 'note' => 'Updated the published hero copy.'])
+        ->assertStatus(409);
+    $this->postJson($url, ['status' => 'accepted', 'note' => 'Approved for a controlled test.'])
+        ->assertOk()
+        ->assertJsonPath('recommendation.status', 'accepted');
+    $this->postJson($url, ['status' => 'applied', 'note' => 'Applied the approved copy.'])
+        ->assertOk()
+        ->assertJsonPath('recommendation.status', 'applied');
+    $this->postJson($url, ['status' => 'completed', 'outcome' => 'Observed 12 conversions from 300 sessions.'])
+        ->assertOk()
+        ->assertJsonPath('recommendation.status', 'completed');
+
+    $reviewed = $recommendation->fresh();
+    expect($reviewed->reviewed_by)->toBe($user->id)
+        ->and($reviewed->review_note)->toBe('Applied the approved copy.')
+        ->and($reviewed->outcome)->toBe('Observed 12 conversions from 300 sessions.')
+        ->and($reviewed->review_history)->toHaveCount(3)
+        ->and($reviewed->applied_at)->not->toBeNull()
+        ->and($reviewed->completed_at)->not->toBeNull();
+});
+
+test('copilot metrics use persisted CRM submissions and current task status', function () {
+    $user = User::factory()->create();
+    $funnel = copilotFunnel($user);
+    $qualified = $user->contacts()->create([
+        'funnel_id' => $funnel->id,
+        'email' => 'qualified@example.com',
+        'status' => 'qualified',
+    ]);
+    $unqualified = $user->contacts()->create([
+        'funnel_id' => $funnel->id,
+        'email' => 'new@example.com',
+        'status' => 'new',
+    ]);
+    $qualified->submissions()->create([
+        'funnel_id' => $funnel->id,
+        'source' => 'client_acquisition',
+        'fields' => ['market' => 'ethiopia', 'service_interests' => ['web_app']],
+    ]);
+    $unqualified->submissions()->create([
+        'funnel_id' => $funnel->id,
+        'source' => 'client_acquisition',
+        'fields' => ['market' => 'international', 'service_interests' => ['ai_chatbot']],
+    ]);
+    FollowUpTask::query()->create([
+        'user_id' => $user->id,
+        'contact_id' => $qualified->id,
+        'title' => 'Review proposal',
+        'due_at' => now()->subDay(),
+        'status' => 'pending',
+    ]);
+
+    $metrics = (new FunnelOptimizationEngine)->computeMetrics($funnel, now()->toDateString(), now()->toDateString());
+
+    expect($metrics['inquiries'])->toBe(2)
+        ->and($metrics['distinct_leads'])->toBe(2)
+        ->and($metrics['currently_qualified_leads'])->toBe(1)
+        ->and($metrics['qualified_lead_rate'])->toBe(50.0)
+        ->and($metrics['overdue_follow_up_tasks'])->toBe(1)
+        ->and($metrics['project_requests_by_market'])->toBe([
+            ['market' => 'ethiopia', 'submissions' => 1, 'qualified_submissions' => 1],
+            ['market' => 'international', 'submissions' => 1, 'qualified_submissions' => 0],
+        ])
+        ->and($metrics['project_requests_by_service'])->toBe([
+            ['service' => 'web_app', 'submissions' => 1, 'qualified_submissions' => 1],
+            ['service' => 'ai_chatbot', 'submissions' => 1, 'qualified_submissions' => 0],
+        ]);
 });
 
 test('users cannot act on recommendations for a different funnel', function () {

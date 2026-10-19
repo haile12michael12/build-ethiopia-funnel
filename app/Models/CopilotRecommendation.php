@@ -90,6 +90,7 @@ class CopilotRecommendation extends Model
             'effort' => $this->effort,
             'supporting_metrics' => $this->supporting_metrics,
             'status' => $this->status,
+            'reviewed_by' => $this->reviewed_by,
             'created_at' => $this->created_at?->toISOString(),
             'accepted_at' => $this->accepted_at?->toISOString(),
             'dismissed_at' => $this->dismissed_at?->toISOString(),

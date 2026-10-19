@@ -9,6 +9,7 @@ use App\Models\ContactEmailPreference;
 use App\Models\Funnel;
 use App\Models\FunnelEvent;
 use App\Services\Automation\AutomationEventRecorder;
+use App\Services\FunnelAnalyticsSanitizer;
 use App\Services\OpportunityAutomationService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class LeadCaptureController extends Controller
         Funnel $funnel,
         OpportunityAutomationService $opportunityAutomation,
         AutomationEventRecorder $automationEvents,
+        FunnelAnalyticsSanitizer $analyticsSanitizer,
     ) {
         if (! $funnel->is_published) {
             $this->authorize('update', $funnel);
@@ -49,8 +51,13 @@ class LeadCaptureController extends Controller
             'variant_id' => ['nullable', 'integer'],
         ]);
 
-        if (isset($validated['variant_id']) && ! $funnel->variants()->whereKey($validated['variant_id'])->exists()) {
+        if (isset($validated['variant_id']) && ! $funnel->variants()->whereKey($validated['variant_id'])->where('is_active', true)->exists()) {
             abort(422, 'Invalid experiment variant.');
+        }
+        if ($funnel->is_published && ! $request->user()?->can('update', $funnel)) {
+            $assignedVariant = (string) $request->cookie('of_variant_'.$funnel->id, 'control');
+            $submittedVariant = isset($validated['variant_id']) ? (string) $validated['variant_id'] : 'control';
+            abort_unless($assignedVariant === $submittedVariant, 422, 'The submitted variant does not match this visitor’s assignment.');
         }
 
         [$contact, $submission, $scoreEventIds] = DB::transaction(function () use (
@@ -59,6 +66,7 @@ class LeadCaptureController extends Controller
             $funnel,
             $opportunityAutomation,
             $automationEvents,
+            $analyticsSanitizer,
         ) {
             $dispatchAutomationImmediately = config('queue.default') !== 'sync';
             $email = strtolower($validated['email']);
@@ -123,19 +131,21 @@ class LeadCaptureController extends Controller
             $funnel->events()->create([
                 'event_type' => 'conversion',
                 'contact_id' => $contact->id,
+                'submission_id' => $submission->id,
                 'variant_id' => $validated['variant_id'] ?? null,
                 'session_id' => $sessionId,
                 'form_id' => $validated['form_id'] ?? null,
-                'attribution' => $validated['attribution'] ?? [],
+                'attribution' => $analyticsSanitizer->attribution($validated['attribution'] ?? []),
                 'occurred_at' => now(),
             ]);
             $funnel->events()->create([
                 'event_type' => 'form_submitted',
                 'contact_id' => $contact->id,
+                'submission_id' => $submission->id,
                 'variant_id' => $validated['variant_id'] ?? null,
                 'session_id' => $sessionId,
                 'form_id' => $validated['form_id'] ?? null,
-                'attribution' => $validated['attribution'] ?? [],
+                'attribution' => $analyticsSanitizer->attribution($validated['attribution'] ?? []),
                 'occurred_at' => now(),
             ]);
 
@@ -143,10 +153,11 @@ class LeadCaptureController extends Controller
                 $funnel->events()->create([
                     'event_type' => 'lead_created',
                     'contact_id' => $contact->id,
+                    'submission_id' => $submission->id,
                     'variant_id' => $validated['variant_id'] ?? null,
                     'session_id' => $sessionId,
                     'form_id' => $validated['form_id'] ?? null,
-                    'attribution' => $validated['attribution'] ?? [],
+                    'attribution' => $analyticsSanitizer->attribution($validated['attribution'] ?? []),
                     'occurred_at' => now(),
                 ]);
                 $automationEvents->record(

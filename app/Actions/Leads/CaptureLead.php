@@ -10,6 +10,7 @@ use App\Models\Funnel;
 use App\Models\User;
 use App\Services\Automation\AutomationEventRecorder;
 use App\Services\EthiopianPhoneNormalizer;
+use App\Services\FunnelAnalyticsSanitizer;
 use App\Services\LeadScoringService;
 use App\Services\OpportunityAutomationService;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class CaptureLead
         private UpdateLeadScore $updateLeadScore,
         private QualifyLead $qualifyLead,
         private AutomationEventRecorder $automationEvents,
+        private FunnelAnalyticsSanitizer $analyticsSanitizer,
     ) {}
 
     /**
@@ -217,15 +219,13 @@ class CaptureLead
                 $analyticsFunnel->incrementConversions();
                 $analyticsFunnel->events()->create([
                     'event_type' => 'conversion',
+                    'submission_id' => $submission->id,
                     'variant_id' => $variantId,
                     'session_id' => $sessionId,
                     'form_id' => 'client-acquisition',
-                    'attribution' => $validated['attribution'] ?? [],
+                    'attribution' => $this->analyticsSanitizer->attribution($validated['attribution'] ?? []),
                     'metadata' => [
                         'lead_source' => 'client_acquisition',
-                        'market' => $project['market'],
-                        'services' => implode(',', $project['service_interests']),
-                        'qualified' => (string) ((int) ($score['score'] >= (int) $settings['qualified_score'])),
                     ],
                     'occurred_at' => now(),
                 ]);

@@ -245,6 +245,25 @@ class CopilotController extends Controller
         return $this->changeRecommendationStatus($funnel, $recommendation, 'dismissed');
     }
 
+    public function reviewRecommendation(Request $request, Funnel $funnel, CopilotRecommendation $recommendation): JsonResponse
+    {
+        $this->authorize('update', $funnel);
+        abort_unless($recommendation->funnel_id === $funnel->id && $recommendation->user_id === auth()->id(), 404);
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', 'in:accepted,rejected,applied,completed,dismissed'],
+            'note' => ['required_if:status,applied', 'nullable', 'string', 'min:1', 'max:2000'],
+            'outcome' => ['required_if:status,completed', 'nullable', 'string', 'max:5000'],
+        ]);
+
+        return $this->saveRecommendationReview(
+            $recommendation,
+            $validated['status'],
+            $validated['note'] ?? null,
+            $validated['outcome'] ?? null,
+        );
+    }
+
     public function createDraftExperiment(Request $request, Funnel $funnel, CopilotRecommendation $recommendation): JsonResponse
     {
         $this->authorize('update', $funnel);
@@ -359,16 +378,59 @@ class CopilotController extends Controller
         $this->authorize('update', $funnel);
         abort_unless($recommendation->funnel_id === $funnel->id && $recommendation->user_id === auth()->id(), 404);
 
-        if ($recommendation->status !== 'pending') {
-            return response()->json(['message' => 'This recommendation has already been reviewed.'], 409);
-        }
+        return $this->saveRecommendationReview($recommendation, $status, null, null);
+    }
 
-        $recommendation->update([
-            'status' => $status,
-            'pending_fingerprint' => null,
-            'accepted_at' => $status === 'accepted' ? now() : null,
-            'dismissed_at' => $status === 'dismissed' ? now() : null,
-        ]);
+    private function saveRecommendationReview(
+        CopilotRecommendation $recommendation,
+        string $status,
+        ?string $note,
+        ?string $outcome,
+    ): JsonResponse {
+        $saved = DB::transaction(function () use ($recommendation, $status, $note, $outcome): bool {
+            $locked = CopilotRecommendation::query()->lockForUpdate()->findOrFail($recommendation->id);
+            $allowedTransitions = match ($locked->status) {
+                'pending' => ['accepted', 'rejected', 'dismissed'],
+                'accepted' => ['applied', 'rejected', 'dismissed'],
+                'applied' => ['completed'],
+                default => [],
+            };
+            if (! in_array($status, $allowedTransitions, true)) {
+                return false;
+            }
+
+            $history = $locked->review_history ?? [];
+            $entry = [
+                'status' => $status,
+                'actor_user_id' => auth()->id(),
+                'at' => now()->toISOString(),
+            ];
+            if ($note !== null && trim($note) !== '') {
+                $entry['note'] = trim($note);
+            }
+            if ($outcome !== null && trim($outcome) !== '') {
+                $entry['outcome'] = trim($outcome);
+            }
+
+            $locked->update([
+                'status' => $status,
+                'pending_fingerprint' => null,
+                'reviewed_by' => auth()->id(),
+                'review_note' => $note !== null ? trim($note) : $locked->review_note,
+                'outcome' => $outcome !== null ? trim($outcome) : $locked->outcome,
+                'review_history' => [...$history, $entry],
+                'reviewed_at' => now(),
+                ...($status === 'accepted' ? ['accepted_at' => now()] : []),
+                ...($status === 'dismissed' ? ['dismissed_at' => now()] : []),
+                ...($status === 'applied' ? ['applied_at' => now()] : []),
+                ...($status === 'completed' ? ['completed_at' => now()] : []),
+            ]);
+
+            return true;
+        });
+        if (! $saved) {
+            return response()->json(['message' => 'This recommendation cannot transition to the requested status.'], 409);
+        }
 
         return response()->json(['recommendation' => $recommendation->fresh()->toCopilotArray()]);
     }

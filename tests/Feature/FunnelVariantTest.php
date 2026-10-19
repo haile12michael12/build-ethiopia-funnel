@@ -3,6 +3,7 @@
 use App\Models\Funnel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\QueryException;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -83,6 +84,14 @@ test('public assignment renders the selected variant and attributes submissions'
         'variant_id' => $variant->id,
     ])->assertRedirect();
 
+    $submission = $funnel->contactSubmissions()->firstOrFail();
+    $conversion = $funnel->events()->where('event_type', 'conversion')->firstOrFail();
     $this->assertDatabaseHas('contact_submissions', ['funnel_id' => $funnel->id, 'variant_id' => $variant->id]);
-    $this->assertDatabaseHas('funnel_events', ['funnel_id' => $funnel->id, 'variant_id' => $variant->id, 'event_type' => 'conversion']);
+    expect($conversion->variant_id)->toBe($variant->id)
+        ->and($conversion->submission_id)->toBe($submission->id);
+    expect(fn () => $funnel->events()->create([
+        'event_type' => 'conversion',
+        'submission_id' => $submission->id,
+        'occurred_at' => now(),
+    ]))->toThrow(QueryException::class);
 });

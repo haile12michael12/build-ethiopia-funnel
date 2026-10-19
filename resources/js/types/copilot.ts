@@ -5,7 +5,13 @@ export interface CopilotMetrics {
     unique_sessions: number;
     cta_clicks: number;
     form_starts: number;
+    form_validation_errors?: number;
     conversions: number;
+    inquiries?: number;
+    distinct_leads?: number;
+    currently_qualified_leads?: number;
+    qualified_lead_rate?: number;
+    overdue_follow_up_tasks?: number;
     conversion_rate: number;
     cta_click_rate: number;
     form_completion_rate: number;
@@ -18,6 +24,8 @@ export interface CopilotMetrics {
     project_requests_by_market?: ProjectRequestSegment[];
     project_requests_by_service?: ProjectRequestSegment[];
     traffic_sources?: BreakdownMetric[];
+    traffic_campaigns?: BreakdownMetric[];
+    landing_pages?: BreakdownMetric[];
     devices?: BreakdownMetric[];
     control?: VariantMetrics;
     variants?: VariantMetrics[];
@@ -103,10 +111,23 @@ export interface Recommendation {
     confidence_explanation?: string;
     effort: 'low' | 'medium' | 'high' | 'n/a';
     supporting_metrics?: Record<string, number | string | null>;
-    status?: 'pending' | 'accepted' | 'dismissed';
+    status?: 'pending' | 'accepted' | 'rejected' | 'applied' | 'completed' | 'dismissed';
     created_at?: string | null;
     accepted_at?: string | null;
     dismissed_at?: string | null;
+    reviewed_by?: number | null;
+    review_note?: string | null;
+    outcome?: string | null;
+    review_history?: Array<{
+        status: string;
+        actor_user_id: number;
+        at: string;
+        note?: string;
+        outcome?: string;
+    }>;
+    reviewed_at?: string | null;
+    applied_at?: string | null;
+    completed_at?: string | null;
 }
 
 export interface AiExplanation {

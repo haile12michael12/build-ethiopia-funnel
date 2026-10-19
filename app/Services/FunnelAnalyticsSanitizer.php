@@ -18,7 +18,7 @@ class FunnelAnalyticsSanitizer
             }
         }
 
-        $landingPath = parse_url((string) ($attribution['landing_page'] ?? ''), PHP_URL_PATH);
+        $landingPath = $this->safePath((string) ($attribution['landing_page'] ?? ''));
         if (is_string($landingPath) && str_starts_with($landingPath, '/') && ! str_contains($landingPath, '..')) {
             $safe['landing_page'] = mb_substr($landingPath, 0, 255);
         }
@@ -27,12 +27,9 @@ class FunnelAnalyticsSanitizer
         if (is_array($referrer)
             && in_array($referrer['scheme'] ?? null, ['http', 'https'], true)
             && isset($referrer['host'])
-            && ! isset($referrer['user'], $referrer['pass'])) {
-            $safe['referrer'] = mb_substr(
-                $referrer['scheme'].'://'.$referrer['host'].($referrer['path'] ?? ''),
-                0,
-                2000,
-            );
+            && ! isset($referrer['user'])
+            && ! isset($referrer['pass'])) {
+            $safe['referrer'] = mb_substr($referrer['scheme'].'://'.$referrer['host'], 0, 255);
         }
 
         if (isset($attribution['device']) && in_array($attribution['device'], ['mobile', 'tablet', 'desktop'], true)) {
@@ -56,7 +53,7 @@ class FunnelAnalyticsSanitizer
 
             $value = trim((string) $metadata[$key]);
             if ($key === 'page') {
-                $path = parse_url($value, PHP_URL_PATH);
+                $path = $this->safePath($value);
                 if (is_string($path) && str_starts_with($path, '/') && ! str_contains($path, '..')) {
                     $safe[$key] = mb_substr($path, 0, 255);
                 }
@@ -70,5 +67,22 @@ class FunnelAnalyticsSanitizer
         }
 
         return $safe;
+    }
+
+    private function safePath(string $value): ?string
+    {
+        $path = parse_url($value, PHP_URL_PATH);
+        if (! is_string($path) || ! str_starts_with($path, '/') || str_contains($path, '..')) {
+            return null;
+        }
+
+        return implode('/', array_map(function (string $segment): string {
+            if (filter_var($segment, FILTER_VALIDATE_EMAIL)
+                || preg_match('/\+?\d[\d\s().-]{7,}\d/', $segment)) {
+                return ':redacted';
+            }
+
+            return $segment;
+        }, explode('/', $path)));
     }
 }

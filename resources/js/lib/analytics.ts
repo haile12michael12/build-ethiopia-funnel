@@ -31,13 +31,13 @@ export function currentAttribution(): Record<string, string> {
     const attribution: Record<string, string> = {};
     for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']) {
         const value = search.get(key);
-        if (value) attribution[key] = value;
+        if (value && !containsDirectIdentifier(value)) attribution[key] = value.slice(0, 100);
     }
-    attribution.landing_page = window.location.pathname;
+    attribution.landing_page = safePath(window.location.pathname);
     if (document.referrer) {
         try {
             const referrer = new URL(document.referrer);
-            attribution.referrer = `${referrer.origin}${referrer.pathname}`;
+            attribution.referrer = referrer.origin;
         } catch {
             // Ignore malformed referrers rather than sending arbitrary browser text.
         }
@@ -58,7 +58,7 @@ export function trackFunnelEvent(
         const value = options.metadata?.[key];
         if (value !== undefined) metadata[key] = value;
     }
-    metadata.page = window.location.pathname;
+    metadata.page = safePath(window.location.pathname);
     metadata.device = window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
 
     void fetch(`/funnels/${funnelId}/events`, {
@@ -70,10 +70,22 @@ export function trackFunnelEvent(
             event_type: eventType,
             event_id: crypto.randomUUID(),
             session_id: funnelSessionId(),
-            form_id: options.formId,
+            form_id: options.formId && /^[a-zA-Z0-9_-]{1,80}$/.test(options.formId) ? options.formId : undefined,
             variant_id: variantId,
             attribution: currentAttribution(),
             metadata,
         }),
     }).catch(() => undefined);
+}
+
+function containsDirectIdentifier(value: string): boolean {
+    return /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value) || /\+?\d[\d\s().-]{7,}\d/.test(value);
+}
+
+function safePath(path: string): string {
+    if (!path.startsWith('/') || path.includes('..')) return '/';
+    return path
+        .split('/')
+        .map((segment) => (containsDirectIdentifier(segment) ? ':redacted' : segment))
+        .join('/');
 }

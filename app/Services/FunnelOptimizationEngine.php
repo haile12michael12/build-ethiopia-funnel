@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\ContactSubmission;
+use App\Models\FollowUpTask;
 use App\Models\Funnel;
 use App\Models\FunnelEvent;
 use Illuminate\Support\Collection;
@@ -50,7 +52,11 @@ class FunnelOptimizationEngine
                 'evidence_type' => str_starts_with($finding['key'], 'variant_') || in_array($finding['category'], ['performance', 'conversion_tracking', 'experiment_opportunities'], true)
                     ? 'measured'
                     : 'content_review',
-                'supporting_metrics' => $this->supportingMetrics($finding['key'], $metrics),
+                'supporting_metrics' => [
+                    'date_from' => $metrics['date_from'],
+                    'date_to' => $metrics['date_to'],
+                    ...$this->supportingMetrics($finding['key'], $metrics),
+                ],
             ])
             ->sortByDesc('priority')
             ->values()
@@ -72,12 +78,18 @@ class FunnelOptimizationEngine
         $events = FunnelEvent::query()
             ->where('funnel_id', $funnel->id)
             ->whereBetween('occurred_at', [$dateFrom.' 00:00:00', $dateTo.' 23:59:59'])
-            ->get(['event_type', 'session_id', 'form_id', 'variant_id', 'metadata', 'attribution', 'occurred_at']);
+            ->get(['event_type', 'session_id', 'form_id', 'variant_id', 'submission_id', 'metadata', 'attribution', 'occurred_at']);
+        $submissions = ContactSubmission::query()
+            ->where('funnel_id', $funnel->id)
+            ->whereBetween('created_at', [$dateFrom.' 00:00:00', $dateTo.' 23:59:59'])
+            ->with('contact:id,status,client_project')
+            ->get(['id', 'contact_id', 'fields', 'source', 'created_at']);
 
         $views = $events->where('event_type', 'view')->count();
         $uniqueSessions = $events->where('event_type', 'view')->whereNotNull('session_id')->pluck('session_id')->unique()->count();
         $ctaClicks = $events->where('event_type', 'cta_click')->count();
         $formStarts = $events->where('event_type', 'form_start')->count();
+        $validationErrors = $events->where('event_type', 'form_validation_error')->count();
         $conversions = $events->where('event_type', 'conversion')->count();
 
         $conversionRate = $views > 0 ? round(($conversions / $views) * 100, 2) : 0.0;
@@ -141,34 +153,48 @@ class FunnelOptimizationEngine
                 ];
             })->values();
         })->values()->all();
-        $projectRequestEvents = $events
+        $legacyProjectRequestEvents = $events
             ->where('event_type', 'conversion')
-            ->filter(fn (FunnelEvent $event) => data_get($event->metadata, 'lead_source') === 'client_acquisition');
-        $projectRequestsByMarket = $projectRequestEvents
-            ->filter(fn (FunnelEvent $event) => in_array(data_get($event->metadata, 'market'), ['ethiopia', 'international'], true))
-            ->groupBy(fn (FunnelEvent $event) => data_get($event->metadata, 'market'))
-            ->map(fn (Collection $marketEvents, string $market) => [
+            ->filter(fn (FunnelEvent $event) => $event->submission_id === null
+                && data_get($event->metadata, 'lead_source') === 'client_acquisition');
+        $projectRequestSubmissions = $submissions->where('source', 'client_acquisition');
+        $projectRequestData = $projectRequestSubmissions
+            ->map(fn (ContactSubmission $submission) => [
+                'market' => data_get($submission->fields, 'market'),
+                'services' => data_get($submission->fields, 'service_interests', []),
+                'qualified' => $submission->contact?->status === 'qualified',
+            ])
+            ->concat($legacyProjectRequestEvents->map(fn (FunnelEvent $event) => [
+                'market' => data_get($event->metadata, 'market'),
+                'services' => explode(',', (string) data_get($event->metadata, 'services', '')),
+                'qualified' => filter_var(data_get($event->metadata, 'qualified'), FILTER_VALIDATE_BOOLEAN),
+            ]));
+        $projectRequestsByMarket = $projectRequestData
+            ->filter(fn (array $request) => in_array($request['market'], ['ethiopia', 'international'], true))
+            ->groupBy('market')
+            ->map(fn (Collection $marketSubmissions, string $market) => [
                 'market' => $market,
-                'submissions' => $marketEvents->count(),
-                'qualified_submissions' => $marketEvents->filter(fn (FunnelEvent $event) => filter_var(data_get($event->metadata, 'qualified'), FILTER_VALIDATE_BOOLEAN))->count(),
+                'submissions' => $marketSubmissions->count(),
+                'qualified_submissions' => $marketSubmissions->where('qualified', true)->count(),
             ])
             ->sortByDesc('submissions')
             ->values()
             ->all();
-        $projectRequestsByService = $projectRequestEvents
-            ->flatMap(function (FunnelEvent $event): array {
-                $services = data_get($event->metadata, 'services');
-                if (! is_string($services)) {
+        $projectRequestsByService = $projectRequestData
+            ->flatMap(function (array $request): array {
+                $services = $request['services'];
+                if (! is_array($services)) {
                     return [];
                 }
 
-                return collect(explode(',', $services))
+                return collect($services)
+                    ->filter(fn (mixed $service) => is_string($service))
                     ->map(fn (string $service) => trim($service))
                     ->filter(fn (string $service) => preg_match('/^[a-zA-Z0-9_-]{1,40}$/', $service) === 1)
                     ->unique()
                     ->map(fn (string $service) => [
                         'service' => $service,
-                        'qualified' => filter_var(data_get($event->metadata, 'qualified'), FILTER_VALIDATE_BOOLEAN),
+                        'qualified' => $request['qualified'],
                     ])
                     ->values()
                     ->all();
@@ -182,6 +208,17 @@ class FunnelOptimizationEngine
             ->sortByDesc('submissions')
             ->values()
             ->all();
+        $leadIds = $submissions->pluck('contact_id')->unique();
+        $qualifiedLeadIds = $submissions
+            ->filter(fn (ContactSubmission $submission) => $submission->contact?->status === 'qualified')
+            ->pluck('contact_id')
+            ->unique();
+        $overdueFollowUps = FollowUpTask::query()
+            ->where('user_id', $funnel->user_id)
+            ->where('status', 'pending')
+            ->where('due_at', '<', now())
+            ->whereHas('contact', fn ($query) => $query->where('funnel_id', $funnel->id))
+            ->count();
 
         return [
             'date_from' => $dateFrom,
@@ -190,16 +227,24 @@ class FunnelOptimizationEngine
             'unique_sessions' => $uniqueSessions,
             'cta_clicks' => $ctaClicks,
             'form_starts' => $formStarts,
+            'form_validation_errors' => $validationErrors,
             'conversions' => $conversions,
             'conversion_rate' => $conversionRate,
             'cta_click_rate' => $ctaClickRate,
             'form_completion_rate' => $formCompletionRate,
             'daily' => $daily,
             'form_steps' => $formSteps,
-            'project_request_submissions' => $projectRequestEvents->count(),
+            'inquiries' => $submissions->count(),
+            'distinct_leads' => $leadIds->count(),
+            'currently_qualified_leads' => $qualifiedLeadIds->count(),
+            'qualified_lead_rate' => $leadIds->isNotEmpty() ? round(($qualifiedLeadIds->count() / $leadIds->count()) * 100, 2) : 0.0,
+            'overdue_follow_up_tasks' => $overdueFollowUps,
+            'project_request_submissions' => $projectRequestSubmissions->count() + $legacyProjectRequestEvents->count(),
             'project_requests_by_market' => $projectRequestsByMarket,
             'project_requests_by_service' => $projectRequestsByService,
             'traffic_sources' => $this->breakdownBy($events, 'source'),
+            'traffic_campaigns' => $this->breakdownBy($events, 'campaign'),
+            'landing_pages' => $this->breakdownBy($events, 'landing_page'),
             'devices' => $this->breakdownBy($events, 'device'),
             'data_warnings' => array_values(array_unique($dataWarnings)),
             'sample_size_sufficient' => $views >= $this->thresholds['min_sample_size'],
@@ -217,9 +262,12 @@ class FunnelOptimizationEngine
         return $events
             ->filter(fn (FunnelEvent $event) => in_array($event->event_type, ['view', 'conversion'], true))
             ->groupBy(function (FunnelEvent $event) use ($dimension) {
-                $value = $dimension === 'source'
-                    ? data_get($event->attribution, 'utm_source')
-                    : (data_get($event->metadata, 'device') ?? data_get($event->attribution, 'device'));
+                $value = match ($dimension) {
+                    'source' => data_get($event->attribution, 'utm_source'),
+                    'campaign' => data_get($event->attribution, 'utm_campaign'),
+                    'landing_page' => data_get($event->attribution, 'landing_page'),
+                    default => data_get($event->metadata, 'device') ?? data_get($event->attribution, 'device'),
+                };
 
                 return is_string($value) && trim($value) !== '' ? mb_substr(trim($value), 0, 100) : 'unknown';
             })
@@ -260,6 +308,7 @@ class FunnelOptimizationEngine
                 'conversions' => $metrics['conversions'],
                 'form_completion_rate' => $metrics['form_completion_rate'],
             ],
+            'overdue_follow_ups' => ['overdue_follow_up_tasks' => $metrics['overdue_follow_up_tasks']],
             'low_sample_size' => ['views' => $metrics['views']],
             'form_step_dropoff' => $this->stepSupportingMetrics($metrics),
             'traffic_source_variation' => [
@@ -464,6 +513,20 @@ class FunnelOptimizationEngine
                 'Stored event counts conflict with the expected funnel sequence. Rates are shown from the raw events and should not be used to evaluate performance until tracking is checked.',
                 'Verify event instrumentation and session/variant assignment before acting on conversion-rate findings.',
                 95,
+                'high',
+                'low',
+            );
+        }
+
+        if ($metrics['overdue_follow_up_tasks'] > 0) {
+            $findings[] = $this->finding(
+                'overdue_follow_ups',
+                'Overdue Lead Follow-Ups',
+                'follow_up_process',
+                "{$metrics['overdue_follow_up_tasks']} pending follow-up tasks for this funnel's leads are overdue as of this analysis.",
+                'These are persisted internal CRM tasks. This count does not imply that a prospect was contacted or that a reminder was sent.',
+                'Review the overdue tasks in the CRM and update each task after the follow-up is actually handled.',
+                80,
                 'high',
                 'low',
             );

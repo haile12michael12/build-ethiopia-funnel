@@ -46,7 +46,7 @@ class FunnelAnalyticsController extends Controller
             ])],
             'session_id' => ['nullable', 'uuid'],
             'event_id' => ['nullable', 'uuid'],
-            'form_id' => ['nullable', 'string', 'max:100'],
+            'form_id' => ['nullable', 'string', 'max:80', 'regex:/^[a-zA-Z0-9_-]+$/'],
             'variant_id' => ['nullable', 'integer'],
             'attribution' => ['nullable', 'array:utm_source,utm_medium,utm_campaign,utm_term,utm_content,referrer,landing_page,device'],
             'attribution.utm_source' => ['nullable', 'string', 'max:100', 'not_regex:/@/'],
@@ -84,6 +84,12 @@ class FunnelAnalyticsController extends Controller
             in_array($validated['event_type'], $serverEvents, true) && ! $request->user()?->can('update', $funnel),
             403,
         );
+
+        if ($funnel->is_published && ! $request->user()?->can('update', $funnel)) {
+            $assignedVariant = (string) $request->cookie('of_variant_'.$funnel->id, 'control');
+            $submittedVariant = isset($validated['variant_id']) ? (string) $validated['variant_id'] : 'control';
+            abort_unless($assignedVariant === $submittedVariant, 422, 'The reported variant does not match this visitor’s assignment.');
+        }
 
         if (isset($validated['variant_id']) && ! $funnel->variants()->whereKey($validated['variant_id'])->where('is_active', true)->exists()) {
             abort(422, 'Invalid experiment variant.');

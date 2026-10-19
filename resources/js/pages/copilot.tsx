@@ -121,7 +121,12 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
     );
 
     const actOnRecommendation = useCallback(
-        async (recommendation: Recommendation, action: 'accept' | 'dismiss' | 'experiment', proposedCopy?: string) => {
+        async (
+            recommendation: Recommendation,
+            action: 'accept' | 'dismiss' | 'experiment' | 'review',
+            proposedCopy?: string,
+            review?: { status: string; note?: string; outcome?: string },
+        ) => {
             if (!recommendation.id) return;
 
             setActionBusyId(recommendation.id);
@@ -135,15 +140,19 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                     headers: {
                         Accept: 'application/json',
                         'X-CSRF-TOKEN': csrf,
-                        ...(action === 'experiment' ? { 'Content-Type': 'application/json' } : {}),
+                        ...(['experiment', 'review'].includes(action) ? { 'Content-Type': 'application/json' } : {}),
                     },
                     credentials: 'same-origin',
-                    ...(action === 'experiment'
+                    ...(['experiment', 'review'].includes(action)
                         ? {
-                              body: JSON.stringify({
-                                  target: recommendation.category === 'cta_optimization' ? 'cta' : 'headline',
-                                  proposed_copy: proposedCopy,
-                              }),
+                              body: JSON.stringify(
+                                  action === 'review'
+                                      ? review
+                                      : {
+                                            target: recommendation.category === 'cta_optimization' ? 'cta' : 'headline',
+                                            proposed_copy: proposedCopy,
+                                        },
+                              ),
                           }
                         : {}),
                 });
@@ -168,9 +177,11 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                             : audit,
                     );
                     setActionNotice(
-                        action === 'accept'
-                            ? (t.recommendation_accepted_notice ?? 'Recommendation accepted.')
-                            : (t.recommendation_dismissed_notice ?? 'Recommendation dismissed.'),
+                        action === 'review'
+                            ? `Recommendation marked ${review?.status ?? 'reviewed'}.`
+                            : action === 'accept'
+                              ? (t.recommendation_accepted_notice ?? 'Recommendation accepted.')
+                              : (t.recommendation_dismissed_notice ?? 'Recommendation dismissed.'),
                     );
                 }
                 if (data.variant) {
@@ -186,6 +197,26 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
             }
         },
         [funnel.id, t],
+    );
+
+    const reviewRecommendation = useCallback(
+        (recommendation: Recommendation, status: 'accepted' | 'rejected' | 'applied' | 'completed' | 'dismissed') => {
+            if (!recommendation.id) return;
+
+            const note = window.prompt(
+                status === 'applied' ? 'Describe the change that has actually been applied (required):' : 'Add an internal review note (optional):',
+            );
+            if (note === null || (status === 'applied' && !note.trim())) return;
+
+            let outcome: string | undefined;
+            if (status === 'completed') {
+                outcome = window.prompt('Record the measured outcome (required):') ?? undefined;
+                if (!outcome?.trim()) return;
+            }
+
+            void actOnRecommendation(recommendation, 'review', undefined, { status, note, outcome });
+        },
+        [actOnRecommendation],
     );
 
     const metrics = currentAudit?.metrics ?? null;
@@ -328,6 +359,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                         setExpandedRec={setExpandedRec}
                         actionBusyId={actionBusyId}
                         onAction={actOnRecommendation}
+                        onReview={reviewRecommendation}
                         t={t}
                     />
                 )}
@@ -362,6 +394,12 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
         { label: t.unique_sessions ?? 'Unique Sessions', value: metrics.unique_sessions, icon: Users, color: 'text-indigo-400' },
         { label: t.cta_clicks ?? 'CTA Clicks', value: metrics.cta_clicks, icon: MousePointerClick, color: 'text-purple-400' },
         { label: t.form_starts ?? 'Form Starts', value: metrics.form_starts, icon: FileText, color: 'text-cyan-400' },
+        {
+            label: t.validation_errors ?? 'Form validation errors',
+            value: metrics.form_validation_errors ?? 0,
+            icon: AlertTriangle,
+            color: 'text-yellow-400',
+        },
         { label: t.conversions ?? 'Conversions', value: metrics.conversions, icon: Target, color: 'text-green-400' },
     ];
 
@@ -391,7 +429,7 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
             key: 'markets',
             title: t.project_requests_by_market ?? 'By market',
             rows: metrics.project_requests_by_market ?? [],
-            label: (row) => (row.market === 'ethiopia' ? t.market_ethiopia ?? 'Ethiopia' : t.market_international ?? 'International'),
+            label: (row) => (row.market === 'ethiopia' ? (t.market_ethiopia ?? 'Ethiopia') : (t.market_international ?? 'International')),
         },
         {
             key: 'services',
@@ -403,6 +441,13 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
 
     return (
         <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+                {t.metric_period_definition ??
+                    `Period: ${metrics.date_from}–${metrics.date_to}. Views, starts and conversions are event counts; unique sessions are hashed first-party browser sessions, not unique people.`}
+                {' '}
+                {t.conversion_definition ??
+                    'Conversion rate = confirmed persisted submissions / view events; form completion = confirmed persisted submissions / form-start events.'}
+            </p>
             {/* KPI Cards */}
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
                 {kpis.map((kpi) => {
@@ -429,6 +474,27 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                 ))}
             </div>
 
+            <section className="copilot-card rounded-xl border border-border p-4">
+                <h3 className="font-medium">{t.crm_outcomes ?? 'Persisted CRM outcomes'}</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                    {t.crm_outcomes_definition ?? 'Inquiries are saved submissions; qualification uses each lead’s current CRM status.'}
+                </p>
+                <dl className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+                    {[
+                        [t.persisted_inquiries ?? 'Persisted inquiries', metrics.inquiries ?? 0],
+                        [t.distinct_leads ?? 'Distinct leads', metrics.distinct_leads ?? 0],
+                        [t.currently_qualified_leads ?? 'Currently qualified', metrics.currently_qualified_leads ?? 0],
+                        [`${t.qualified_lead_rate ?? 'Current qualified-lead rate'}`, `${metrics.qualified_lead_rate ?? 0}%`],
+                        [t.overdue_follow_up_tasks ?? 'Overdue follow-ups now', metrics.overdue_follow_up_tasks ?? 0],
+                    ].map(([label, value]) => (
+                        <div key={String(label)}>
+                            <dt className="text-xs text-muted-foreground">{label}</dt>
+                            <dd className="mt-1 text-xl font-semibold">{value}</dd>
+                        </div>
+                    ))}
+                </dl>
+            </section>
+
             {/* Data Quality */}
             <div className={`copilot-card rounded-lg border px-4 py-3 text-sm ${dqColor}`}>
                 <span className="font-medium">{t.data_quality ?? 'Data Quality'}:</span> {dqLabel}
@@ -445,35 +511,42 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                 </div>
             )}
 
-            {(metrics.traffic_sources?.length ?? 0) > 0 || (metrics.devices?.length ?? 0) > 0 ? (
+            {(metrics.traffic_sources?.length ?? 0) > 0 ||
+            (metrics.traffic_campaigns?.length ?? 0) > 0 ||
+            (metrics.landing_pages?.length ?? 0) > 0 ||
+            (metrics.devices?.length ?? 0) > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2">
                     {[
                         { key: 'traffic_sources', title: t.traffic_sources ?? 'Traffic sources', rows: metrics.traffic_sources ?? [] },
+                        { key: 'traffic_campaigns', title: t.traffic_campaigns ?? 'Campaigns', rows: metrics.traffic_campaigns ?? [] },
+                        { key: 'landing_pages', title: t.landing_pages ?? 'Landing pages', rows: metrics.landing_pages ?? [] },
                         { key: 'devices', title: t.devices ?? 'Devices', rows: metrics.devices ?? [] },
-                    ].map(({ key, title, rows }) => (
-                        <section key={key} className="copilot-card rounded-xl border border-border p-4">
-                            <h3 className="mb-3 font-medium">{title}</h3>
-                            {rows.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">{t.metrics_unavailable ?? 'No data recorded for this breakdown.'}</p>
-                            ) : (
-                                <ul className="space-y-2">
-                                    {rows.map((row) => (
-                                        <li key={row.label} className="flex items-center justify-between gap-3 text-sm">
-                                            <span className="truncate">{row.label}</span>
-                                            <span className="shrink-0 text-muted-foreground">
-                                                {row.views} {t.views ?? 'views'} · {row.conversions} {t.conversions ?? 'conversions'} ·{' '}
-                                                {row.conversion_rate}%
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </section>
-                    ))}
+                    ]
+                        .filter(({ rows }) => rows.length > 0)
+                        .map(({ key, title, rows }) => (
+                            <section key={key} className="copilot-card rounded-xl border border-border p-4">
+                                <h3 className="mb-3 font-medium">{title}</h3>
+                                {rows.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">{t.metrics_unavailable ?? 'No data recorded for this breakdown.'}</p>
+                                ) : (
+                                    <ul className="space-y-2">
+                                        {rows.map((row) => (
+                                            <li key={row.label} className="flex items-center justify-between gap-3 text-sm">
+                                                <span className="truncate">{row.label}</span>
+                                                <span className="shrink-0 text-muted-foreground">
+                                                    {row.views} {t.views ?? 'views'} · {row.conversions} {t.conversions ?? 'conversions'} ·{' '}
+                                                    {row.conversion_rate}%
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </section>
+                        ))}
                 </div>
             ) : (
                 <p className="px-1 text-xs text-muted-foreground">
-                    {t.metrics_unavailable ?? 'Traffic-source and device breakdowns are unavailable for this period.'}
+                    {t.metrics_unavailable ?? 'Source, campaign, landing-page and device breakdowns are unavailable for this period.'}
                 </p>
             )}
 
@@ -526,10 +599,14 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                                 ) : (
                                     <ul className="space-y-2">
                                         {rows.map((row) => (
-                                            <li key={row.market ?? row.service ?? 'unknown'} className="flex items-center justify-between gap-3 text-sm">
+                                            <li
+                                                key={row.market ?? row.service ?? 'unknown'}
+                                                className="flex items-center justify-between gap-3 text-sm"
+                                            >
                                                 <span className="truncate capitalize">{label(row)}</span>
                                                 <span className="shrink-0 text-muted-foreground">
-                                                    {row.submissions} {t.submissions ?? 'submissions'} · {row.qualified_submissions} {t.qualified ?? 'qualified'}
+                                                    {row.submissions} {t.submissions ?? 'submissions'} · {row.qualified_submissions}{' '}
+                                                    {t.qualified ?? 'qualified'}
                                                 </span>
                                             </li>
                                         ))}
@@ -630,6 +707,7 @@ function RecommendationsSection({
     setExpandedRec,
     actionBusyId,
     onAction,
+    onReview,
     t,
 }: {
     recommendations: Recommendation[];
@@ -637,7 +715,13 @@ function RecommendationsSection({
     expandedRec: string | null;
     setExpandedRec: (k: string | null) => void;
     actionBusyId: number | null;
-    onAction: (recommendation: Recommendation, action: 'accept' | 'dismiss' | 'experiment', proposedCopy?: string) => void;
+    onAction: (
+        recommendation: Recommendation,
+        action: 'accept' | 'dismiss' | 'experiment' | 'review',
+        proposedCopy?: string,
+        review?: { status: string; note?: string; outcome?: string },
+    ) => void;
+    onReview: (recommendation: Recommendation, status: 'accepted' | 'rejected' | 'applied' | 'completed' | 'dismissed') => void;
     t: Record<string, string>;
 }) {
     const [experimentCopy, setExperimentCopy] = useState<Record<number, string>>({});
@@ -723,6 +807,30 @@ function RecommendationsSection({
                                         </div>
                                     )}
                                     {rec.expected_outcome && <p className="text-xs text-muted-foreground">{rec.expected_outcome}</p>}
+                                    {rec.review_note && (
+                                        <p className="rounded-md border border-border px-3 py-2 text-xs">
+                                            <span className="font-medium">{t.review_note ?? 'Internal review note'}: </span>
+                                            {rec.review_note}
+                                        </p>
+                                    )}
+                                    {rec.outcome && (
+                                        <p className="rounded-md border border-border px-3 py-2 text-xs">
+                                            <span className="font-medium">{t.actual_outcome ?? 'Measured outcome'}: </span>
+                                            {rec.outcome}
+                                        </p>
+                                    )}
+                                    {(rec.review_history?.length ?? 0) > 0 && (
+                                        <div className="rounded-md border border-border px-3 py-2 text-xs">
+                                            <p className="mb-2 font-medium">{t.review_history ?? 'Review history'}</p>
+                                            <ul className="space-y-1 text-muted-foreground">
+                                                {rec.review_history?.map((entry, index) => (
+                                                    <li key={`${entry.at}-${index}`}>
+                                                        {entry.status} · {new Date(entry.at).toLocaleString()} · reviewer #{entry.actor_user_id}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                     <p className="text-xs text-muted-foreground">
                                         {t.confidence ?? 'Confidence'}: {rec.confidence_score ?? rec.confidence}
                                         {rec.confidence_explanation && ` — ${rec.confidence_explanation}`}
@@ -732,7 +840,7 @@ function RecommendationsSection({
                                             <>
                                                 <button
                                                     type="button"
-                                                    onClick={() => onAction(rec, 'accept')}
+                                                    onClick={() => onReview(rec, 'accepted')}
                                                     disabled={isBusy}
                                                     className="rounded-md bg-orange-500/20 px-3 py-1.5 text-xs font-medium text-orange-300 hover:bg-orange-500/30 disabled:opacity-50"
                                                 >
@@ -740,13 +848,43 @@ function RecommendationsSection({
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => onAction(rec, 'dismiss')}
+                                                    onClick={() => onReview(rec, 'dismissed')}
                                                     disabled={isBusy}
                                                     className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs font-medium hover:bg-neutral-700 disabled:opacity-50"
                                                 >
                                                     {t.dismiss ?? 'Dismiss'}
                                                 </button>
                                             </>
+                                        )}
+                                        {rec.status === 'pending' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onReview(rec, 'rejected')}
+                                                disabled={isBusy}
+                                                className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-neutral-800 disabled:opacity-50"
+                                            >
+                                                {t.reject ?? 'Reject'}
+                                            </button>
+                                        )}
+                                        {rec.status === 'accepted' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onReview(rec, 'applied')}
+                                                disabled={isBusy}
+                                                className="rounded-md bg-green-500/20 px-3 py-1.5 text-xs font-medium text-green-300 hover:bg-green-500/30 disabled:opacity-50"
+                                            >
+                                                {t.mark_applied ?? 'Mark applied'}
+                                            </button>
+                                        )}
+                                        {rec.status === 'applied' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onReview(rec, 'completed')}
+                                                disabled={isBusy}
+                                                className="rounded-md bg-blue-500/20 px-3 py-1.5 text-xs font-medium text-blue-300 hover:bg-blue-500/30 disabled:opacity-50"
+                                            >
+                                                {t.record_outcome ?? 'Record outcome'}
+                                            </button>
                                         )}
                                         {rec.status === 'accepted' &&
                                             recommendationId !== undefined &&
