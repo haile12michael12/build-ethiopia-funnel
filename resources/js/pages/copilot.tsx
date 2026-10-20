@@ -419,6 +419,12 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
               : 'text-red-400 border-red-800 bg-red-950/30';
 
     const maxViews = Math.max(1, ...metrics.daily.map((d) => d.views));
+    const metricPeriodDefinition = (
+        t.metric_period_definition ??
+        `Period: ${metrics.date_from}–${metrics.date_to}. Views, starts and conversions are event counts; unique sessions are hashed first-party browser sessions, not unique people.`
+    )
+        .replace(':from', metrics.date_from)
+        .replace(':to', metrics.date_to);
     const projectRequestBreakdowns: Array<{
         key: string;
         title: string;
@@ -442,14 +448,12 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
     return (
         <div className="space-y-4">
             <p className="text-xs text-muted-foreground">
-                {t.metric_period_definition ??
-                    `Period: ${metrics.date_from}–${metrics.date_to}. Views, starts and conversions are event counts; unique sessions are hashed first-party browser sessions, not unique people.`}
-                {' '}
+                {metricPeriodDefinition}{' '}
                 {t.conversion_definition ??
                     'Conversion rate = confirmed persisted submissions / view events; form completion = confirmed persisted submissions / form-start events.'}
             </p>
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
                 {kpis.map((kpi) => {
                     const Icon = kpi.icon;
                     return (
@@ -584,7 +588,7 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                         <h3 className="font-medium">{t.project_requests ?? 'Client project requests'}</h3>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
                             {t.project_request_limitations ??
-                                'Submission counts are not unique visitors. Qualified counts reflect the score threshold when each request was submitted; market and service conversion rates are unavailable because visits are not segmented by these choices.'}
+                                'Submission counts are not unique visitors. Qualified counts reflect each lead’s current CRM status and may change over time; market and service conversion rates are unavailable because visits are not segmented by these choices.'}
                         </p>
                     </div>
                     <p className="mb-4 text-sm text-muted-foreground">

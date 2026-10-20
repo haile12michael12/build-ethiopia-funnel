@@ -190,6 +190,13 @@ test('project funnel records linked experiment assignment on conversion and subm
         'qualified_score' => 70,
         'analytics_funnel_id' => $funnel->id,
     ]);
+    $sessionId = 'd4aaac82-e654-4c8d-9c22-2cdea9cf0a17';
+    $funnel->events()->create([
+        'event_type' => 'view',
+        'session_id' => hash('sha256', $sessionId),
+        'variant_id' => $variant->id,
+        'occurred_at' => now(),
+    ]);
 
     $this->withoutVite()
         ->get(route('client-acquisition.show'))
@@ -201,6 +208,7 @@ test('project funnel records linked experiment assignment on conversion and subm
 
     $this->withCookie('of_variant_'.$funnel->id, (string) $variant->id)
         ->post(route('client-acquisition.store'), validClientProjectPayload([
+            'session_id' => $sessionId,
             'variant_id' => $variant->id,
         ]))->assertRedirect();
 
@@ -215,6 +223,13 @@ test('project funnel records linked experiment assignment on conversion and subm
         'funnel_id' => $funnel->id,
         'variant_id' => $variant->id,
         'event_type' => 'conversion',
+        'contact_id' => $contact->id,
+        'submission_id' => $contact->submissions()->firstOrFail()->id,
+    ]);
+    $this->assertDatabaseHas('funnel_events', [
+        'funnel_id' => $funnel->id,
+        'event_type' => 'view',
+        'contact_id' => $contact->id,
     ]);
 
     expect($funnel->fresh()->conversions)->toBe(1);

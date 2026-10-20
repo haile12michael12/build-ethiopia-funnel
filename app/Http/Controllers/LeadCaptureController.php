@@ -102,9 +102,9 @@ class LeadCaptureController extends Controller
             $sessionId = isset($validated['session_id']) ? hash('sha256', $validated['session_id']) : null;
             if ($sessionId) {
                 FunnelEvent::query()
+                    ->where('funnel_id', $funnel->id)
                     ->where('session_id', $sessionId)
                     ->whereNull('contact_id')
-                    ->whereHas('funnel', fn ($query) => $query->where('user_id', $funnel->user_id))
                     ->update(['contact_id' => $contact->id]);
             }
 

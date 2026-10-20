@@ -216,9 +216,16 @@ class CaptureLead
 
             if ($analyticsFunnel) {
                 $sessionId = isset($validated['session_id']) ? hash('sha256', $validated['session_id']) : null;
+                if ($sessionId) {
+                    $analyticsFunnel->events()
+                        ->where('session_id', $sessionId)
+                        ->whereNull('contact_id')
+                        ->update(['contact_id' => $contact->id]);
+                }
                 $analyticsFunnel->incrementConversions();
                 $analyticsFunnel->events()->create([
                     'event_type' => 'conversion',
+                    'contact_id' => $contact->id,
                     'submission_id' => $submission->id,
                     'variant_id' => $variantId,
                     'session_id' => $sessionId,

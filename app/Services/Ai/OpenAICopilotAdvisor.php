@@ -68,7 +68,7 @@ class OpenAICopilotAdvisor implements CopilotAdvisor
             throw new RuntimeException('The funnel content is too large to answer support questions.');
         }
 
-        $response = Http::retry(2, 250, fn ($exception) => $exception instanceof ConnectionException
+        $response = Http::retry(3, 250, fn ($exception) => $exception instanceof ConnectionException
             || ($exception instanceof RequestException && (
                 $exception->response->status() === 429
                 || $exception->response->serverError()
@@ -127,7 +127,7 @@ class OpenAICopilotAdvisor implements CopilotAdvisor
         $safeContent = $this->sanitizeContent($context['content'] ?? []);
         $prompt = $this->buildPrompt($safeContent, $context['metrics'] ?? [], $context['findings'] ?? [], $context['language'] ?? 'en');
 
-        $response = Http::retry(2, 250, fn ($exception) => $exception instanceof ConnectionException
+        $response = Http::retry(3, 250, fn ($exception) => $exception instanceof ConnectionException
             || ($exception instanceof RequestException && (
                 $exception->response->status() === 429
                 || $exception->response->serverError()

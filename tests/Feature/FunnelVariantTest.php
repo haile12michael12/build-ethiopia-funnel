@@ -2,8 +2,8 @@
 
 use App\Models\Funnel;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -79,10 +79,11 @@ test('public assignment renders the selected variant and attributes submissions'
         ->where('funnel.variant_id', $variant->id)
         ->where('funnel.settings.backgroundColor', '#111111'));
 
-    $this->post(route('funnels.leads.store', $funnel), [
-        'email' => 'variant@example.com',
-        'variant_id' => $variant->id,
-    ])->assertRedirect();
+    $this->withCookie('of_variant_'.$funnel->id, (string) $variant->id)
+        ->post(route('funnels.leads.store', $funnel), [
+            'email' => 'variant@example.com',
+            'variant_id' => $variant->id,
+        ])->assertRedirect();
 
     $submission = $funnel->contactSubmissions()->firstOrFail();
     $conversion = $funnel->events()->where('event_type', 'conversion')->firstOrFail();
