@@ -176,21 +176,49 @@ Route::domain($appDomain)->group(function () {
             ]);
             $from = $filters['date_from'] ?? now()->subDays(29)->toDateString();
             $to = $filters['date_to'] ?? now()->toDateString();
-            $applyContactFilters = function ($query, bool $includeStatus = true) use ($filters, $from, $to) {
-                return $query->whereBetween('created_at', [
+            $matchesContactFilters = function (Contact $contact, bool $includeStatus = true) use ($filters): bool {
+                $project = $contact->client_project ?? [];
+
+                if (($filters['market'] ?? null) && (data_get($project, 'market') !== $filters['market'])) {
+                    return false;
+                }
+
+                if (($filters['service'] ?? null) && ! in_array($filters['service'], data_get($project, 'service_interests', []), true)) {
+                    return false;
+                }
+
+                if ($includeStatus && ($filters['status'] ?? null) && $contact->status !== $filters['status']) {
+                    return false;
+                }
+
+                return true;
+            };
+            $filteredContacts = $user->contacts()
+                ->whereBetween('created_at', [
                     \Illuminate\Support\Carbon::parse($from)->startOfDay(),
                     \Illuminate\Support\Carbon::parse($to)->endOfDay(),
                 ])
-                    ->when($filters['market'] ?? null, fn ($query, $market) => $query->where('client_project->market', $market))
-                    ->when($filters['service'] ?? null, fn ($query, $service) => $query->whereJsonContains('client_project->service_interests', $service))
-                    ->when($includeStatus && ($filters['status'] ?? null), fn ($query, $status) => $query->where('status', $status));
-            };
-            $applyTaskContactFilters = function ($query) use ($filters) {
-                return $query
-                    ->when($filters['market'] ?? null, fn ($query, $market) => $query->where('client_project->market', $market))
-                    ->when($filters['service'] ?? null, fn ($query, $service) => $query->whereJsonContains('client_project->service_interests', $service))
-                    ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status));
-            };
+                ->get()
+                ->filter(fn (Contact $contact) => $matchesContactFilters($contact));
+            $filteredQualifiedContacts = $user->contacts()
+                ->whereBetween('created_at', [
+                    \Illuminate\Support\Carbon::parse($from)->startOfDay(),
+                    \Illuminate\Support\Carbon::parse($to)->endOfDay(),
+                ])
+                ->get()
+                ->filter(fn (Contact $contact) => $matchesContactFilters($contact, false) && $contact->status === 'qualified');
+            $pendingFollowUps = $user->followUpTasks()
+                ->with('contact:id,name,email,status,client_project')
+                ->where('status', 'pending')
+                ->whereBetween('due_at', [today()->startOfDay(), today()->endOfDay()])
+                ->get()
+                ->filter(fn ($task) => $task->contact && $matchesContactFilters($task->contact));
+            $overdueFollowUps = $user->followUpTasks()
+                ->with('contact:id,name,email,status,client_project')
+                ->where('status', 'pending')
+                ->where('due_at', '<', now())
+                ->get()
+                ->filter(fn ($task) => $task->contact && $matchesContactFilters($task->contact));
 
             $events = FunnelEvent::query()
                 ->whereIn('funnel_id', (clone $funnels)->select('id'))
@@ -236,32 +264,20 @@ Route::domain($appDomain)->group(function () {
                     'statuses' => Contact::STATUSES,
                 ],
                 'operations' => [
-                    'new_prospects' => $applyContactFilters($user->contacts())->count(),
-                    'qualified_leads' => $applyContactFilters($user->contacts(), false)->where('status', 'qualified')->count(),
+                    'new_prospects' => $filteredContacts->count(),
+                    'qualified_leads' => $filteredQualifiedContacts->count(),
                     'open_opportunities' => $user->opportunities()->where('status', 'open')->count(),
                     'published_portfolio_projects' => $user->projects()->where('status', 'published')->where('is_published', true)->count(),
-                    'follow_ups_today' => $user->followUpTasks()
-                        ->where('status', 'pending')
-                        ->whereBetween('due_at', [today(), today()->endOfDay()])
-                        ->whereHas('contact', $applyTaskContactFilters)
-                        ->count(),
-                    'overdue_follow_ups' => $user->followUpTasks()
-                        ->where('status', 'pending')
-                        ->where('due_at', '<', now())
-                        ->whereHas('contact', $applyTaskContactFilters)
-                        ->count(),
+                    'follow_ups_today' => $pendingFollowUps->count(),
+                    'overdue_follow_ups' => $overdueFollowUps->count(),
                     'content_awaiting_review' => $user->contentDrafts()->where('status', 'in_review')->count(),
                     'scheduled_content' => $user->contentDrafts()->where('status', 'scheduled')->whereNotNull('scheduled_at')->count(),
                     'automation_failures' => $user->automationRuns()->where('status', 'failed')->count(),
                 ],
-                'followUps' => $user->followUpTasks()
-                    ->with('contact:id,name,email')
-                    ->where('status', 'pending')
-                    ->where('due_at', '<=', today()->endOfDay())
-                    ->whereHas('contact', $applyTaskContactFilters)
-                    ->orderBy('due_at')
-                    ->limit(5)
-                    ->get()
+                'followUps' => $pendingFollowUps
+                    ->sortBy('due_at')
+                    ->take(5)
+                    ->values()
                     ->map(fn ($task) => [
                         'id' => $task->id,
                         'title' => $task->title,
