@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class FunnelController extends Controller
@@ -89,7 +90,7 @@ class FunnelController extends Controller
 
         $stepBranches = $request->filled('step_branches') ? json_decode((string) $request->input('step_branches'), true) : null;
         if ($stepBranches !== null && ! is_array($stepBranches)) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => 'Branch configuration must be an object.']);
+            throw ValidationException::withMessages(['step_branches' => 'Branch configuration must be an object.']);
         }
         if ($stepBranches !== null) {
             $errors = [
@@ -97,7 +98,7 @@ class FunnelController extends Controller
                 ...$branchResolver->validateDestinationSlugs($stepBranches, $request->user()),
             ];
             if ($errors !== []) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => $errors]);
+                throw ValidationException::withMessages(['step_branches' => $errors]);
             }
         }
 
@@ -250,7 +251,7 @@ class FunnelController extends Controller
 
         $stepBranches = $request->filled('step_branches') ? json_decode((string) $request->input('step_branches'), true) : null;
         if ($stepBranches !== null && ! is_array($stepBranches)) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => 'Branch configuration must be an object.']);
+            throw ValidationException::withMessages(['step_branches' => 'Branch configuration must be an object.']);
         }
         if ($stepBranches !== null) {
             $errors = [
@@ -258,7 +259,7 @@ class FunnelController extends Controller
                 ...$branchResolver->validateDestinationSlugs($stepBranches, $funnel->user),
             ];
             if ($errors !== []) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => $errors]);
+                throw ValidationException::withMessages(['step_branches' => $errors]);
             }
         }
 
@@ -307,7 +308,7 @@ class FunnelController extends Controller
                 ...$branchResolver->validateDestinationSlugs($validated['step_branches'], $request->user()),
             ];
             if ($errors !== []) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['step_branches' => $errors]);
+                throw ValidationException::withMessages(['step_branches' => $errors]);
             }
         }
 

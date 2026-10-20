@@ -13,7 +13,7 @@ class FunnelVariantResolver
     public function resolve(Funnel $funnel, Request $request): array
     {
         $cookie = 'of_variant_'.$funnel->id;
-        $experiment = $funnel->experiments()
+        $experiment = $request->routeIs('client-acquisition.show') ? null : $funnel->experiments()
             ->where('status', 'running')
             ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
             ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>', now()))
@@ -23,7 +23,16 @@ class FunnelVariantResolver
             return $this->resolveExperiment($funnel, $experiment, $request, $cookie);
         }
 
-        $variants = $funnel->variants()->where('is_active', true)->orderBy('id')->get();
+        $managedVariantIds = $funnel->experiments()
+            ->get(['allocations'])
+            ->flatMap(fn (FunnelExperiment $item) => $item->assignedVariantIds())
+            ->unique()
+            ->values();
+        $variants = $funnel->variants()
+            ->where('is_active', true)
+            ->whereNotIn('id', $managedVariantIds->all())
+            ->orderBy('id')
+            ->get();
         $selected = $variants->firstWhere('id', (int) $request->cookie($cookie));
 
         if (! $selected && $variants->isNotEmpty()) {

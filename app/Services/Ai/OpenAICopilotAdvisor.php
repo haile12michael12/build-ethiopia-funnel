@@ -183,6 +183,32 @@ class OpenAICopilotAdvisor implements CopilotAdvisor
             'data_warnings',
         ];
         $evidence = array_intersect_key($metrics, array_flip($allowedKeys));
+        $evidence['filters'] = collect($evidence['filters'] ?? [])
+            ->map(fn ($value) => is_string($value) ? $this->redactDirectIdentifiers($value) : $value)
+            ->all();
+        foreach (['traffic_sources', 'traffic_campaigns', 'landing_pages', 'devices'] as $key) {
+            $evidence[$key] = $this->safeBreakdowns($evidence[$key] ?? [], 10, $key === 'landing_pages');
+        }
+        $evidence['project_requests_by_market'] = collect($evidence['project_requests_by_market'] ?? [])
+            ->take(10)
+            ->map(fn (array $row) => array_intersect_key($row, array_flip(['market', 'submissions', 'qualified_submissions'])))
+            ->all();
+        $evidence['project_requests_by_service'] = collect($evidence['project_requests_by_service'] ?? [])
+            ->take(20)
+            ->map(fn (array $row) => [
+                'service' => $this->redactDirectIdentifiers((string) ($row['service'] ?? '')),
+                'submissions' => (int) ($row['submissions'] ?? 0),
+                'qualified_submissions' => (int) ($row['qualified_submissions'] ?? 0),
+            ])
+            ->all();
+        $evidence['data_warnings'] = array_map(
+            fn (string $warning) => $this->redactDirectIdentifiers($warning),
+            $evidence['data_warnings'] ?? [],
+        );
+        $evidence['filter_warnings'] = array_map(
+            fn (string $warning) => $this->redactDirectIdentifiers($warning),
+            $evidence['filter_warnings'] ?? [],
+        );
         $prompt = json_encode([
             'task' => 'Answer the authenticated funnel owner question only from the supplied aggregate metrics. Distinguish measured values from hypotheses, mention the selected date period, and state limitations or insufficient data. Do not infer causation, visitor intent, revenue, or completed sales.',
             'untrusted_question' => $question,
@@ -344,6 +370,7 @@ class OpenAICopilotAdvisor implements CopilotAdvisor
                 'sample_size_sufficient', 'data_quality', 'data_warnings', 'inquiries',
                 'distinct_leads', 'currently_qualified_leads', 'qualified_lead_rate',
                 'overdue_follow_up_tasks', 'project_request_submissions',
+                'filters', 'filter_warnings',
             ])),
             'daily' => array_slice($metrics['daily'] ?? [], 0, 90),
             'form_steps' => collect(array_slice($metrics['form_steps'] ?? [], 0, 30))
@@ -365,6 +392,9 @@ class OpenAICopilotAdvisor implements CopilotAdvisor
                 ])))->all(),
             'control' => $metrics['control'] ?? null,
         ];
+        $safeMetrics['filters'] = collect($safeMetrics['filters'] ?? [])
+            ->map(fn ($value) => is_string($value) ? $this->redactDirectIdentifiers($value) : $value)
+            ->all();
         $safeFindings = collect($findings)->take(15)->map(fn (array $finding) => array_intersect_key($finding, array_flip([
             'key', 'title', 'category', 'evidence', 'explanation', 'suggested_action',
             'priority', 'confidence', 'confidence_score', 'confidence_explanation',

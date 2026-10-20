@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Funnel;
+use App\Models\FunnelExperiment;
 use App\Models\FunnelVariant;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -34,6 +35,7 @@ class FunnelVariantController extends Controller
     {
         $this->authorize('update', $funnel);
         abort_unless($variant->funnel_id === $funnel->id, 404);
+        abort_if($this->isExperimentVariant($funnel, $variant), 409, 'Variants used by an experiment are immutable; create a new snapshot for further changes.');
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:100'],
             'weight' => ['sometimes', 'integer', 'min:1', 'max:100'],
@@ -62,8 +64,16 @@ class FunnelVariantController extends Controller
     {
         $this->authorize('update', $funnel);
         abort_unless($variant->funnel_id === $funnel->id, 404);
+        abort_if($this->isExperimentVariant($funnel, $variant), 409, 'Variants used by an experiment are immutable; create a new snapshot for further changes.');
         $variant->delete();
 
         return back()->with('success', 'Experiment variant removed.');
+    }
+
+    private function isExperimentVariant(Funnel $funnel, FunnelVariant $variant): bool
+    {
+        return $funnel->experiments()
+            ->get(['allocations'])
+            ->contains(fn (FunnelExperiment $experiment) => $experiment->usesVariant($variant->id));
     }
 }

@@ -145,6 +145,16 @@ class User extends Authenticatable
         return $this->hasMany(SiteContent::class);
     }
 
+    public function contentDrafts(): HasMany
+    {
+        return $this->hasMany(ContentDraft::class);
+    }
+
+    public function contentStudioSetting(): HasOne
+    {
+        return $this->hasOne(ContentStudioSetting::class);
+    }
+
     public function clientAcquisitionSettings(): HasOne
     {
         return $this->hasOne(ClientAcquisitionSettings::class);

@@ -87,7 +87,7 @@ class FunnelAnalyticsController extends Controller
             403,
         );
 
-        if ($funnel->is_published && ! $request->user()?->can('update', $funnel)) {
+        if ($funnel->is_published && ! $request->user()?->can('update', $funnel) && ! isset($validated['experiment_id'])) {
             $assignedVariant = (string) $request->cookie('of_variant_'.$funnel->id, 'control');
             $submittedVariant = isset($validated['variant_id']) ? (string) $validated['variant_id'] : 'control';
             abort_unless($assignedVariant === $submittedVariant, 422, 'The reported variant does not match this visitor’s assignment.');

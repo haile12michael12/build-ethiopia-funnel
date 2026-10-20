@@ -86,6 +86,22 @@ review observations are labeled separately from measured findings, internal
 heuristics are not presented as universal benchmarks, and the Copilot does not
 claim that correlation proves causation.
 
+## Filters and questions
+
+The Copilot supports date-range, campaign, landing-page, market, and service
+filters. Campaign and landing-page filters use stored event/submission
+attribution. Market and service filters apply only to persisted inquiries;
+they do not segment anonymous visits or produce market/service visitor
+conversion rates. Results identify the selected filters and preserve these
+data limitations.
+
+Owners can ask a bounded question about the selected period and filters. The
+answering provider receives only server-calculated aggregate metrics and
+allowlisted breakdowns, not contact records, emails, phone numbers, or raw
+form answers. Identical questions are cached briefly, and requests are
+rate-limited to five per ten minutes. Deterministic analytics remain available
+when the AI provider is disabled or unavailable.
+
 ## Recommendation review
 
 Recommendations are deduplicated while pending and can be accepted, rejected,
@@ -98,19 +114,28 @@ an authorized user must review and activate the variant separately.
 
 ## Experiments and limitations
 
-The existing funnel-variant system supplies assignment, exposures, and
-conversion attribution. Active variants receive weighted first-party cookie
-assignments; any unallocated share remains the unassigned baseline. The view
-event records exposure, and the persisted submission records its assigned
-variant. Public event reports must match the assigned variant. Pausing or
-removing a variant can change assignment for a returning visitor.
+Owners can create an experiment draft for a published funnel using existing
+variants. Each experiment records its hypothesis, target step, primary metric,
+optional guardrails, variant allocation, and append-only status history.
+Only one experiment per funnel accepts traffic at a time. Variant allocation
+must remain below 100%, reserving the unallocated share for the control.
+Starting, pausing, resuming, completing, or cancelling an experiment is an
+explicit owner action; pausing or ending it stops new assignments.
 
-Variant comparisons are descriptive only. The Copilot uses 100 views per
-variant as a data-volume warning heuristic, not a significance test, and never
-declares a winner or automatically publishes a variant. The current model does
-not provide formal experiment start/end dates, configurable guardrails, or a
-statistical winner decision. Treat comparisons as inconclusive unless an
-independent, adequately powered analysis supports a decision.
+Assignments use a first-party cookie bound to the experiment. The view event
+records exposure, and confirmed persisted submissions retain the same
+experiment and variant attribution. Public event and submission reports must
+match the visitor's active assignment. Variants referenced by experiments
+cannot be edited or deleted, preserving the tested content.
+
+Experiment rates are session-based and include only identified sessions with
+the relevant denominator event. Exposures without a session id are reported
+but excluded from rates. The evaluator shows raw numerators, denominators,
+rates, and differences from control. Guardrails are monitoring-only. Results
+remain explicitly inconclusive and are not a statistical significance test:
+100 identified sessions per group and seven days are data-volume warnings,
+not proof of sufficient power. The system never declares a winner or
+automatically publishes a variant.
 
 The Automation Studio already supports authenticated workflow webhooks. This
 feature does not add a separate n8n endpoint or send recommendation/lead data

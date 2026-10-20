@@ -328,6 +328,12 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                                 {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                                 {isRunning ? (t.running ?? 'Analyzing...') : (t.run_audit ?? 'Run Audit')}
                             </button>
+                            <Link
+                                href={route('funnels.experiments.index', { funnel: funnel.id })}
+                                className="rounded-lg border border-border px-3 py-2 text-sm text-foreground hover:bg-muted"
+                            >
+                                {t.manage_experiments ?? 'Experiments'}
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -336,13 +342,18 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                     <div>
                         <h2 className="font-semibold">{t.filters ?? 'Analytics filters'}</h2>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            {t.filter_limitations ?? 'Campaign and landing-page filters narrow tracked events. Market and service filters narrow persisted inquiries only; anonymous events are not segmented by these choices.'}
+                            {t.filter_limitations ??
+                                'Campaign and landing-page filters narrow tracked events. Market and service filters narrow persisted inquiries only; anonymous events are not segmented by these choices.'}
                         </p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <label className="text-xs text-muted-foreground">
                             {t.market ?? 'Market'}
-                            <select value={market} onChange={(event) => setMarket(event.target.value)} className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
+                            <select
+                                value={market}
+                                onChange={(event) => setMarket(event.target.value)}
+                                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            >
                                 <option value="">{t.all_markets ?? 'All markets'}</option>
                                 <option value="ethiopia">{t.market_ethiopia ?? 'Ethiopia'}</option>
                                 <option value="international">{t.market_international ?? 'International'}</option>
@@ -350,15 +361,32 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                         </label>
                         <label className="text-xs text-muted-foreground">
                             {t.service ?? 'Service key'}
-                            <input value={service} onChange={(event) => setService(event.target.value)} maxLength={40} placeholder="e.g. web_app" className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+                            <input
+                                value={service}
+                                onChange={(event) => setService(event.target.value)}
+                                maxLength={40}
+                                placeholder="e.g. web_app"
+                                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            />
                         </label>
                         <label className="text-xs text-muted-foreground">
                             {t.campaign ?? 'Campaign'}
-                            <input value={campaign} onChange={(event) => setCampaign(event.target.value)} maxLength={100} className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+                            <input
+                                value={campaign}
+                                onChange={(event) => setCampaign(event.target.value)}
+                                maxLength={100}
+                                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            />
                         </label>
                         <label className="text-xs text-muted-foreground">
                             {t.landing_page ?? 'Landing page'}
-                            <input value={landingPage} onChange={(event) => setLandingPage(event.target.value)} maxLength={2048} placeholder="/services" className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+                            <input
+                                value={landingPage}
+                                onChange={(event) => setLandingPage(event.target.value)}
+                                maxLength={2048}
+                                placeholder="/services"
+                                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            />
                         </label>
                     </div>
                 </section>
@@ -383,7 +411,10 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                 <section className="copilot-card space-y-3 rounded-xl border border-border p-4">
                     <div>
                         <h2 className="font-semibold">{t.ask_copilot ?? 'Ask about this funnel'}</h2>
-                        <p className="mt-1 text-xs text-muted-foreground">{t.ask_copilot_description ?? 'Answers use aggregate metrics for the selected period and filters. No prospect records or form answers are sent.'}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {t.ask_copilot_description ??
+                                'Answers use aggregate metrics for the selected period and filters. No prospect records or form answers are sent.'}
+                        </p>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
                         <input
@@ -412,7 +443,11 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                         <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm" role="status">
                             <p>{questionAnswer.answer}</p>
                             {questionAnswer.limitation && <p className="mt-2 text-xs text-muted-foreground">{questionAnswer.limitation}</p>}
-                            {questionAnswer.evidence_keys.length > 0 && <p className="mt-2 text-xs text-muted-foreground">{t.evidence ?? 'Evidence'}: {questionAnswer.evidence_keys.join(', ')}</p>}
+                            {questionAnswer.evidence_keys.length > 0 && (
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                    {t.evidence ?? 'Evidence'}: {questionAnswer.evidence_keys.join(', ')}
+                                </p>
+                            )}
                         </div>
                     )}
                 </section>
@@ -1173,10 +1208,10 @@ function ExperimentsSection({
                         <Target className="h-4 w-4 text-purple-400" /> {t.experiments ?? 'Experiments'}
                     </h3>
                     <Link
-                        href={`/funnel-editor/${funnel.id}`}
+                        href={route('funnels.experiments.index', { funnel: funnel.id })}
                         className="inline-flex items-center gap-1 rounded-md bg-orange-500/20 px-3 py-1.5 text-xs font-medium text-orange-400 transition hover:bg-orange-500/30"
                     >
-                        {t.create_experiment ?? 'Create Experiment'}
+                        {t.manage_experiments ?? 'Manage experiments'}
                     </Link>
                 </div>
 

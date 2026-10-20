@@ -1,9 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import gsap from 'gsap';
-import { BarChart3, Eye, Plus, TrendingUp, Users, Zap } from 'lucide-react';
-import { useEffect } from 'react';
+import { BarChart3, CalendarClock, Eye, FileText, Plus, TrendingUp, Users, Zap } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -30,6 +30,21 @@ interface DashboardProps {
         daily: Array<{ date: string; views: number; conversions: number }>;
         sources: Array<{ source: string; conversions: number }>;
     };
+    filters: { date_from: string; date_to: string; market: string; service: string; status: string };
+    filterOptions: { markets: Record<string, string>; services: Record<string, string>; statuses: string[] };
+    operations: {
+        new_prospects: number;
+        qualified_leads: number;
+        open_opportunities: number;
+        published_portfolio_projects: number;
+        follow_ups_today: number;
+        overdue_follow_ups: number;
+        content_awaiting_review: number;
+        scheduled_content: number;
+        automation_failures: number;
+    };
+    followUps: Array<{ id: number; title: string; due_at: string; contact: string | null; contact_id: number }>;
+    recentActivities: Array<{ id: number; type: string; contact: string | null; created_at: string }>;
 }
 
 function formatNumber(value: number): string {
@@ -44,9 +59,24 @@ function formatNumber(value: number): string {
     return value.toString();
 }
 
-export default function Dashboard({ stats, recentContacts, analytics }: DashboardProps) {
+export default function Dashboard({ stats, recentContacts, analytics, filters, filterOptions, operations, followUps, recentActivities }: DashboardProps) {
+    const [dateFrom, setDateFrom] = useState(filters.date_from);
+    const [dateTo, setDateTo] = useState(filters.date_to);
+    const [market, setMarket] = useState(filters.market);
+    const [service, setService] = useState(filters.service);
+    const [status, setStatus] = useState(filters.status);
     const conversionRate = stats.total_views > 0 ? (stats.total_conversions / stats.total_views) * 100 : 0;
     const maxDailyViews = Math.max(1, ...analytics.daily.map((day) => day.views));
+    const applyFilters = (event: FormEvent) => {
+        event.preventDefault();
+        router.get(route('dashboard'), {
+            date_from: dateFrom,
+            date_to: dateTo,
+            market: market || undefined,
+            service: service || undefined,
+            status: status || undefined,
+        }, { preserveState: true, preserveScroll: true });
+    };
 
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -70,6 +100,89 @@ export default function Dashboard({ stats, recentContacts, analytics }: Dashboar
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
+                <section className="dashboard-card rounded-xl border border-border bg-card p-5">
+                    <div className="mb-4">
+                        <h2 className="text-lg font-semibold">Agency operations</h2>
+                        <p className="text-sm text-muted-foreground">CRM and follow-up counts use persisted records and the selected filters. Portfolio items are not client delivery projects.</p>
+                    </div>
+                    <form onSubmit={applyFilters} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                        <label className="grid gap-1 text-xs font-medium text-muted-foreground">From
+                            <input aria-label="Filter from date" type="date" className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+                        </label>
+                        <label className="grid gap-1 text-xs font-medium text-muted-foreground">To
+                            <input aria-label="Filter to date" type="date" className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+                        </label>
+                        <label className="grid gap-1 text-xs font-medium text-muted-foreground">Market
+                            <select aria-label="Filter by market" className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={market} onChange={(event) => setMarket(event.target.value)}>
+                                <option value="">All markets</option>
+                                {Object.entries(filterOptions.markets).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                            </select>
+                        </label>
+                        <label className="grid gap-1 text-xs font-medium text-muted-foreground">Service
+                            <select aria-label="Filter by service" className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={service} onChange={(event) => setService(event.target.value)}>
+                                <option value="">All services</option>
+                                {Object.entries(filterOptions.services).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                            </select>
+                        </label>
+                        <label className="grid gap-1 text-xs font-medium text-muted-foreground">Lead status
+                            <select aria-label="Filter by lead status" className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={status} onChange={(event) => setStatus(event.target.value)}>
+                                <option value="">All statuses</option>
+                                {filterOptions.statuses.map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}
+                            </select>
+                        </label>
+                        <button type="submit" className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground sm:col-span-2 lg:col-span-5 lg:justify-self-start">Apply filters</button>
+                    </form>
+                    <p className="mt-2 text-xs text-muted-foreground">Prospect and qualified-lead counts use the selected date range, market, service, and status. Follow-up counts use the selected CRM segments and current due dates.</p>
+                </section>
+
+                <section aria-label="Agency metrics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <Link href="/contacts" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                        <p className="text-sm text-muted-foreground">New prospects in range</p><p className="mt-1 text-2xl font-semibold">{operations.new_prospects}</p>
+                    </Link>
+                    <Link href="/contacts?status=qualified" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Qualified leads in range</p><p className="mt-1 text-2xl font-semibold">{operations.qualified_leads}</p>
+                    </Link>
+                    <Link href="/opportunities" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Open opportunities</p><p className="mt-1 text-2xl font-semibold">{operations.open_opportunities}</p>
+                    </Link>
+                    <Link href="/projects" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Published portfolio projects</p><p className="mt-1 text-2xl font-semibold">{operations.published_portfolio_projects}</p>
+                    </Link>
+                    <Link href="/follow-up-tasks" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Follow-ups due today / overdue</p><p className="mt-1 text-2xl font-semibold">{operations.follow_ups_today} / {operations.overdue_follow_ups}</p>
+                    </Link>
+                    <Link href="/content-studio?status=in_review" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Content awaiting approval</p><p className="mt-1 text-2xl font-semibold">{operations.content_awaiting_review}</p>
+                    </Link>
+                    <Link href="/content-studio?status=scheduled" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Content scheduled for manual publishing</p><p className="mt-1 text-2xl font-semibold">{operations.scheduled_content}</p>
+                    </Link>
+                    <Link href="/automations/runs?status=failed" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Automation failures</p><p className="mt-1 text-2xl font-semibold">{operations.automation_failures}</p>
+                    </Link>
+                </section>
+
+                <section className="grid gap-6 lg:grid-cols-2">
+                    <div className="dashboard-card rounded-xl border border-border bg-card p-5">
+                        <h2 className="mb-3 flex items-center gap-2 font-semibold"><CalendarClock className="h-4 w-4" />Follow-ups due</h2>
+                        {followUps.length ? <div className="space-y-2">{followUps.map((task) => (
+                            <Link key={task.id} href={`/contacts/${task.contact_id}`} className="flex justify-between gap-3 rounded-lg bg-muted/50 p-3 text-sm hover:bg-muted">
+                                <span className="min-w-0"><span className="block truncate font-medium">{task.title}</span><span className="text-muted-foreground">{task.contact || 'Contact'}</span></span>
+                                <time className="shrink-0 text-muted-foreground">{new Date(task.due_at).toLocaleString()}</time>
+                            </Link>
+                        ))}</div> : <p className="text-sm text-muted-foreground">No pending follow-ups are due today or overdue for these filters.</p>}
+                    </div>
+                    <div className="dashboard-card rounded-xl border border-border bg-card p-5">
+                        <h2 className="mb-3 flex items-center gap-2 font-semibold"><FileText className="h-4 w-4" />Recent CRM activity</h2>
+                        {recentActivities.length ? <ul className="space-y-2">{recentActivities.map((activity) => (
+                            <li key={activity.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3 text-sm">
+                                <span className="truncate"><span className="font-medium">{activity.contact || 'Contact'}</span> · {activity.type}</span>
+                                <time className="shrink-0 text-muted-foreground">{activity.created_at}</time>
+                            </li>
+                        ))}</ul> : <p className="text-sm text-muted-foreground">No CRM activity has been recorded yet.</p>}
+                    </div>
+                </section>
+
                 {/* Quick Stats */}
                 <div className="grid auto-rows-min gap-4 md:grid-cols-4">
                     <div className="dashboard-card relative overflow-hidden rounded-xl border border-border bg-card p-6">

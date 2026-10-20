@@ -125,19 +125,7 @@ export interface FunnelSettings {
 }
 
 export type FunnelRuleOperator =
-    | 'eq'
-    | 'neq'
-    | 'gt'
-    | 'gte'
-    | 'lt'
-    | 'lte'
-    | 'in'
-    | 'notIn'
-    | 'contains'
-    | 'startsWith'
-    | 'endsWith'
-    | 'exists'
-    | 'empty';
+    'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'notIn' | 'contains' | 'startsWith' | 'endsWith' | 'exists' | 'empty';
 
 export interface FunnelRule {
     field?: string;
@@ -174,6 +162,7 @@ export interface Funnel {
     is_published: boolean;
     public_url?: string | null;
     variant_id?: number | null;
+    experiment_id?: number | null;
 }
 
 export interface TemplateManifest {

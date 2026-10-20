@@ -7,8 +7,8 @@ use App\Jobs\SendLeadCaptureNotifications;
 use App\Models\Contact;
 use App\Models\ContactEmailPreference;
 use App\Models\Funnel;
-use App\Models\FunnelExperiment;
 use App\Models\FunnelEvent;
+use App\Models\FunnelExperiment;
 use App\Services\Automation\AutomationEventRecorder;
 use App\Services\FunnelAnalyticsSanitizer;
 use App\Services\OpportunityAutomationService;
@@ -77,7 +77,7 @@ class LeadCaptureController extends Controller
         if (isset($validated['variant_id']) && ! $experiment && ! $funnel->variants()->whereKey($validated['variant_id'])->where('is_active', true)->exists()) {
             abort(422, 'Invalid experiment variant.');
         }
-        if ($funnel->is_published && ! $request->user()?->can('update', $funnel)) {
+        if ($funnel->is_published && ! $request->user()?->can('update', $funnel) && ! isset($validated['experiment_id'])) {
             $assignedVariant = (string) $request->cookie('of_variant_'.$funnel->id, 'control');
             $submittedVariant = isset($validated['variant_id']) ? (string) $validated['variant_id'] : 'control';
             abort_unless($assignedVariant === $submittedVariant, 422, 'The submitted variant does not match this visitor’s assignment.');
@@ -91,7 +91,6 @@ class LeadCaptureController extends Controller
             $opportunityAutomation,
             $automationEvents,
             $analyticsSanitizer,
-            $experiment,
         ) {
             $dispatchAutomationImmediately = config('queue.default') !== 'sync';
             $email = strtolower($validated['email']);

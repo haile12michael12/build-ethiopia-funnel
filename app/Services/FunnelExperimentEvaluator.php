@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\FunnelEvent;
 use App\Models\FunnelExperiment;
 use App\Models\FunnelVariant;
-use Illuminate\Support\Collection;
 
 class FunnelExperimentEvaluator
 {
@@ -63,6 +62,28 @@ class FunnelExperimentEvaluator
             $rate = $denominatorSessions->isNotEmpty()
                 ? round(($numeratorSessions->count() / $denominatorSessions->count()) * 100, 2)
                 : null;
+            $guardrails = collect($experiment->guardrail_metrics ?? [])->map(function (string $metric) use ($groupEvents, $eligibleSessions): array {
+                $eventType = match ($metric) {
+                    'form_validation_errors' => 'form_validation_error',
+                    'cta_click_rate' => 'cta_click',
+                    default => 'conversion',
+                };
+                $denominatorType = match ($metric) {
+                    'form_completion_rate', 'form_validation_errors' => 'form_start',
+                    default => 'view',
+                };
+                $denominator = $denominatorType === 'view'
+                    ? $eligibleSessions
+                    : $groupEvents->where('event_type', $denominatorType)->pluck('session_id')->filter()->unique()->values();
+                $numerator = $groupEvents->where('event_type', $eventType)->pluck('session_id')->filter()->unique()->intersect($denominator)->values();
+
+                return [
+                    'metric' => $metric,
+                    'numerator' => $numerator->count(),
+                    'denominator' => $denominator->count(),
+                    'rate' => $denominator->isNotEmpty() ? round(($numerator->count() / $denominator->count()) * 100, 2) : null,
+                ];
+            })->values()->all();
 
             return [
                 'variant_id' => $variantId,
@@ -73,6 +94,7 @@ class FunnelExperimentEvaluator
                 'numerator' => $numeratorSessions->count(),
                 'denominator' => $denominatorSessions->count(),
                 'rate' => $rate,
+                'guardrails' => $guardrails,
             ];
         })->values();
 

@@ -6,6 +6,7 @@ use App\Models\Funnel;
 use App\Models\FunnelExperiment;
 use App\Services\FunnelExperimentEvaluator;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,6 @@ class FunnelExperimentController extends Controller
     public function index(Funnel $funnel, FunnelExperimentEvaluator $evaluator): Response
     {
         $this->authorize('view', $funnel);
-        $this->expireEndedExperiments($funnel);
         $experiments = $funnel->experiments()->latest()->get();
         $variants = $funnel->variants()->orderBy('id')->get(['id', 'name', 'weight', 'is_active']);
 
@@ -45,7 +45,7 @@ class FunnelExperimentController extends Controller
         ]);
     }
 
-    public function store(Request $request, Funnel $funnel): RedirectResponse
+    public function store(Request $request, Funnel $funnel): RedirectResponse|JsonResponse
     {
         $this->authorize('update', $funnel);
         $validated = $request->validate([
@@ -73,7 +73,7 @@ class FunnelExperimentController extends Controller
             throw ValidationException::withMessages(['allocations' => 'Choose variants that belong to this funnel.']);
         }
 
-        $funnel->experiments()->create([
+        $experiment = $funnel->experiments()->create([
             'user_id' => auth()->id(),
             'name' => $validated['name'],
             'hypothesis' => $validated['hypothesis'],
@@ -93,6 +93,10 @@ class FunnelExperimentController extends Controller
                 'at' => now()->toISOString(),
             ]],
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['id' => $experiment->id, 'created' => true], 201);
+        }
 
         return back()->with('success', 'Experiment draft created. Review its allocation and start it when ready.');
     }
@@ -139,15 +143,5 @@ class FunnelExperimentController extends Controller
         });
 
         return back()->with('success', 'Experiment status updated.');
-    }
-
-    private function expireEndedExperiments(Funnel $funnel): void
-    {
-        $funnel->experiments()
-            ->where('status', 'running')
-            ->whereNotNull('ends_at')
-            ->where('ends_at', '<=', now())
-            ->get()
-            ->each(fn (FunnelExperiment $experiment) => $experiment->recordStatus('completed', (int) auth()->id()));
     }
 }

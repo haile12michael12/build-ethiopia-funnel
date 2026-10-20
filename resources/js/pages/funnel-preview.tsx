@@ -78,6 +78,7 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
                     answers,
                     session_id: funnelSessionId(),
                     variant_id: funnel.variant_id,
+                    experiment_id: funnel.experiment_id,
                     attribution,
                 }),
             })
@@ -111,6 +112,7 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
                 attribution,
                 session_id: funnelSessionId(),
                 variant_id: funnel.variant_id,
+                experiment_id: funnel.experiment_id,
             },
             {
                 preserveScroll: true,
@@ -164,12 +166,12 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
 
     useEffect(() => {
         if (!previewMode) {
-            trackFunnelEvent(funnel.id, 'view', {}, funnel.variant_id);
+            trackFunnelEvent(funnel.id, 'view', {}, funnel.variant_id, funnel.experiment_id);
             if (['mern-boilerplate', 'mern-course', 'code-review'].includes(funnel.slug)) {
-                trackFunnelEvent(funnel.id, 'offer_viewed', {}, funnel.variant_id);
+                trackFunnelEvent(funnel.id, 'offer_viewed', {}, funnel.variant_id, funnel.experiment_id);
             }
         }
-    }, [funnel.id, funnel.slug, funnel.variant_id, previewMode]);
+    }, [funnel.id, funnel.slug, funnel.variant_id, funnel.experiment_id, previewMode]);
 
     const renderBlock = (block: Block) => (
         <FunnelBlock
@@ -178,7 +180,9 @@ export default function FunnelPreview({ funnel, previewMode = false, supportChat
             formSubmitting={submittingBlockId === block.id}
             formSubmitted={submittedBlockId === block.id}
             onFormSubmit={handleLeadSubmit}
-            onAnalyticsEvent={(eventType, metadata) => trackFunnelEvent(funnel.id, eventType, { formId: block.id, metadata }, funnel.variant_id)}
+            onAnalyticsEvent={(eventType, metadata) =>
+                trackFunnelEvent(funnel.id, eventType, { formId: block.id, metadata }, funnel.variant_id, funnel.experiment_id)
+            }
         />
     );
 

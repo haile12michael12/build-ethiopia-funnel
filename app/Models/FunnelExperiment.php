@@ -64,6 +64,11 @@ class FunnelExperiment extends Model
             ->all();
     }
 
+    public function usesVariant(int $variantId): bool
+    {
+        return in_array($variantId, $this->assignedVariantIds(), true);
+    }
+
     public function recordStatus(string $status, int $actorId): void
     {
         $history = $this->activity_history ?? [];

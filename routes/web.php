@@ -9,6 +9,7 @@ use App\Http\Controllers\ClientAcquisitionController;
 use App\Http\Controllers\ClientAcquisitionSettingsController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactLookupController;
+use App\Http\Controllers\ContentStudioController;
 use App\Http\Controllers\CopilotController;
 use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DeveloperAiRecommendationController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\FollowUpTaskController;
 use App\Http\Controllers\FunnelAnalyticsController;
 use App\Http\Controllers\FunnelController;
 use App\Http\Controllers\FunnelEvaluationController;
+use App\Http\Controllers\FunnelExperimentController;
 use App\Http\Controllers\FunnelGenerationController;
 use App\Http\Controllers\FunnelOpportunitySettingController;
 use App\Http\Controllers\FunnelResponseController;
@@ -39,7 +41,10 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SiteContentController;
 use App\Http\Controllers\WorkspaceController;
 use App\Models\Domain;
+use App\Models\Contact;
+use App\Models\ContactActivity;
 use App\Models\FunnelEvent;
+use App\Services\ClientAcquisitionConfiguration;
 use App\Services\FunnelPublicUrlResolver;
 use App\Services\FunnelVariantResolver;
 use Illuminate\Http\Request;
@@ -159,9 +164,33 @@ Route::domain($appDomain)->group(function () {
         Route::get('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'edit'])->name('client-acquisition.settings.edit');
         Route::put('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'update'])->name('client-acquisition.settings.update');
         Route::get('client-acquisition/analytics', ClientAcquisitionAnalyticsController::class)->name('client-acquisition.analytics');
-        Route::get('dashboard', function () {
+        Route::get('dashboard', function (Request $request, ClientAcquisitionConfiguration $configuration) {
             $user = auth()->user();
             $funnels = $user->funnels();
+            $filters = $request->validate([
+                'date_from' => ['nullable', 'date_format:Y-m-d'],
+                'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+                'market' => ['nullable', 'in:ethiopia,international'],
+                'service' => ['nullable', 'string', 'max:40'],
+                'status' => ['nullable', 'in:'.implode(',', Contact::STATUSES)],
+            ]);
+            $from = $filters['date_from'] ?? now()->subDays(29)->toDateString();
+            $to = $filters['date_to'] ?? now()->toDateString();
+            $applyContactFilters = function ($query, bool $includeStatus = true) use ($filters, $from, $to) {
+                return $query->whereBetween('created_at', [
+                    \Illuminate\Support\Carbon::parse($from)->startOfDay(),
+                    \Illuminate\Support\Carbon::parse($to)->endOfDay(),
+                ])
+                    ->when($filters['market'] ?? null, fn ($query, $market) => $query->where('client_project->market', $market))
+                    ->when($filters['service'] ?? null, fn ($query, $service) => $query->whereJsonContains('client_project->service_interests', $service))
+                    ->when($includeStatus && ($filters['status'] ?? null), fn ($query, $status) => $query->where('status', $status));
+            };
+            $applyTaskContactFilters = function ($query) use ($filters) {
+                return $query
+                    ->when($filters['market'] ?? null, fn ($query, $market) => $query->where('client_project->market', $market))
+                    ->when($filters['service'] ?? null, fn ($query, $service) => $query->whereJsonContains('client_project->service_interests', $service))
+                    ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status));
+            };
 
             $events = FunnelEvent::query()
                 ->whereIn('funnel_id', (clone $funnels)->select('id'))
@@ -192,6 +221,67 @@ Route::domain($appDomain)->group(function () {
                     'total_conversions' => (clone $funnels)->sum('conversions'),
                     'total_contacts' => $user->contacts()->count(),
                 ],
+                'filters' => [
+                    'date_from' => $from,
+                    'date_to' => $to,
+                    'market' => $filters['market'] ?? '',
+                    'service' => $filters['service'] ?? '',
+                    'status' => $filters['status'] ?? '',
+                ],
+                'filterOptions' => [
+                    'markets' => ['ethiopia' => 'Ethiopia', 'international' => 'International'],
+                    'services' => collect($configuration->forOwner($user->id)['services'] ?? [])
+                        ->mapWithKeys(fn (array $service) => [$service['key'] => $service['label_en']])
+                        ->all(),
+                    'statuses' => Contact::STATUSES,
+                ],
+                'operations' => [
+                    'new_prospects' => $applyContactFilters($user->contacts())->count(),
+                    'qualified_leads' => $applyContactFilters($user->contacts(), false)->where('status', 'qualified')->count(),
+                    'open_opportunities' => $user->opportunities()->where('status', 'open')->count(),
+                    'published_portfolio_projects' => $user->projects()->where('status', 'published')->where('is_published', true)->count(),
+                    'follow_ups_today' => $user->followUpTasks()
+                        ->where('status', 'pending')
+                        ->whereBetween('due_at', [today(), today()->endOfDay()])
+                        ->whereHas('contact', $applyTaskContactFilters)
+                        ->count(),
+                    'overdue_follow_ups' => $user->followUpTasks()
+                        ->where('status', 'pending')
+                        ->where('due_at', '<', now())
+                        ->whereHas('contact', $applyTaskContactFilters)
+                        ->count(),
+                    'content_awaiting_review' => $user->contentDrafts()->where('status', 'in_review')->count(),
+                    'scheduled_content' => $user->contentDrafts()->where('status', 'scheduled')->whereNotNull('scheduled_at')->count(),
+                    'automation_failures' => $user->automationRuns()->where('status', 'failed')->count(),
+                ],
+                'followUps' => $user->followUpTasks()
+                    ->with('contact:id,name,email')
+                    ->where('status', 'pending')
+                    ->where('due_at', '<=', today()->endOfDay())
+                    ->whereHas('contact', $applyTaskContactFilters)
+                    ->orderBy('due_at')
+                    ->limit(5)
+                    ->get()
+                    ->map(fn ($task) => [
+                        'id' => $task->id,
+                        'title' => $task->title,
+                        'due_at' => $task->due_at->toIso8601String(),
+                        'contact' => $task->contact?->name ?: $task->contact?->email,
+                        'contact_id' => $task->contact_id,
+                    ]),
+                'recentActivities' => ContactActivity::query()
+                    ->whereHas('contact', fn ($query) => $query->where('user_id', $user->id))
+                    ->with('contact:id,name,email')
+                    ->latest()
+                    ->limit(6)
+                    ->get()
+                    ->map(fn (ContactActivity $activity) => [
+                        'id' => $activity->id,
+                        'type' => str_replace('_', ' ', $activity->type),
+                        'contact' => $activity->contact?->name ?: $activity->contact?->email,
+                        'created_at' => $activity->created_at->diffForHumans(),
+                    ]),
+                'dateRange' => ['from' => $from, 'to' => $to],
                 'recentContacts' => $user->contacts()
                     ->with('funnel:id,name')
                     ->latest('last_submitted_at')
@@ -210,6 +300,23 @@ Route::domain($appDomain)->group(function () {
                 ],
             ]);
         })->name('dashboard');
+
+        Route::get('content-studio', [ContentStudioController::class, 'index'])->name('content-studio.index');
+        Route::get('content-studio/create', [ContentStudioController::class, 'create'])->name('content-studio.create');
+        Route::post('content-studio', [ContentStudioController::class, 'store'])->name('content-studio.store');
+        Route::post('content-studio/generate', [ContentStudioController::class, 'generate'])
+            ->middleware('throttle:5,60')
+            ->name('content-studio.generate');
+        Route::get('content-studio/settings', [ContentStudioController::class, 'settings'])->name('content-studio.settings');
+        Route::put('content-studio/settings', [ContentStudioController::class, 'updateSettings'])->name('content-studio.settings.update');
+        Route::get('content-studio/{draft}/edit', [ContentStudioController::class, 'edit'])->name('content-studio.edit');
+        Route::put('content-studio/{draft}', [ContentStudioController::class, 'update'])->name('content-studio.update');
+        Route::post('content-studio/{draft}/review', [ContentStudioController::class, 'submitForReview'])->name('content-studio.review');
+        Route::post('content-studio/{draft}/approve', [ContentStudioController::class, 'approve'])->name('content-studio.approve');
+        Route::post('content-studio/{draft}/schedule', [ContentStudioController::class, 'schedule'])->name('content-studio.schedule');
+        Route::post('content-studio/{draft}/publish', [ContentStudioController::class, 'markPublished'])->name('content-studio.publish');
+        Route::post('content-studio/{draft}/failed', [ContentStudioController::class, 'markFailed'])->name('content-studio.failed');
+        Route::post('content-studio/{draft}/archive', [ContentStudioController::class, 'archive'])->name('content-studio.archive');
 
         // Exclude 'show' — it is handled by the public route above.
         Route::get('contacts', [ContactController::class, 'index'])->name('contacts.index');
@@ -279,6 +386,9 @@ Route::domain($appDomain)->group(function () {
         Route::post('funnels/{funnel}/copilot/question', [CopilotController::class, 'askQuestion'])
             ->middleware('throttle:5,10')
             ->name('copilot.question');
+        Route::get('funnels/{funnel}/experiments', [FunnelExperimentController::class, 'index'])->name('funnels.experiments.index');
+        Route::post('funnels/{funnel}/experiments', [FunnelExperimentController::class, 'store'])->name('funnels.experiments.store');
+        Route::patch('funnels/{funnel}/experiments/{experiment}/status', [FunnelExperimentController::class, 'updateStatus'])->name('funnels.experiments.status');
         Route::post('funnels/{funnel}/copilot/recommendations/{recommendation}/accept', [CopilotController::class, 'acceptRecommendation'])->name('copilot.recommendations.accept');
         Route::post('funnels/{funnel}/copilot/recommendations/{recommendation}/dismiss', [CopilotController::class, 'dismissRecommendation'])->name('copilot.recommendations.dismiss');
         Route::post('funnels/{funnel}/copilot/recommendations/{recommendation}/review', [CopilotController::class, 'reviewRecommendation'])->name('copilot.recommendations.review');
