@@ -55,6 +55,11 @@ const mainNavItems: NavItem[] = [
         icon: FolderKanban,
     },
     {
+        title: 'Client Delivery',
+        href: '/client-projects',
+        icon: BriefcaseBusiness,
+    },
+    {
         title: 'Content Studio',
         href: '/content-studio',
         icon: FileText,

@@ -169,4 +169,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(CopilotRecommendation::class);
     }
+
+    public function clientProjects(): HasMany
+    {
+        return $this->hasMany(ClientProject::class)->latest('created_at');
+    }
 }

@@ -6,12 +6,14 @@ use App\Models\Funnel;
 use App\Models\FunnelVariant;
 use App\Services\FunnelBranchResolver;
 use App\Services\FunnelPublicUrlResolver;
+use App\Services\FunnelTemplateService;
 use App\Services\FunnelVariantResolver;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -393,6 +395,56 @@ class FunnelController extends Controller
 
         return redirect()->route('funnels.index')
             ->with('success', 'Funnel duplicated successfully!');
+    }
+
+    public function exportTemplate(Funnel $funnel, FunnelTemplateService $templateService)
+    {
+        $this->authorize('update', $funnel);
+
+        $manifest = $templateService->export($funnel);
+        $filename = Str::slug($funnel->name ?: 'funnel').'.openfunnels.json';
+
+        return response()->streamDownload(function () use ($manifest) {
+            echo json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        }, $filename, [
+            'Content-Type' => 'application/json',
+        ]);
+    }
+
+    public function importTemplate(Request $request, FunnelTemplateService $templateService)
+    {
+        $this->authorize('create', Funnel::class);
+
+        $request->validate([
+            'template_file' => ['required', 'file', 'max:2048'],
+        ]);
+
+        $content = file_get_contents($request->file('template_file')->getRealPath());
+
+        try {
+            $parsed = $templateService->parseAndValidate($content);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['template_file' => $e->getMessage()]);
+        }
+
+        $baseSlug = Str::slug($parsed['name']);
+        $uniqueSlug = $baseSlug ?: 'imported-funnel';
+        if (Funnel::where('slug', $uniqueSlug)->exists()) {
+            $uniqueSlug .= '-'.Str::lower(Str::random(5));
+        }
+
+        $funnel = $request->user()->funnels()->create([
+            'name' => $parsed['name'],
+            'description' => $parsed['description'],
+            'slug' => $uniqueSlug,
+            'content' => $parsed['content'],
+            'settings' => $parsed['settings'],
+            'status' => 'draft',
+            'is_published' => false,
+        ]);
+
+        return redirect()->route('funnel-editor.edit', $funnel)
+            ->with('success', 'Template imported successfully! You can now customize your new funnel.');
     }
 
     /**

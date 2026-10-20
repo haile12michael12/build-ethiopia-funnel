@@ -7,6 +7,7 @@ use App\Http\Controllers\ChapaWebhookController;
 use App\Http\Controllers\ClientAcquisitionAnalyticsController;
 use App\Http\Controllers\ClientAcquisitionController;
 use App\Http\Controllers\ClientAcquisitionSettingsController;
+use App\Http\Controllers\ClientProjectController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\ContentStudioController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\PipelineStageController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SiteContentController;
+use App\Http\Controllers\WebsiteAssessmentController;
 use App\Http\Controllers\WorkspaceController;
 use App\Models\Domain;
 use App\Models\Contact;
@@ -274,6 +276,7 @@ Route::domain($appDomain)->group(function () {
                     'new_prospects' => $filteredContacts->count(),
                     'qualified_leads' => $filteredQualifiedContacts->count(),
                     'open_opportunities' => $user->opportunities()->where('status', 'open')->count(),
+                    'active_client_projects' => $user->clientProjects()->whereIn('status', ['planning', 'in_progress', 'review'])->count(),
                     'published_portfolio_projects' => $user->projects()->where('status', 'published')->where('is_published', true)->count(),
                     'follow_ups_today' => $pendingFollowUps->count(),
                     'overdue_follow_ups' => $overdueFollowUps->count(),
@@ -305,6 +308,20 @@ Route::domain($appDomain)->group(function () {
                         'created_at' => $activity->created_at->diffForHumans(),
                     ]),
                 'dateRange' => ['from' => $from, 'to' => $to],
+                'clientProjects' => $user->clientProjects()
+                    ->with('contact:id,name,email')
+                    ->latest()
+                    ->limit(5)
+                    ->get()
+                    ->map(fn ($project) => [
+                        'id' => $project->id,
+                        'title' => $project->title,
+                        'status' => $project->status,
+                        'currency' => $project->currency,
+                        'budget_amount' => $project->budget_amount,
+                        'contact' => $project->contact?->name ?: $project->contact?->email,
+                        'target_completion_date' => $project->target_completion_date?->format('M j, Y'),
+                    ]),
                 'recentContacts' => $user->contacts()
                     ->with('funnel:id,name')
                     ->latest('last_submitted_at')
@@ -350,6 +367,9 @@ Route::domain($appDomain)->group(function () {
         Route::put('contacts/{contact}/details', [ContactController::class, 'updateDetails'])->name('contacts.details.update');
         Route::post('contacts/{contact}/notes', [ContactController::class, 'storeNote'])->name('contacts.notes.store');
         Route::post('contacts/{contact}/contact-attempts', [ContactController::class, 'storeContactAttempt'])->name('contacts.contact-attempts.store');
+        Route::post('contacts/{contact}/website-assessments', [WebsiteAssessmentController::class, 'store'])->name('contacts.website-assessments.store');
+        Route::post('contacts/{contact}/website-assessments/inspect', [WebsiteAssessmentController::class, 'inspect'])->name('contacts.website-assessments.inspect');
+        Route::delete('contacts/{contact}/website-assessments/{assessment}', [WebsiteAssessmentController::class, 'destroy'])->name('contacts.website-assessments.destroy');
         Route::get('follow-up-tasks', [FollowUpTaskController::class, 'index'])->name('follow-up-tasks.index');
         Route::post('contacts/{contact}/follow-up-tasks', [FollowUpTaskController::class, 'store'])->name('follow-up-tasks.store');
         Route::patch('follow-up-tasks/{task}', [FollowUpTaskController::class, 'update'])->name('follow-up-tasks.update');
@@ -396,6 +416,8 @@ Route::domain($appDomain)->group(function () {
         Route::post('funnels/{funnel}/variants', [FunnelVariantController::class, 'store'])->name('funnels.variants.store');
         Route::patch('funnels/{funnel}/variants/{variant}', [FunnelVariantController::class, 'update'])->name('funnels.variants.update');
         Route::delete('funnels/{funnel}/variants/{variant}', [FunnelVariantController::class, 'destroy'])->name('funnels.variants.destroy');
+        Route::get('funnels/{funnel}/export-template', [FunnelController::class, 'exportTemplate'])->name('funnels.export-template');
+        Route::post('funnels/import-template', [FunnelController::class, 'importTemplate'])->name('funnels.import-template');
 
         // Domain Mapping routes
         Route::post('funnels/{funnel}/domains', [DomainController::class, 'store'])->name('domains.store');
@@ -423,6 +445,15 @@ Route::domain($appDomain)->group(function () {
         Route::post('projects/{project}/unpublish', [ProjectController::class, 'unpublish'])->name('projects.unpublish');
         Route::post('projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
         Route::get('projects/{project}/preview', [ProjectController::class, 'preview'])->name('projects.preview');
+
+        // Client Delivery Project Management routes
+        Route::get('client-projects', [ClientProjectController::class, 'index'])->name('client-projects.index');
+        Route::post('client-projects', [ClientProjectController::class, 'store'])->name('client-projects.store');
+        Route::get('client-projects/{project}', [ClientProjectController::class, 'show'])->name('client-projects.show');
+        Route::put('client-projects/{project}', [ClientProjectController::class, 'update'])->name('client-projects.update');
+        Route::post('client-projects/{project}/milestones', [ClientProjectController::class, 'storeMilestone'])->name('client-projects.milestones.store');
+        Route::patch('client-projects/{project}/milestones/{milestone}', [ClientProjectController::class, 'updateMilestone'])->name('client-projects.milestones.update');
+        Route::delete('client-projects/{project}/milestones/{milestone}', [ClientProjectController::class, 'destroyMilestone'])->name('client-projects.milestones.destroy');
         Route::get('site-content/{type}', [SiteContentController::class, 'index'])->name('site-content.index');
         Route::get('site-content/{type}/create', [SiteContentController::class, 'create'])->name('site-content.create');
         Route::post('site-content/{type}', [SiteContentController::class, 'store'])->name('site-content.store');

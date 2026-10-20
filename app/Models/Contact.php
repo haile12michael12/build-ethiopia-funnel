@@ -113,6 +113,16 @@ class Contact extends Model
         return $this->hasMany(DeveloperAiRecommendation::class);
     }
 
+    public function websiteAssessments(): HasMany
+    {
+        return $this->hasMany(WebsiteAssessment::class)->latest('created_at');
+    }
+
+    public function clientProjects(): HasMany
+    {
+        return $this->hasMany(ClientProject::class)->latest('created_at');
+    }
+
     public function automationRuns(): HasMany
     {
         return $this->hasMany(AutomationRun::class);
