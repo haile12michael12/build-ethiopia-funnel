@@ -46,6 +46,11 @@ function bindSupportChatAdvisor(string $answer = 'The page says it starts at $25
         {
             return ['answer' => $this->answer];
         }
+
+        public function answerCopilotQuestion(array $context): array
+        {
+            return ['answer' => $this->answer, 'evidence_keys' => [], 'limitation' => null];
+        }
     });
 }
 
@@ -93,6 +98,11 @@ test('support chat falls back to matching page content when AI is unavailable', 
         {
             throw new RuntimeException('AI provider unavailable');
         }
+
+        public function answerCopilotQuestion(array $context): array
+        {
+            throw new RuntimeException('AI provider unavailable');
+        }
     });
     $funnel = supportChatFunnel(User::factory()->create());
 
@@ -130,6 +140,11 @@ test('support chat only uses active variants belonging to the funnel', function 
             expect(json_encode($context['content']))->toContain('Variant offer costs $40');
 
             return ['answer' => 'This variant costs $40.'];
+        }
+
+        public function answerCopilotQuestion(array $context): array
+        {
+            return ['answer' => 'No data.', 'evidence_keys' => [], 'limitation' => 'No metrics'];
         }
     });
 

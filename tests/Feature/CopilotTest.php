@@ -580,6 +580,11 @@ test('audit completes with valid AI response', function () {
             {
                 return ['answer' => 'Test answer'];
             }
+
+            public function answerCopilotQuestion(array $context): array
+            {
+                return ['answer' => 'Test answer', 'evidence_keys' => ['views'], 'limitation' => null];
+            }
         };
     });
 
@@ -612,6 +617,11 @@ test('audit still completes when AI fails', function () {
             }
 
             public function answerSupportQuestion(array $context): array
+            {
+                throw new RuntimeException('AI provider unavailable');
+            }
+
+            public function answerCopilotQuestion(array $context): array
             {
                 throw new RuntimeException('AI provider unavailable');
             }
@@ -922,6 +932,110 @@ test('copilot metrics use persisted CRM submissions and current task status', fu
             ['service' => 'web_app', 'submissions' => 1, 'qualified_submissions' => 1],
             ['service' => 'ai_chatbot', 'submissions' => 1, 'qualified_submissions' => 0],
         ]);
+});
+
+test('analytics filters campaign events and segment persisted inquiries without claiming segmented visits', function () {
+    $user = User::factory()->create();
+    $funnel = copilotFunnel($user);
+    $contact = $user->contacts()->create([
+        'funnel_id' => $funnel->id,
+        'email' => 'filtered@example.com',
+        'status' => 'qualified',
+    ]);
+    $contact->submissions()->create([
+        'funnel_id' => $funnel->id,
+        'source' => 'client_acquisition',
+        'fields' => ['market' => 'ethiopia', 'service_interests' => ['web_app']],
+        'attribution' => ['utm_campaign' => 'ethiopia_launch'],
+    ]);
+    $funnel->events()->create([
+        'event_type' => 'view',
+        'occurred_at' => now(),
+        'attribution' => ['utm_campaign' => 'ethiopia_launch'],
+    ]);
+    $funnel->events()->create([
+        'event_type' => 'view',
+        'occurred_at' => now(),
+        'attribution' => ['utm_campaign' => 'international_launch'],
+    ]);
+
+    $metrics = (new FunnelOptimizationEngine)->computeMetrics($funnel, now()->toDateString(), now()->toDateString(), [
+        'market' => 'ethiopia',
+        'service' => 'web_app',
+        'campaign' => 'ethiopia_launch',
+    ]);
+
+    expect($metrics['views'])->toBe(1)
+        ->and($metrics['inquiries'])->toBe(1)
+        ->and($metrics['currently_qualified_leads'])->toBe(1)
+        ->and($metrics['filters'])->toBe([
+            'market' => 'ethiopia',
+            'service' => 'web_app',
+            'campaign' => 'ethiopia_launch',
+        ])
+        ->and($metrics['filter_warnings'])->toHaveCount(1);
+});
+
+test('copilot questions receive only aggregate analytics for the selected period and filters', function () {
+    $user = User::factory()->create();
+    $funnel = copilotFunnel($user);
+    $contact = $user->contacts()->create([
+        'funnel_id' => $funnel->id,
+        'email' => 'private-prospect@example.com',
+        'status' => 'qualified',
+    ]);
+    $contact->submissions()->create([
+        'funnel_id' => $funnel->id,
+        'source' => 'client_acquisition',
+        'fields' => [
+            'market' => 'ethiopia',
+            'service_interests' => ['web_app'],
+            'project_description' => 'Private inquiry details that must not leave the application.',
+        ],
+        'attribution' => ['utm_campaign' => 'safe-campaign'],
+    ]);
+    $funnel->events()->create([
+        'event_type' => 'view',
+        'occurred_at' => now(),
+        'attribution' => ['utm_campaign' => 'safe-campaign'],
+    ]);
+    $advisor = new class implements CopilotAdvisor
+    {
+        public array $seenMetrics = [];
+
+        public function advise(array $context): array
+        {
+            return [];
+        }
+
+        public function answerSupportQuestion(array $context): array
+        {
+            return ['answer' => ''];
+        }
+
+        public function answerCopilotQuestion(array $context): array
+        {
+            $this->seenMetrics = $context['metrics'];
+
+            return ['answer' => 'One view and one persisted inquiry.', 'evidence_keys' => ['views', 'inquiries'], 'limitation' => null];
+        }
+    };
+    app()->instance(CopilotAdvisor::class, $advisor);
+
+    $this->actingAs($user)->postJson(route('copilot.question', $funnel), [
+        'question' => 'How did this campaign perform?',
+        'date_from' => now()->toDateString(),
+        'date_to' => now()->toDateString(),
+        'campaign' => 'safe-campaign',
+    ])->assertOk()
+        ->assertJsonPath('answer', 'One view and one persisted inquiry.')
+        ->assertJsonPath('filters.campaign', 'safe-campaign');
+
+    expect(json_encode($advisor->seenMetrics))
+        ->not->toContain('private-prospect@example.com')
+        ->not->toContain('Private inquiry details')
+        ->and($advisor->seenMetrics['views'])->toBe(1)
+        ->and($advisor->seenMetrics['inquiries'])->toBe(1);
 });
 
 test('users cannot act on recommendations for a different funnel', function () {

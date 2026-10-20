@@ -276,6 +276,9 @@ Route::domain($appDomain)->group(function () {
         Route::get('funnels/{funnel}/copilot', [CopilotController::class, 'show'])->name('copilot.show');
         Route::post('funnels/{funnel}/copilot/audit', [CopilotController::class, 'store'])->name('copilot.audit');
         Route::get('funnels/{funnel}/copilot/audit/{audit}', [CopilotController::class, 'showAudit'])->name('copilot.audit.show');
+        Route::post('funnels/{funnel}/copilot/question', [CopilotController::class, 'askQuestion'])
+            ->middleware('throttle:5,10')
+            ->name('copilot.question');
         Route::post('funnels/{funnel}/copilot/recommendations/{recommendation}/accept', [CopilotController::class, 'acceptRecommendation'])->name('copilot.recommendations.accept');
         Route::post('funnels/{funnel}/copilot/recommendations/{recommendation}/dismiss', [CopilotController::class, 'dismissRecommendation'])->name('copilot.recommendations.dismiss');
         Route::post('funnels/{funnel}/copilot/recommendations/{recommendation}/review', [CopilotController::class, 'reviewRecommendation'])->name('copilot.recommendations.review');

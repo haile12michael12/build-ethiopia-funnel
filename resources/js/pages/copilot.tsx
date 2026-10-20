@@ -59,10 +59,26 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
         return d.toISOString().split('T')[0];
     });
     const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0]);
+    const [market, setMarket] = useState('');
+    const [service, setService] = useState('');
+    const [campaign, setCampaign] = useState('');
+    const [landingPage, setLandingPage] = useState('');
     const [includeAi, setIncludeAi] = useState(false);
+    const [question, setQuestion] = useState('');
+    const [questionAnswer, setQuestionAnswer] = useState<{ answer: string; limitation: string | null; evidence_keys: string[] } | null>(null);
+    const [isAsking, setIsAsking] = useState(false);
     const [expandedRec, setExpandedRec] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'overview' | 'recommendations' | 'ai' | 'experiments' | 'history'>('overview');
     const cardsRef = useRef<HTMLDivElement>(null);
+    const activeFilters = useMemo(
+        () => ({
+            ...(market ? { market } : {}),
+            ...(service.trim() ? { service: service.trim() } : {}),
+            ...(campaign.trim() ? { campaign: campaign.trim() } : {}),
+            ...(landingPage.trim() ? { landing_page: landingPage.trim() } : {}),
+        }),
+        [market, service, campaign, landingPage],
+    );
 
     useEffect(() => setRecommendationHistory(initialRecommendationHistory), [initialRecommendationHistory]);
 
@@ -84,7 +100,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
                 credentials: 'same-origin',
-                body: JSON.stringify({ date_from: dateFrom, date_to: dateTo, include_ai: includeAi }),
+                body: JSON.stringify({ date_from: dateFrom, date_to: dateTo, include_ai: includeAi, ...activeFilters }),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -99,7 +115,29 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
         } finally {
             setIsRunning(false);
         }
-    }, [funnel.id, dateFrom, dateTo, includeAi, t]);
+    }, [funnel.id, dateFrom, dateTo, includeAi, activeFilters, t]);
+
+    const askQuestion = useCallback(async () => {
+        setIsAsking(true);
+        setError(null);
+        setQuestionAnswer(null);
+        try {
+            const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+            const response = await fetch(route('copilot.question', { funnel: funnel.id }), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ question, date_from: dateFrom, date_to: dateTo, ...activeFilters }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message ?? t.error_generic ?? 'Something went wrong.');
+            setQuestionAnswer(data);
+        } catch (questionError) {
+            setError(questionError instanceof Error ? questionError.message : (t.error_generic ?? 'Something went wrong.'));
+        } finally {
+            setIsAsking(false);
+        }
+    }, [funnel.id, question, dateFrom, dateTo, activeFilters, t]);
 
     const loadAudit = useCallback(
         async (auditId: number) => {
@@ -294,6 +332,37 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                     </div>
                 </div>
 
+                <section className="copilot-card space-y-4 rounded-xl border border-border p-4">
+                    <div>
+                        <h2 className="font-semibold">{t.filters ?? 'Analytics filters'}</h2>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {t.filter_limitations ?? 'Campaign and landing-page filters narrow tracked events. Market and service filters narrow persisted inquiries only; anonymous events are not segmented by these choices.'}
+                        </p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <label className="text-xs text-muted-foreground">
+                            {t.market ?? 'Market'}
+                            <select value={market} onChange={(event) => setMarket(event.target.value)} className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
+                                <option value="">{t.all_markets ?? 'All markets'}</option>
+                                <option value="ethiopia">{t.market_ethiopia ?? 'Ethiopia'}</option>
+                                <option value="international">{t.market_international ?? 'International'}</option>
+                            </select>
+                        </label>
+                        <label className="text-xs text-muted-foreground">
+                            {t.service ?? 'Service key'}
+                            <input value={service} onChange={(event) => setService(event.target.value)} maxLength={40} placeholder="e.g. web_app" className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+                        </label>
+                        <label className="text-xs text-muted-foreground">
+                            {t.campaign ?? 'Campaign'}
+                            <input value={campaign} onChange={(event) => setCampaign(event.target.value)} maxLength={100} className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+                        </label>
+                        <label className="text-xs text-muted-foreground">
+                            {t.landing_page ?? 'Landing page'}
+                            <input value={landingPage} onChange={(event) => setLandingPage(event.target.value)} maxLength={2048} placeholder="/services" className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground" />
+                        </label>
+                    </div>
+                </section>
+
                 {error && (
                     <div className="copilot-card flex items-center gap-2 rounded-lg border border-red-800 bg-red-950/30 px-4 py-3 text-sm text-red-300">
                         <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -310,6 +379,43 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                         )}
                     </div>
                 )}
+
+                <section className="copilot-card space-y-3 rounded-xl border border-border p-4">
+                    <div>
+                        <h2 className="font-semibold">{t.ask_copilot ?? 'Ask about this funnel'}</h2>
+                        <p className="mt-1 text-xs text-muted-foreground">{t.ask_copilot_description ?? 'Answers use aggregate metrics for the selected period and filters. No prospect records or form answers are sent.'}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                        <input
+                            value={question}
+                            onChange={(event) => setQuestion(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter' && !event.shiftKey) {
+                                    event.preventDefault();
+                                    if (question.trim().length >= 3 && !isAsking) void askQuestion();
+                                }
+                            }}
+                            maxLength={1000}
+                            placeholder={t.ask_copilot_placeholder ?? 'Which campaigns generated more inquiries?'}
+                            className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                        />
+                        <button
+                            onClick={() => void askQuestion()}
+                            disabled={isAsking || question.trim().length < 3}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+                        >
+                            {isAsking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                            {isAsking ? (t.running ?? 'Analyzing...') : (t.ask ?? 'Ask')}
+                        </button>
+                    </div>
+                    {questionAnswer && (
+                        <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm" role="status">
+                            <p>{questionAnswer.answer}</p>
+                            {questionAnswer.limitation && <p className="mt-2 text-xs text-muted-foreground">{questionAnswer.limitation}</p>}
+                            {questionAnswer.evidence_keys.length > 0 && <p className="mt-2 text-xs text-muted-foreground">{t.evidence ?? 'Evidence'}: {questionAnswer.evidence_keys.join(', ')}</p>}
+                        </div>
+                    )}
+                </section>
 
                 {/* Tabs */}
                 <div className="copilot-card flex gap-1 overflow-x-auto rounded-lg border border-border p-1">

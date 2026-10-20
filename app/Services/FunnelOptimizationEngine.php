@@ -35,12 +35,12 @@ class FunnelOptimizationEngine
      *
      * @return array{metrics: array<string, mixed>, recommendations: array<int, array<string, mixed>>}
      */
-    public function analyze(Funnel $funnel, string $dateFrom, string $dateTo): array
+    public function analyze(Funnel $funnel, string $dateFrom, string $dateTo, array $filters = []): array
     {
-        $metrics = $this->computeMetrics($funnel, $dateFrom, $dateTo);
+        $metrics = $this->computeMetrics($funnel, $dateFrom, $dateTo, $filters);
         $contentFindings = $this->analyzeContent($funnel->content ?? []);
         $analyticsFindings = $this->analyzeMetrics($metrics);
-        [$variantFindings, $metrics] = $this->analyzeVariants($funnel, $dateFrom, $dateTo, $metrics);
+        [$variantFindings, $metrics] = $this->analyzeVariants($funnel, $dateFrom, $dateTo, $metrics, $filters);
 
         $recommendations = collect()
             ->merge($contentFindings)
@@ -73,17 +73,41 @@ class FunnelOptimizationEngine
      *
      * @return array<string, mixed>
      */
-    public function computeMetrics(Funnel $funnel, string $dateFrom, string $dateTo): array
+    public function computeMetrics(Funnel $funnel, string $dateFrom, string $dateTo, array $filters = []): array
     {
+        $filters = array_filter([
+            'market' => in_array($filters['market'] ?? null, ['ethiopia', 'international'], true) ? $filters['market'] : null,
+            'service' => is_string($filters['service'] ?? null) ? trim($filters['service']) : null,
+            'campaign' => is_string($filters['campaign'] ?? null) ? trim($filters['campaign']) : null,
+            'landing_page' => is_string($filters['landing_page'] ?? null) ? trim($filters['landing_page']) : null,
+        ], fn (?string $value) => $value !== null && $value !== '');
+
         $events = FunnelEvent::query()
             ->where('funnel_id', $funnel->id)
             ->whereBetween('occurred_at', [$dateFrom.' 00:00:00', $dateTo.' 23:59:59'])
             ->get(['event_type', 'session_id', 'form_id', 'variant_id', 'submission_id', 'metadata', 'attribution', 'occurred_at']);
+        foreach (['campaign' => 'utm_campaign', 'landing_page' => 'landing_page'] as $filter => $attributionKey) {
+            if (isset($filters[$filter])) {
+                $events = $events->filter(fn (FunnelEvent $event) => data_get($event->attribution, $attributionKey) === $filters[$filter]);
+            }
+        }
         $submissions = ContactSubmission::query()
             ->where('funnel_id', $funnel->id)
             ->whereBetween('created_at', [$dateFrom.' 00:00:00', $dateTo.' 23:59:59'])
             ->with('contact:id,status,client_project')
-            ->get(['id', 'contact_id', 'fields', 'source', 'created_at']);
+            ->get(['id', 'contact_id', 'fields', 'attribution', 'source', 'created_at']);
+        if (isset($filters['market'])) {
+            $submissions = $submissions->filter(fn (ContactSubmission $submission) => data_get($submission->fields, 'market') === $filters['market']);
+        }
+        if (isset($filters['service'])) {
+            $submissions = $submissions->filter(fn (ContactSubmission $submission) => in_array($filters['service'], data_get($submission->fields, 'service_interests', []), true));
+        }
+        if (isset($filters['campaign'])) {
+            $submissions = $submissions->filter(fn (ContactSubmission $submission) => data_get($submission->attribution, 'utm_campaign') === $filters['campaign']);
+        }
+        if (isset($filters['landing_page'])) {
+            $submissions = $submissions->filter(fn (ContactSubmission $submission) => data_get($submission->attribution, 'landing_page') === $filters['landing_page']);
+        }
 
         $views = $events->where('event_type', 'view')->count();
         $uniqueSessions = $events->where('event_type', 'view')->whereNotNull('session_id')->pluck('session_id')->unique()->count();
@@ -156,6 +180,8 @@ class FunnelOptimizationEngine
         $legacyProjectRequestEvents = $events
             ->where('event_type', 'conversion')
             ->filter(fn (FunnelEvent $event) => $event->submission_id === null
+                && ! isset($filters['market'])
+                && ! isset($filters['service'])
                 && data_get($event->metadata, 'lead_source') === 'client_acquisition');
         $projectRequestSubmissions = $submissions->where('source', 'client_acquisition');
         $projectRequestData = $projectRequestSubmissions
@@ -220,9 +246,16 @@ class FunnelOptimizationEngine
             ->whereHas('contact', fn ($query) => $query->where('funnel_id', $funnel->id))
             ->count();
 
+        $filterWarnings = [];
+        if (isset($filters['market']) || isset($filters['service'])) {
+            $filterWarnings[] = 'Market and service filters apply to persisted inquiries only; anonymous visit events are not segmented by these choices, so funnel rates remain unfiltered.';
+        }
+
         return [
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
+            'filters' => $filters,
+            'filter_warnings' => $filterWarnings,
             'views' => $views,
             'unique_sessions' => $uniqueSessions,
             'cta_clicks' => $ctaClicks,
@@ -246,7 +279,7 @@ class FunnelOptimizationEngine
             'traffic_campaigns' => $this->breakdownBy($events, 'campaign'),
             'landing_pages' => $this->breakdownBy($events, 'landing_page'),
             'devices' => $this->breakdownBy($events, 'device'),
-            'data_warnings' => array_values(array_unique($dataWarnings)),
+            'data_warnings' => array_values(array_unique([...$dataWarnings, ...$filterWarnings])),
             'sample_size_sufficient' => $views >= $this->thresholds['min_sample_size'],
             'data_quality' => $dataWarnings !== []
                 ? 'inconsistent'
@@ -673,7 +706,7 @@ class FunnelOptimizationEngine
      *
      * @return array{0: array<int, array<string, mixed>>, 1: array<string, mixed>}
      */
-    private function analyzeVariants(Funnel $funnel, string $dateFrom, string $dateTo, array $metrics): array
+    private function analyzeVariants(Funnel $funnel, string $dateFrom, string $dateTo, array $metrics, array $filters = []): array
     {
         $findings = [];
         $variants = $funnel->variants()->where('is_active', true)->get();
@@ -699,7 +732,12 @@ class FunnelOptimizationEngine
                 ->where('funnel_id', $funnel->id)
                 ->where('variant_id', $variant->id)
                 ->whereBetween('occurred_at', [$dateFrom.' 00:00:00', $dateTo.' 23:59:59'])
-                ->get(['event_type']);
+                ->get(['event_type', 'attribution']);
+            if (isset($filters['campaign']) || isset($filters['landing_page'])) {
+                $variantEvents = $variantEvents
+                    ->filter(fn (FunnelEvent $event) => (! isset($filters['campaign']) || data_get($event->attribution, 'utm_campaign') === $filters['campaign'])
+                        && (! isset($filters['landing_page']) || data_get($event->attribution, 'landing_page') === $filters['landing_page']));
+            }
 
             $variantViews = $variantEvents->where('event_type', 'view')->count();
             $variantConversions = $variantEvents->where('event_type', 'conversion')->count();
@@ -736,7 +774,12 @@ class FunnelOptimizationEngine
             ->where('funnel_id', $funnel->id)
             ->whereNull('variant_id')
             ->whereBetween('occurred_at', [$dateFrom.' 00:00:00', $dateTo.' 23:59:59'])
-            ->get(['event_type']);
+            ->get(['event_type', 'attribution']);
+        if (isset($filters['campaign']) || isset($filters['landing_page'])) {
+            $controlEvents = $controlEvents
+                ->filter(fn (FunnelEvent $event) => (! isset($filters['campaign']) || data_get($event->attribution, 'utm_campaign') === $filters['campaign'])
+                    && (! isset($filters['landing_page']) || data_get($event->attribution, 'landing_page') === $filters['landing_page']));
+        }
 
         $controlViews = $controlEvents->where('event_type', 'view')->count();
         $controlConversions = $controlEvents->where('event_type', 'conversion')->count();

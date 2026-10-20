@@ -19,4 +19,12 @@ interface CopilotAdvisor
      * @return array{answer: string}
      */
     public function answerSupportQuestion(array $context): array;
+
+    /**
+     * Answer an authenticated user's question using only supplied aggregate evidence.
+     *
+     * @param  array{question: string, metrics: array<string, mixed>, language: string}  $context
+     * @return array{answer: string, evidence_keys: array<int, string>, limitation: string|null}
+     */
+    public function answerCopilotQuestion(array $context): array;
 }

@@ -16,4 +16,9 @@ class DisabledCopilotAdvisor implements CopilotAdvisor
     {
         throw new RuntimeException('AI support chat is not configured.');
     }
+
+    public function answerCopilotQuestion(array $context): array
+    {
+        throw new RuntimeException('AI copilot advisor is not configured.');
+    }
 }

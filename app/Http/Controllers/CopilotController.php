@@ -11,6 +11,7 @@ use App\Services\FunnelOptimizationEngine;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -108,6 +109,10 @@ class CopilotController extends Controller
             'date_from' => ['required', 'date_format:Y-m-d'],
             'date_to' => ['required', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'include_ai' => ['sometimes', 'boolean'],
+            'market' => ['nullable', 'in:ethiopia,international'],
+            'service' => ['nullable', 'string', 'max:40', 'regex:/^[a-zA-Z0-9_-]+$/'],
+            'campaign' => ['nullable', 'string', 'max:100'],
+            'landing_page' => ['nullable', 'string', 'max:2048', 'starts_with:/'],
         ]);
 
         // Limit date range to 90 days
@@ -140,7 +145,8 @@ class CopilotController extends Controller
         ]);
 
         try {
-            $result = $this->engine->analyze($funnel, $from, $to);
+            $filters = array_filter(array_intersect_key($validated, array_flip(['market', 'service', 'campaign', 'landing_page'])));
+            $result = $this->engine->analyze($funnel, $from, $to, $filters);
             $metrics = $result['metrics'];
             $recommendations = $result['recommendations'];
 
@@ -232,6 +238,63 @@ class CopilotController extends Controller
 
         return response()->json([
             'audit' => $this->serializeAudit($audit),
+        ]);
+    }
+
+    public function askQuestion(Request $request, Funnel $funnel): JsonResponse
+    {
+        $this->authorize('view', $funnel);
+
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'min:3', 'max:1000'],
+            'date_from' => ['required', 'date_format:Y-m-d'],
+            'date_to' => ['required', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+            'market' => ['nullable', 'in:ethiopia,international'],
+            'service' => ['nullable', 'string', 'max:40', 'regex:/^[a-zA-Z0-9_-]+$/'],
+            'campaign' => ['nullable', 'string', 'max:100'],
+            'landing_page' => ['nullable', 'string', 'max:2048', 'starts_with:/'],
+        ]);
+        if ((int) abs(strtotime($validated['date_to']) - strtotime($validated['date_from'])) / 86400 > 90) {
+            return response()->json(['message' => 'Date range cannot exceed 90 days.'], 422);
+        }
+
+        $filters = array_filter(array_intersect_key($validated, array_flip(['market', 'service', 'campaign', 'landing_page'])));
+        $language = session('locale', config('app.locale', 'en'));
+        $cacheKey = 'copilot-question:'.auth()->id().':'.$funnel->id.':'.hash('sha256', json_encode([
+            $validated['question'],
+            $validated['date_from'],
+            $validated['date_to'],
+            $filters,
+            $language,
+        ], JSON_THROW_ON_ERROR));
+
+        try {
+            $answer = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($funnel, $validated, $filters, $language): array {
+                $metrics = $this->engine->computeMetrics($funnel, $validated['date_from'], $validated['date_to'], $filters);
+
+                return $this->advisor->answerCopilotQuestion([
+                    'question' => $validated['question'],
+                    'metrics' => $metrics,
+                    'language' => $language,
+                ]);
+            });
+        } catch (Throwable $exception) {
+            Log::warning('Copilot question could not be answered.', [
+                'funnel_id' => $funnel->id,
+                'user_id' => auth()->id(),
+                'exception' => $exception,
+            ]);
+
+            return response()->json([
+                'message' => 'Copilot answers are unavailable right now. Review the deterministic analytics or try again later.',
+            ], 503);
+        }
+
+        return response()->json([
+            ...$answer,
+            'date_from' => $validated['date_from'],
+            'date_to' => $validated['date_to'],
+            'filters' => $filters,
         ]);
     }
 
