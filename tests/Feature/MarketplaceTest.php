@@ -65,8 +65,8 @@ test('marketplace catalog only lists published products and contributor submissi
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('marketplace/index')
-            ->has('products', 1)
-            ->where('products.0.slug', 'public-template'));
+            ->has('products.data', 1)
+            ->where('products.data.0.slug', 'public-template'));
 
     $owner = User::factory()->create();
     $this->actingAs($owner)->post(route('marketplace.submissions.store'), [
@@ -101,12 +101,15 @@ test('checkout creates a pending purchase and grants access only after provider 
         ]),
     ]);
 
-    $this->actingAs($buyer)->post(route('marketplace.checkout', $template->slug))
+    $this->actingAs($buyer)->post(route('marketplace.checkout', $template->slug), ['license_accepted' => true])
         ->assertRedirect('https://checkout.chapa.co/checkout/payment/test');
 
     $purchase = MarketplacePurchase::query()->firstOrFail();
     expect($purchase->status)->toBe('pending')
         ->and($purchase->contributor_share_percent)->toBe('0.00')
+        ->and($purchase->license_snapshot)->toBe('Personal use')
+        ->and($purchase->license_accepted_at)->not->toBeNull()
+        ->and($purchase->platform_commission_amount_minor)->toBe(12500)
         ->and(app(MarketplaceAccessService::class)->hasAccess($buyer, $template))->toBeFalse();
     Http::assertSent(fn ($request) => $request->url() === 'https://api.chapa.co/v1/transaction/initialize'
         && $request['amount'] === '125.00'
@@ -209,7 +212,7 @@ test('Chapa secret signature header is accepted and missing webhook configuratio
 
     $this->get(route('marketplace.show', $template->slug))
         ->assertInertia(fn ($page) => $page->where('checkoutEnabled', false));
-    $this->actingAs($buyer)->post(route('marketplace.checkout', $template->slug))
+    $this->actingAs($buyer)->post(route('marketplace.checkout', $template->slug), ['license_accepted' => true])
         ->assertServiceUnavailable();
 
     config(['services.chapa.webhook_secret' => 'test-webhook-secret']);
@@ -237,7 +240,7 @@ test('unpriced products cannot start Chapa checkout', function () {
     $buyer = User::factory()->create();
     $template = marketplaceTemplate(['slug' => 'unpriced-template', 'amount_minor' => null]);
 
-    $this->actingAs($buyer)->post(route('marketplace.checkout', $template->slug))
+    $this->actingAs($buyer)->post(route('marketplace.checkout', $template->slug), ['license_accepted' => true])
         ->assertUnprocessable();
     expect(MarketplacePurchase::query()->exists())->toBeFalse();
 });
@@ -283,7 +286,7 @@ test('membership checkout remains explicitly disabled until recurring billing is
         'file_path' => null,
     ]);
 
-    $this->actingAs($member)->post(route('marketplace.checkout', $membership->slug))
+    $this->actingAs($member)->post(route('marketplace.checkout', $membership->slug), ['license_accepted' => true])
         ->assertUnprocessable();
     expect(MarketplacePurchase::query()->exists())->toBeFalse();
 });
@@ -317,4 +320,106 @@ test('reviewers must explicitly publish listings and private template artifacts 
     expect($template->fresh()->status)->toBe('published')
         ->and($template->fresh()->amount_minor)->toBe(20000)
         ->and($template->fresh()->file_path)->not->toBeNull();
+});
+
+test('marketplace filters only search published listings and retain pagination state', function () {
+    marketplaceTemplate([
+        'slug' => 'paid-automation',
+        'name' => 'Automation Toolkit',
+        'category' => 'automation',
+        'amount_minor' => 25000,
+    ]);
+    marketplaceTemplate([
+        'slug' => 'free-funnel',
+        'name' => 'Funnel Starter',
+        'category' => 'funnels',
+        'amount_minor' => 0,
+    ]);
+    marketplaceTemplate([
+        'slug' => 'private-automation',
+        'name' => 'Private Automation',
+        'category' => 'automation',
+        'status' => 'pending_review',
+    ]);
+
+    $this->get(route('marketplace.index', [
+        'search' => 'Automation',
+        'category' => 'automation',
+        'type' => 'template',
+        'price' => 'paid',
+        'currency' => 'ETB',
+        'sort' => 'price_desc',
+    ]))->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('products.data', 1)
+            ->where('products.data.0.slug', 'paid-automation')
+            ->where('filters.category', 'automation')
+            ->where('filters.price', 'paid'));
+});
+
+test('contributors can update only their own listing and changes return it to review', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $product = marketplaceTemplate([
+        'owner_id' => $owner->id,
+        'slug' => 'creator-product',
+        'category' => 'development',
+    ]);
+
+    $this->actingAs($other)->get(route('marketplace.contributor-listings.edit', $product))->assertNotFound();
+    $this->actingAs($other)->put(route('marketplace.contributor-listings.update', $product), [
+        'name' => 'Unauthorized update',
+    ])->assertNotFound();
+
+    $this->actingAs($owner)->put(route('marketplace.contributor-listings.update', $product), [
+        'name' => 'Updated Toolkit',
+        'description' => 'Updated product description.',
+        'category' => 'automation',
+        'tech_stack' => ['Laravel', 'PHP'],
+        'included_modules' => ['workflow-json'],
+        'version' => '1.1.0',
+        'changelog' => 'Improved docs.',
+        'license' => 'Commercial use',
+        'license_terms' => 'One commercial project.',
+        'documentation_url' => 'https://docs.example.test/product',
+        'demo_url' => null,
+        'compatibility' => 'Laravel 13, PHP 8.3+',
+        'support_information' => 'Contact the creator through the marketplace.',
+    ])->assertRedirect(route('marketplace.index'));
+
+    expect($product->fresh()->status)->toBe('pending_review')
+        ->and($product->fresh()->category)->toBe('automation')
+        ->and($product->fresh()->compatibility)->toBe(['Laravel 13', 'PHP 8.3+'])
+        ->and($product->fresh()->amount_minor)->toBe(12500);
+});
+
+test('purchase records preserve the accepted license and currency-specific revenue split', function () {
+    $buyer = User::factory()->create();
+    $creator = User::factory()->create();
+    $product = marketplaceTemplate([
+        'owner_id' => $creator->id,
+        'slug' => 'creator-paid-product',
+        'license' => 'Agency use',
+        'license_terms' => 'Use within one agency organization.',
+        'contributor_revenue_share_percent' => 70,
+    ]);
+    Http::fake([
+        'api.chapa.co/v1/transaction/initialize' => Http::response([
+            'status' => 'success',
+            'data' => ['checkout_url' => 'https://checkout.chapa.co/checkout/payment/snapshot'],
+        ]),
+    ]);
+
+    $this->actingAs($buyer)->post(route('marketplace.checkout', $product->slug), ['license_accepted' => true])
+        ->assertRedirect('https://checkout.chapa.co/checkout/payment/snapshot');
+
+    $purchase = MarketplacePurchase::query()->firstOrFail();
+    expect($purchase->license_snapshot)->toBe('Agency use')
+        ->and($purchase->license_terms_snapshot)->toBe('Use within one agency organization.')
+        ->and($purchase->currency)->toBe('ETB')
+        ->and($purchase->contributor_share_amount_minor)->toBe(8750)
+        ->and($purchase->platform_commission_amount_minor)->toBe(3750)
+        ->and($purchase->amount_minor)->toBe(
+            $purchase->contributor_share_amount_minor + $purchase->platform_commission_amount_minor,
+        );
 });

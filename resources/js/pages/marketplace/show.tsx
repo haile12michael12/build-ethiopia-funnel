@@ -9,6 +9,7 @@ interface Product {
     type: 'template' | 'bundle' | 'membership';
     name: string;
     description: string;
+    category: string;
     preview_images: string[];
     tech_stack: string[];
     amount_minor: number | null;
@@ -17,6 +18,11 @@ interface Product {
     version: string;
     changelog: string | null;
     license: string;
+    license_terms: string | null;
+    documentation_url: string | null;
+    demo_url: string | null;
+    compatibility: string[];
+    support_information: string | null;
     contributor: string | null;
     contributor_badge: boolean;
     bundle_items: Array<{ id: number; name: string; slug: string }>;
@@ -26,11 +32,13 @@ interface MarketplaceShowProps {
     product: Product;
     authenticated: boolean;
     hasAccess: boolean;
+    purchased: boolean;
     checkoutEnabled: boolean;
 }
 
-export default function MarketplaceShow({ product, authenticated, hasAccess, checkoutEnabled }: MarketplaceShowProps) {
+export default function MarketplaceShow({ product, authenticated, hasAccess, purchased, checkoutEnabled }: MarketplaceShowProps) {
     const [checkingOut, setCheckingOut] = useState(false);
+    const [licenseAccepted, setLicenseAccepted] = useState(false);
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Marketplace', href: route('marketplace.index') },
         { title: product.name, href: route('marketplace.show', product.slug) },
@@ -58,7 +66,9 @@ export default function MarketplaceShow({ product, authenticated, hasAccess, che
                         />
                     )}
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground capitalize">{product.type}</span>
+                        <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground capitalize">
+                            {product.category} · {product.type}
+                        </span>
                         <span className="text-xl font-bold text-foreground">{price}</span>
                     </div>
                     <h1 className="mt-4 text-3xl font-bold text-foreground">{product.name}</h1>
@@ -76,27 +86,43 @@ export default function MarketplaceShow({ product, authenticated, hasAccess, che
                         </p>
                     ) : hasAccess ? (
                         product.type === 'template' ? (
-                            <Link
-                                href={route('marketplace.download', product.slug)}
-                                className="mt-5 inline-block rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground"
-                            >
-                                Download your template
-                            </Link>
+                            <div className="mt-5">
+                                {purchased && <p className="mb-2 text-sm text-muted-foreground">Purchase verified. License: {product.license}.</p>}
+                                <Link
+                                    href={route('marketplace.download', product.slug)}
+                                    className="inline-block rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground"
+                                >
+                                    Download your template
+                                </Link>
+                            </div>
                         ) : (
                             <p className="mt-5 rounded-lg bg-muted p-4 text-sm">You have access to this bundle and its included templates.</p>
                         )
                     ) : checkoutEnabled ? (
                         authenticated ? (
-                            <button
-                                disabled={checkingOut}
-                                onClick={() => {
-                                    setCheckingOut(true);
-                                    router.post(route('marketplace.checkout', product.slug), {}, { onFinish: () => setCheckingOut(false) });
-                                }}
-                                className="mt-5 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground disabled:opacity-50"
-                            >
-                                {checkingOut ? 'Opening Chapa…' : `Purchase for ${price}`}
-                            </button>
+                            <div className="mt-5">
+                                <label className="flex items-start gap-2 text-sm text-muted-foreground">
+                                    <input type="checkbox" checked={licenseAccepted} onChange={(event) => setLicenseAccepted(event.target.checked)} />
+                                    <span>
+                                        I have read and accept the license terms above. I understand this purchase does not transfer copyright
+                                        ownership.
+                                    </span>
+                                </label>
+                                <button
+                                    disabled={checkingOut || !licenseAccepted}
+                                    onClick={() => {
+                                        setCheckingOut(true);
+                                        router.post(
+                                            route('marketplace.checkout', product.slug),
+                                            { license_accepted: true },
+                                            { onFinish: () => setCheckingOut(false) },
+                                        );
+                                    }}
+                                    className="mt-3 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground disabled:opacity-50"
+                                >
+                                    {checkingOut ? 'Opening Chapa…' : `Purchase for ${price}`}
+                                </button>
+                            </div>
                         ) : (
                             <Link
                                 href={route('login')}
@@ -132,6 +158,43 @@ export default function MarketplaceShow({ product, authenticated, hasAccess, che
                             ))}
                         </ul>
                     </div>
+                </section>
+                {(product.documentation_url || product.demo_url || product.compatibility.length > 0 || product.support_information) && (
+                    <section className="grid gap-5 rounded-xl border border-border bg-card p-6 md:grid-cols-2">
+                        {product.documentation_url && (
+                            <p>
+                                <a href={product.documentation_url} target="_blank" rel="noreferrer" className="underline">
+                                    Documentation
+                                </a>
+                            </p>
+                        )}
+                        {product.demo_url && (
+                            <p>
+                                <a href={product.demo_url} target="_blank" rel="noreferrer" className="underline">
+                                    Product demo
+                                </a>
+                            </p>
+                        )}
+                        {product.compatibility.length > 0 && (
+                            <div>
+                                <h2 className="font-semibold">Compatibility</h2>
+                                <p className="mt-2 text-sm text-muted-foreground">{product.compatibility.join(', ')}</p>
+                            </div>
+                        )}
+                        {product.support_information && (
+                            <div>
+                                <h2 className="font-semibold">Support</h2>
+                                <p className="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">{product.support_information}</p>
+                            </div>
+                        )}
+                    </section>
+                )}
+                <section className="rounded-xl border border-border bg-card p-6">
+                    <h2 className="font-semibold">License terms</h2>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        {product.license_terms ||
+                            `${product.license}. This license grants usage rights only; it does not transfer copyright ownership.`}
+                    </p>
                 </section>
 
                 {product.type === 'bundle' && product.bundle_items.length > 0 && (

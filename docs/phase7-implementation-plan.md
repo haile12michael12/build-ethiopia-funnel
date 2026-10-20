@@ -22,3 +22,13 @@
 ## Boundaries and launch gaps
 
 Marketplace listings and their optional workspace association already exist, but the broader product is not yet workspace-tenant-scoped. Workspace members' access remains limited to explicit marketplace operations. Chapa availability depends on server credentials. Creator payouts, refunds, verified reviews, subscription entitlements, and admin console features are not implemented and must not be represented as live.
+
+## Implemented slice
+
+- Added public catalog search, category/type/price/currency filters, deterministic sorting, and pagination. Search results only query published listings.
+- Added additive product metadata fields for category, license terms, HTTPS documentation/demo URLs, compatibility labels, and support notes.
+- Added a contributor edit path guarded by listing owner or workspace owner/admin/editor membership. Saving returns the listing to `pending_review`; price and revenue-share remain reviewer-controlled.
+- Required explicit license acceptance before paid checkout. New purchases snapshot the selected license and terms, accepted time, currency, contributor percentage, creator share, and platform commission in minor units.
+- Existing private ZIP delivery, Chapa transaction verification, and signed/idempotent webhook paths are retained.
+
+This slice does not claim creator payouts, refunds, verified reviews, automatic package imports, or workspace-wide access to purchased products. Supported digital delivery remains private ZIP downloads for eligible listings; uploaded code is not executed.

@@ -22,15 +22,62 @@ class MarketplaceController extends Controller
 {
     public function index(Request $request): Response
     {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'category' => ['nullable', 'string', 'max:80'],
+            'type' => ['nullable', Rule::in(['template', 'bundle'])],
+            'price' => ['nullable', Rule::in(['free', 'paid'])],
+            'currency' => ['nullable', Rule::in(['ETB', 'USD'])],
+            'sort' => ['nullable', Rule::in(['relevance', 'newest', 'price_asc', 'price_desc'])],
+        ]);
+
         $products = MarketplaceTemplate::query()
             ->where('status', 'published')
             ->with('owner:id,name')
-            ->orderBy('type')
-            ->orderBy('name')
-            ->get();
+            ->when($filters['search'] ?? null, function ($query, string $search): void {
+                $search = trim($search);
+                $query->where(function ($query) use ($search): void {
+                    $query->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('description', 'like', '%'.$search.'%')
+                        ->orWhere('category', 'like', '%'.$search.'%');
+                });
+            })
+            ->when($filters['category'] ?? null, fn ($query, string $category) => $query->where('category', $category))
+            ->when($filters['type'] ?? null, fn ($query, string $type) => $query->where('type', $type))
+            ->when($filters['price'] ?? null, fn ($query, string $price) => $price === 'free'
+                ? $query->where('amount_minor', 0)
+                : $query->where('amount_minor', '>', 0))
+            ->when($filters['currency'] ?? null, fn ($query, string $currency) => $query->where('currency', $currency));
+
+        match ($filters['sort'] ?? 'relevance') {
+            'newest' => $products->latest(),
+            'price_asc' => $products->orderByRaw('CASE WHEN amount_minor IS NULL THEN 1 ELSE 0 END')->orderBy('amount_minor'),
+            'price_desc' => $products->orderByRaw('CASE WHEN amount_minor IS NULL THEN 1 ELSE 0 END')->orderByDesc('amount_minor'),
+            default => isset($filters['search']) && trim($filters['search']) !== ''
+                ? $products->orderByRaw(
+                    'CASE WHEN name LIKE ? THEN 0 WHEN description LIKE ? THEN 1 ELSE 2 END',
+                    [trim($filters['search']).'%', '%'.trim($filters['search']).'%'],
+                )->orderBy('name')
+                : $products->orderBy('name'),
+        };
+        $products = $products->paginate(12)->withQueryString();
 
         return Inertia::render('marketplace/index', [
-            'products' => $products->map(fn (MarketplaceTemplate $product): array => $this->present($product)),
+            'products' => [
+                'data' => $products->getCollection()->map(fn (MarketplaceTemplate $product): array => $this->present($product))->values(),
+                'links' => $products->linkCollection()->toArray(),
+                'total' => $products->total(),
+            ],
+            'filters' => [
+                'search' => $filters['search'] ?? '',
+                'category' => $filters['category'] ?? '',
+                'type' => $filters['type'] ?? '',
+                'price' => $filters['price'] ?? '',
+                'currency' => $filters['currency'] ?? '',
+                'sort' => $filters['sort'] ?? 'relevance',
+            ],
+            'categories' => MarketplaceTemplate::query()->where('status', 'published')
+                ->whereNotNull('category')->distinct()->orderBy('category')->pluck('category'),
             'canReview' => $this->canReview($request->user()),
             'authenticated' => (bool) $request->user(),
             'mySubmissions' => $request->user()
@@ -49,6 +96,8 @@ class MarketplaceController extends Controller
                         'status' => $product->status,
                         'type' => $product->type,
                         'workspace' => $product->workspace?->name,
+                        'can_edit' => $product->owner_id === $request->user()->id
+                            || in_array($product->workspace?->roleFor($request->user()), ['owner', 'admin', 'editor'], true),
                     ])
                 : [],
             'workspaces' => $request->user()
@@ -73,6 +122,9 @@ class MarketplaceController extends Controller
             'product' => $this->present($template),
             'authenticated' => (bool) $request->user(),
             'hasAccess' => (bool) $access,
+            'purchased' => $request->user()
+                ? $request->user()->marketplacePurchases()->where('template_id', $template->id)->where('status', 'paid')->exists()
+                : false,
             'checkoutEnabled' => app(ChapaPaymentGateway::class)->configured()
                 && $template->type !== 'membership'
                 && $template->amount_minor !== null
@@ -87,6 +139,7 @@ class MarketplaceController extends Controller
             'type' => ['required', Rule::in(['template', 'bundle', 'membership'])],
             'name' => ['required', 'string', 'max:150'],
             'description' => ['required', 'string', 'max:5000'],
+            'category' => ['nullable', 'string', 'max:80'],
             'tech_stack' => ['required', 'array', 'min:1', 'max:20'],
             'tech_stack.*' => ['required', 'string', 'max:50'],
             'included_modules' => ['required', 'array', 'min:1', 'max:30'],
@@ -94,6 +147,11 @@ class MarketplaceController extends Controller
             'version' => ['required', 'string', 'max:50'],
             'changelog' => ['nullable', 'string', 'max:5000'],
             'license' => ['required', 'string', 'max:100'],
+            'license_terms' => ['nullable', 'string', 'max:10000'],
+            'documentation_url' => ['nullable', 'url:https', 'max:2048'],
+            'demo_url' => ['nullable', 'url:https', 'max:2048'],
+            'compatibility' => ['nullable', 'string', 'max:1000'],
+            'support_information' => ['nullable', 'string', 'max:2000'],
             'workspace_id' => ['nullable', 'integer', 'exists:workspaces,id'],
         ]);
 
@@ -111,14 +169,70 @@ class MarketplaceController extends Controller
 
         $request->user()->marketplaceTemplates()->create([
             ...$validated,
+            'category' => $validated['category'] ?? 'other',
             'workspace_id' => $workspace?->id,
             'slug' => $slug,
             'currency' => 'ETB',
+            'compatibility' => isset($validated['compatibility'])
+                ? array_values(array_filter(array_map('trim', explode(',', $validated['compatibility']))))
+                : [],
             'status' => 'pending_review',
             'contributor_revenue_share_percent' => config('marketplace.default_revenue_share_percent', 70),
         ]);
 
         return to_route('marketplace.index')->with('success', 'Your submission is queued for marketplace review.');
+    }
+
+    public function editListing(Request $request, MarketplaceTemplate $template): Response
+    {
+        $this->authorizeListingManagement($request, $template);
+
+        return Inertia::render('marketplace/edit-listing', [
+            'product' => [
+                ...$this->present($template),
+                'license_terms' => $template->license_terms,
+                'documentation_url' => $template->documentation_url,
+                'demo_url' => $template->demo_url,
+                'compatibility' => implode(', ', $template->compatibility ?? []),
+                'support_information' => $template->support_information,
+                'status' => $template->status,
+            ],
+            'categories' => $this->categories(),
+        ]);
+    }
+
+    public function updateListing(Request $request, MarketplaceTemplate $template): RedirectResponse
+    {
+        $this->authorizeListingManagement($request, $template);
+        abort_if(in_array($template->status, ['suspended', 'archived'], true), 409, 'This listing cannot be edited in its current state.');
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'description' => ['required', 'string', 'max:5000'],
+            'category' => ['required', 'string', 'max:80'],
+            'tech_stack' => ['required', 'array', 'min:1', 'max:20'],
+            'tech_stack.*' => ['required', 'string', 'max:50'],
+            'included_modules' => ['required', 'array', 'min:1', 'max:30'],
+            'included_modules.*' => ['required', 'string', 'max:100'],
+            'version' => ['required', 'string', 'max:50'],
+            'changelog' => ['nullable', 'string', 'max:5000'],
+            'license' => ['required', 'string', 'max:100'],
+            'license_terms' => ['nullable', 'string', 'max:10000'],
+            'documentation_url' => ['nullable', 'url:https', 'max:2048'],
+            'demo_url' => ['nullable', 'url:https', 'max:2048'],
+            'compatibility' => ['nullable', 'string', 'max:1000'],
+            'support_information' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $template->update([
+            ...$validated,
+            'compatibility' => isset($validated['compatibility'])
+                ? array_values(array_filter(array_map('trim', explode(',', $validated['compatibility']))))
+                : [],
+            'status' => 'pending_review',
+        ]);
+
+        return to_route('marketplace.index')->with('success', 'Listing changes were submitted for review. The listing is hidden until approved.');
     }
 
     public function reviewerIndex(Request $request): Response
@@ -148,6 +262,7 @@ class MarketplaceController extends Controller
             'amount' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'currency' => ['required', 'string', 'size:3', 'alpha:ascii'],
             'license' => ['required', 'string', 'max:100'],
+            'license_terms' => ['nullable', 'string', 'max:10000'],
             'contributor_revenue_share_percent' => ['required', 'numeric', 'min:0', 'max:90'],
             'bundle_template_ids' => ['nullable', 'array', 'max:50'],
             'bundle_template_ids.*' => [
@@ -192,6 +307,7 @@ class MarketplaceController extends Controller
             'amount_minor' => $amountMinor,
             'currency' => strtoupper($validated['currency']),
             'license' => $validated['license'],
+            'license_terms' => $validated['license_terms'] ?? null,
             'contributor_revenue_share_percent' => $validated['contributor_revenue_share_percent'],
             'file_path' => $filePath,
             'preview_images' => $previewImages,
@@ -206,6 +322,7 @@ class MarketplaceController extends Controller
 
     public function checkout(Request $request, MarketplaceTemplate $template, ChapaPaymentGateway $gateway): RedirectResponse
     {
+        $request->validate(['license_accepted' => ['required', 'accepted']]);
         abort_unless($template->status === 'published', 404);
         abort_if($template->type === 'membership', 422, 'Recurring membership checkout is not enabled.');
         abort_if($template->amount_minor === null || $template->amount_minor <= 0, 422, 'This listing does not have a paid price configured.');
@@ -231,6 +348,29 @@ class MarketplaceController extends Controller
                 'currency' => $template->currency,
                 'contributor_share_percent' => $template->owner_id ? $template->contributor_revenue_share_percent : 0,
                 'status' => 'pending',
+                'license_snapshot' => $template->license,
+                'license_terms_snapshot' => $template->license_terms,
+                'license_accepted_at' => now(),
+                'contributor_share_amount_minor' => $template->owner_id
+                    ? (int) round($template->amount_minor * ((float) $template->contributor_revenue_share_percent / 100))
+                    : 0,
+                'platform_commission_amount_minor' => $template->owner_id
+                    ? $template->amount_minor - (int) round($template->amount_minor * ((float) $template->contributor_revenue_share_percent / 100))
+                    : $template->amount_minor,
+            ]);
+        }
+
+        if ($purchase->license_accepted_at === null) {
+            $contributorShare = $purchase->contributor_share_percent;
+            $contributorAmount = $template->owner_id
+                ? (int) round($purchase->amount_minor * ((float) $contributorShare / 100))
+                : 0;
+            $purchase->update([
+                'license_snapshot' => $template->license,
+                'license_terms_snapshot' => $template->license_terms,
+                'license_accepted_at' => now(),
+                'contributor_share_amount_minor' => $contributorAmount,
+                'platform_commission_amount_minor' => $purchase->amount_minor - $contributorAmount,
             ]);
         }
 
@@ -292,6 +432,20 @@ class MarketplaceController extends Controller
         );
     }
 
+    private function authorizeListingManagement(Request $request, MarketplaceTemplate $template): void
+    {
+        $authorized = $template->owner_id === $request->user()->id
+            || ($template->workspace_id !== null
+                && in_array($template->workspace?->roleFor($request->user()), ['owner', 'admin', 'editor'], true));
+
+        abort_unless($authorized, 404);
+    }
+
+    private function categories(): array
+    {
+        return ['automation', 'content', 'development', 'funnels', 'marketing', 'other'];
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -303,6 +457,7 @@ class MarketplaceController extends Controller
             'type' => $product->type,
             'name' => $product->name,
             'description' => $product->description,
+            'category' => $product->category,
             'preview_images' => array_map(
                 fn (string $image): string => str_starts_with($image, '/')
                     ? $image
@@ -316,6 +471,11 @@ class MarketplaceController extends Controller
             'version' => $product->version,
             'changelog' => $product->changelog,
             'license' => $product->license,
+            'license_terms' => $product->license_terms,
+            'documentation_url' => $product->documentation_url,
+            'demo_url' => $product->demo_url,
+            'compatibility' => $product->compatibility ?? [],
+            'support_information' => $product->support_information,
             'contributor' => $product->owner?->name,
             'contributor_badge' => $product->owner
                 ? $product->owner->marketplaceTemplates()->where('status', 'published')->count() >= 3

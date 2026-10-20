@@ -12,6 +12,7 @@ interface Product {
     amount_minor: number | null;
     currency: string;
     license: string;
+    license_terms: string | null;
     status: string;
     file_configured: boolean;
     owner: { name: string; email: string } | null;
@@ -43,6 +44,7 @@ export default function MarketplaceReview({ products, bundleOptions }: { product
             amount: form.get('amount') ? String(form.get('amount')) : null,
             currency: String(form.get('currency') ?? ''),
             license: String(form.get('license') ?? ''),
+            license_terms: String(form.get('license_terms') ?? ''),
             contributor_revenue_share_percent: String(form.get('contributor_revenue_share_percent') ?? ''),
             bundle_template_ids: form.getAll('bundle_template_ids').map(Number),
             file: file instanceof File && file.size > 0 ? file : null,
@@ -123,6 +125,16 @@ export default function MarketplaceReview({ products, bundleOptions }: { product
                                 required
                                 defaultValue={product.license}
                                 maxLength={100}
+                                className="rounded-md border border-border bg-background px-3 py-2"
+                            />
+                        </label>
+                        <label className="grid gap-1 text-sm font-medium md:col-span-2">
+                            License terms shown to customers
+                            <textarea
+                                name="license_terms"
+                                defaultValue={product.license_terms ?? ''}
+                                maxLength={10000}
+                                rows={4}
                                 className="rounded-md border border-border bg-background px-3 py-2"
                             />
                         </label>

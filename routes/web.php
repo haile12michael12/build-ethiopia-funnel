@@ -134,6 +134,11 @@ Route::domain($appDomain)->group(function () {
         Route::post('marketplace/contributor-submissions', [MarketplaceController::class, 'submit'])
             ->middleware('throttle:5,60')
             ->name('marketplace.submissions.store');
+        Route::get('marketplace/contributor-listings/{template}/edit', [MarketplaceController::class, 'editListing'])
+            ->name('marketplace.contributor-listings.edit');
+        Route::put('marketplace/contributor-listings/{template}', [MarketplaceController::class, 'updateListing'])
+            ->middleware('throttle:10,60')
+            ->name('marketplace.contributor-listings.update');
         Route::get('marketplace/{template:slug}/download', [MarketplaceController::class, 'download'])
             ->name('marketplace.download');
         Route::post('marketplace/{template:slug}/checkout', [MarketplaceController::class, 'checkout'])
