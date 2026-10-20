@@ -32,3 +32,4 @@ class ClientProjectMilestone extends Model
         return $this->belongsTo(ClientProject::class, 'client_project_id');
     }
 }
+

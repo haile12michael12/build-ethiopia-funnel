@@ -1,22 +1,30 @@
 import { BusinessAuditSummary } from '@/components/crm/BusinessAuditSummary';
 import { LeadScoreBadge } from '@/components/crm/LeadScoreBadge';
 import { LeadScoreBreakdown } from '@/components/crm/LeadScoreBreakdown';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type BusinessAuditData } from '@/types/business-audit';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
+    AlertCircle,
     BriefcaseBusiness,
     CalendarClock,
     Check,
     Clock,
+    ExternalLink,
+    FolderKanban,
+    Globe,
     Mail,
     MessageSquare,
     Phone,
     Plus,
     Save,
     Send,
+    ShieldCheck,
     UserRound,
     Workflow,
 } from 'lucide-react';
@@ -149,6 +157,35 @@ interface ContactDetailProps {
             error_message: string | null;
             created_at: string;
         }>;
+        website_assessments?: Array<{
+            id: number;
+            website_url: string;
+            status: string;
+            has_website: boolean;
+            mobile_usability_score: number | null;
+            content_quality_score: number | null;
+            technical_issues: string[];
+            suggested_improvements: string[];
+            evidence_url: string | null;
+            notes: string | null;
+            assessor: string | null;
+            assessed_at: string | null;
+            created_at: string;
+        }>;
+        client_projects?: Array<{
+            id: number;
+            title: string;
+            status: string;
+            currency: string;
+            budget_amount: number;
+            scope_summary: string | null;
+            agreed_deliverables: string[];
+            start_date: string | null;
+            target_completion_date: string | null;
+            completed_at: string | null;
+            milestones_count: number;
+            completed_milestones_count: number;
+        }>;
     };
     statusOptions: string[];
     projectOptions: {
@@ -205,6 +242,86 @@ export default function ContactDetail({ contact, statusOptions, projectOptions }
         additional_requirements: contact.client_project?.additional_requirements ?? '',
         preferred_contact: contact.client_project?.preferred_contact ?? 'email',
     });
+
+    const [assessmentModalOpen, setAssessmentModalOpen] = useState(false);
+    const [inspecting, setInspecting] = useState(false);
+    const [inspectResult, setInspectResult] = useState<{
+        is_accessible?: boolean;
+        status_code?: number | null;
+        response_time_ms?: number | null;
+        has_ssl?: boolean;
+        error?: string | null;
+    } | null>(null);
+
+    const assessmentForm = useForm({
+        website_url: contact.client_project?.website || '',
+        has_website: true,
+        status: 'completed',
+        mobile_usability_score: 85,
+        content_quality_score: 80,
+        technical_issues: [] as string[],
+        suggested_improvements: [] as string[],
+        evidence_url: '',
+        notes: '',
+    });
+
+    const [handoffModalOpen, setHandoffModalOpen] = useState(false);
+    const handoffForm = useForm({
+        contact_id: contact.id,
+        title: contact.client_project?.business_name
+            ? `${contact.client_project.business_name} Delivery Project`
+            : `${contact.name || contact.email} Project`,
+        status: 'planning',
+        currency: contact.client_project?.market === 'ethiopia' ? 'ETB' : 'USD',
+        budget_amount: 0,
+        scope_summary: contact.client_project?.project_description || '',
+        start_date: new Date().toISOString().slice(0, 10),
+        target_completion_date: '',
+    });
+
+    const runWebsiteInspection = async () => {
+        if (!assessmentForm.data.website_url) return;
+        setInspecting(true);
+        setInspectResult(null);
+        try {
+            const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+            const res = await fetch(route('contacts.website-assessments.inspect', contact.id), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify({ url: assessmentForm.data.website_url }),
+            });
+            const data = await res.json();
+            setInspectResult(data);
+        } catch {
+            setInspectResult({ is_accessible: false, error: 'Inspection request failed.' });
+        } finally {
+            setInspecting(false);
+        }
+    };
+
+    const handleSaveAssessment = (e: React.FormEvent) => {
+        e.preventDefault();
+        assessmentForm.post(route('contacts.website-assessments.store', contact.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setAssessmentModalOpen(false);
+                setInspectResult(null);
+            },
+        });
+    };
+
+    const handleHandoff = (e: React.FormEvent) => {
+        e.preventDefault();
+        handoffForm.post(route('client-projects.store'), {
+            onSuccess: () => {
+                setHandoffModalOpen(false);
+            },
+        });
+    };
 
     const updateStatus = (status: string) => {
         if (
@@ -352,7 +469,24 @@ export default function ContactDetail({ contact, statusOptions, projectOptions }
                     </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex flex-wrap items-center justify-end gap-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setAssessmentModalOpen(true)}
+                        className="inline-flex items-center gap-2"
+                    >
+                        <Globe className="h-4 w-4" />
+                        Assess Website
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={() => setHandoffModalOpen(true)}
+                        className="inline-flex items-center gap-2"
+                    >
+                        <FolderKanban className="h-4 w-4" />
+                        Handoff to Client Project
+                    </Button>
                     <Link
                         href={route('automation-runs.index', { search: contact.email })}
                         className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -1062,6 +1196,89 @@ export default function ContactDetail({ contact, statusOptions, projectOptions }
                             </div>
                         </div>
 
+                        {/* Client Projects Card */}
+                        <div className="rounded-xl border border-border bg-card p-5">
+                            <div className="mb-4 flex items-center justify-between gap-3">
+                                <h2 className="flex items-center gap-2 font-semibold text-foreground">
+                                    <FolderKanban className="h-4 w-4" />
+                                    Client Delivery Projects
+                                </h2>
+                                <button
+                                    type="button"
+                                    onClick={() => setHandoffModalOpen(true)}
+                                    className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Handoff
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {(contact.client_projects ?? []).map((project) => (
+                                    <Link
+                                        key={project.id}
+                                        href={route('client-projects.show', project.id)}
+                                        className="block rounded-lg border border-border bg-background p-3 hover:bg-muted"
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <div className="truncate text-sm font-medium text-foreground">{project.title}</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {project.currency} {project.budget_amount.toLocaleString()} · {project.completed_milestones_count}/{project.milestones_count} Milestones
+                                                </div>
+                                            </div>
+                                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
+                                                {project.status.replace('_', ' ')}
+                                            </span>
+                                        </div>
+                                    </Link>
+                                ))}
+                                {(!contact.client_projects || contact.client_projects.length === 0) && (
+                                    <p className="text-sm text-muted-foreground">No active client delivery project for this contact.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Website Opportunity Assessments Card */}
+                        <div className="rounded-xl border border-border bg-card p-5">
+                            <div className="mb-4 flex items-center justify-between gap-3">
+                                <h2 className="flex items-center gap-2 font-semibold text-foreground">
+                                    <Globe className="h-4 w-4" />
+                                    Website Assessments
+                                </h2>
+                                <button
+                                    type="button"
+                                    onClick={() => setAssessmentModalOpen(true)}
+                                    className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Assess
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {(contact.website_assessments ?? []).map((assessment) => (
+                                    <div key={assessment.id} className="rounded-lg border border-border bg-background p-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <div className="truncate text-sm font-medium text-foreground">{assessment.website_url}</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    Assessed {assessment.assessed_at || assessment.created_at} {assessment.assessor ? `by ${assessment.assessor}` : ''}
+                                                </div>
+                                            </div>
+                                            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-500">
+                                                Score: {assessment.mobile_usability_score ?? 'N/A'}/100
+                                            </span>
+                                        </div>
+                                        {assessment.notes && (
+                                            <p className="mt-2 text-xs text-muted-foreground">{assessment.notes}</p>
+                                        )}
+                                    </div>
+                                ))}
+                                {(!contact.website_assessments || contact.website_assessments.length === 0) && (
+                                    <p className="text-sm text-muted-foreground">No website assessment recorded yet.</p>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="rounded-xl border border-border bg-card p-5">
                             <h2 className="mb-4 flex items-center gap-2 font-semibold text-foreground">
                                 <MessageSquare className="h-4 w-4" />
@@ -1157,6 +1374,210 @@ export default function ContactDetail({ contact, statusOptions, projectOptions }
                         </div>
                     </div>
                 </div>
+
+                {/* Website Assessment Dialog */}
+                <Dialog open={assessmentModalOpen} onOpenChange={setAssessmentModalOpen}>
+                    <DialogContent className="max-w-xl">
+                        <form onSubmit={handleSaveAssessment} className="space-y-4">
+                            <DialogHeader>
+                                <DialogTitle>Website Opportunity Assessment</DialogTitle>
+                                <DialogDescription>
+                                    Safely inspect and record technical, mobile, and conversion audit findings for this prospect.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs font-medium text-foreground">Prospect Website URL</label>
+                                    <div className="flex gap-2 mt-1">
+                                        <Input
+                                            type="url"
+                                            required
+                                            placeholder="https://example.com"
+                                            value={assessmentForm.data.website_url}
+                                            onChange={(e) => assessmentForm.setData('website_url', e.target.value)}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={runWebsiteInspection}
+                                            disabled={inspecting || !assessmentForm.data.website_url}
+                                        >
+                                            {inspecting ? 'Checking...' : 'Safe Inspect'}
+                                        </Button>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground mt-1 block">
+                                        SSRF-protected inspection blocks private networks and validates live HTTP response.
+                                    </span>
+                                </div>
+
+                                {inspectResult && (
+                                    <div className={`p-3 rounded-lg border text-xs ${inspectResult.is_accessible ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-destructive/10 border-destructive/20 text-destructive'}`}>
+                                        <div className="font-semibold">{inspectResult.is_accessible ? 'Website Reachable' : 'Website Unreachable / Blocked'}</div>
+                                        {inspectResult.status_code && <div>HTTP Status: {inspectResult.status_code}</div>}
+                                        {inspectResult.response_time_ms && <div>Latency: {inspectResult.response_time_ms} ms</div>}
+                                        {inspectResult.error && <div>Notice: {inspectResult.error}</div>}
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-medium text-foreground">Mobile Usability Score (0-100)</label>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            max={100}
+                                            value={assessmentForm.data.mobile_usability_score}
+                                            onChange={(e) => assessmentForm.setData('mobile_usability_score', parseInt(e.target.value) || 0)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-medium text-foreground">Content Quality Score (0-100)</label>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            max={100}
+                                            value={assessmentForm.data.content_quality_score}
+                                            onChange={(e) => assessmentForm.setData('content_quality_score', parseInt(e.target.value) || 0)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-medium text-foreground">Technical / Conversion Issues</label>
+                                    <Input
+                                        placeholder="Comma-separated: No mobile responsive, Missing SSL, Slow CTA..."
+                                        onChange={(e) => assessmentForm.setData('technical_issues', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-medium text-foreground">Suggested Improvements</label>
+                                    <Input
+                                        placeholder="Comma-separated: Redesign funnel, Optimize LCP, Implement CRM lead capture..."
+                                        onChange={(e) => assessmentForm.setData('suggested_improvements', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-medium text-foreground">Evidence URL / Screenshot Link</label>
+                                    <Input
+                                        type="url"
+                                        placeholder="https://..."
+                                        value={assessmentForm.data.evidence_url}
+                                        onChange={(e) => assessmentForm.setData('evidence_url', e.target.value)}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-medium text-foreground">Auditor Notes</label>
+                                    <textarea
+                                        rows={2}
+                                        placeholder="Internal observations..."
+                                        value={assessmentForm.data.notes}
+                                        onChange={(e) => assessmentForm.setData('notes', e.target.value)}
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                    />
+                                </div>
+                            </div>
+
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setAssessmentModalOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={assessmentForm.processing}>
+                                    Save Assessment
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Handoff to Client Project Dialog */}
+                <Dialog open={handoffModalOpen} onOpenChange={setHandoffModalOpen}>
+                    <DialogContent className="max-w-lg">
+                        <form onSubmit={handleHandoff} className="space-y-4">
+                            <DialogHeader>
+                                <DialogTitle>Handoff Won Lead to Client Project</DialogTitle>
+                                <DialogDescription>
+                                    Convert this client acquisition into an active delivery engagement with milestones and agreed scope.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="text-xs font-medium text-foreground">Project Title</label>
+                                    <Input
+                                        required
+                                        value={handoffForm.data.title}
+                                        onChange={(e) => handoffForm.setData('title', e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-medium text-foreground">Currency</label>
+                                        <select
+                                            value={handoffForm.data.currency}
+                                            onChange={(e) => handoffForm.setData('currency', e.target.value as 'ETB' | 'USD')}
+                                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                        >
+                                            <option value="ETB">ETB (Ethiopian Birr)</option>
+                                            <option value="USD">USD (US Dollar)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-medium text-foreground">Budget Amount</label>
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            value={handoffForm.data.budget_amount}
+                                            onChange={(e) => handoffForm.setData('budget_amount', parseInt(e.target.value) || 0)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-medium text-foreground">Agreed Scope Summary</label>
+                                    <textarea
+                                        rows={3}
+                                        value={handoffForm.data.scope_summary}
+                                        onChange={(e) => handoffForm.setData('scope_summary', e.target.value)}
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs font-medium text-foreground">Start Date</label>
+                                        <Input
+                                            type="date"
+                                            value={handoffForm.data.start_date}
+                                            onChange={(e) => handoffForm.setData('start_date', e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-medium text-foreground">Target Completion</label>
+                                        <Input
+                                            type="date"
+                                            value={handoffForm.data.target_completion_date}
+                                            onChange={(e) => handoffForm.setData('target_completion_date', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setHandoffModalOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={handoffForm.processing}>
+                                    Confirm Handoff
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

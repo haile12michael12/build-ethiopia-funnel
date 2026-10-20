@@ -3,7 +3,7 @@ import { shareLink } from '@/lib/share';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import gsap from 'gsap';
-import { BarChart3, Copy, Edit3, ExternalLink, Eye, Inbox, Plus, Rocket, Share2, Sparkles, Trash2, TrendingUp, Users } from 'lucide-react';
+import { BarChart3, Copy, Download, Edit3, ExternalLink, Eye, Inbox, Plus, Rocket, Share2, Sparkles, Trash2, TrendingUp, Upload, Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -41,8 +41,21 @@ interface FunnelsPageProps {
 
 export default function Funnels({ funnels, stats }: FunnelsPageProps) {
     const gridRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [copiedFunnelId, setCopiedFunnelId] = useState<number | null>(null);
     const [installingStarter, setInstallingStarter] = useState(false);
+
+    const handleImportTemplate = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('template_file', file);
+        router.post(route('funnels.import-template'), formData, {
+            onFinish: () => {
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            },
+        });
+    };
 
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -121,7 +134,23 @@ export default function Funnels({ funnels, stats }: FunnelsPageProps) {
                         <h1 className="text-2xl font-bold text-foreground">Your Funnels</h1>
                         <p className="text-muted-foreground">Create and manage your marketing funnels</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            accept=".json,.openfunnels.json"
+                            onChange={handleImportTemplate}
+                            className="hidden"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                            title="Import an existing .openfunnels.json template"
+                        >
+                            <Upload className="h-4 w-4" />
+                            Import Template
+                        </button>
                         <button
                             type="button"
                             disabled={installingStarter}
@@ -131,14 +160,14 @@ export default function Funnels({ funnels, stats }: FunnelsPageProps) {
                                     onFinish: () => setInstallingStarter(false),
                                 });
                             }}
-                            className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                         >
                             <Sparkles className="h-4 w-4" />
                             {installingStarter ? 'Installing…' : 'Install MERN Starter'}
                         </button>
                         <Link
                             href="/funnel-editor"
-                            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                         >
                             <Plus className="h-4 w-4" />
                             Create Funnel
@@ -259,6 +288,13 @@ export default function Funnels({ funnels, stats }: FunnelsPageProps) {
                                     >
                                         <Copy className="h-4 w-4" />
                                     </button>
+                                    <a
+                                        href={route('funnels.export-template', funnel.id)}
+                                        className="flex items-center justify-center rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                                        title="Export template (.openfunnels.json)"
+                                    >
+                                        <Download className="h-4 w-4" />
+                                    </a>
                                     <button
                                         onClick={() => {
                                             if (confirm(`Delete "${funnel.name}"? This cannot be undone.`)) {

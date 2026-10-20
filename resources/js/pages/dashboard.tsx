@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import gsap from 'gsap';
-import { BarChart3, CalendarClock, Eye, FileText, Plus, TrendingUp, Users, Zap } from 'lucide-react';
+import { BarChart3, BriefcaseBusiness, CalendarClock, Eye, FileText, FolderKanban, Plus, TrendingUp, Users, Zap } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -36,6 +36,7 @@ interface DashboardProps {
         new_prospects: number;
         qualified_leads: number;
         open_opportunities: number;
+        active_client_projects?: number;
         published_portfolio_projects: number;
         follow_ups_today: number;
         overdue_follow_ups: number;
@@ -45,6 +46,15 @@ interface DashboardProps {
     };
     followUps: Array<{ id: number; title: string; due_at: string; contact: string | null; contact_id: number }>;
     recentActivities: Array<{ id: number; type: string; contact: string | null; created_at: string }>;
+    clientProjects?: Array<{
+        id: number;
+        title: string;
+        status: string;
+        currency: string;
+        budget_amount: number;
+        contact: string | null;
+        target_completion_date: string | null;
+    }>;
 }
 
 function formatNumber(value: number): string {

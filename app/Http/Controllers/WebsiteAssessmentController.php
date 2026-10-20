@@ -72,3 +72,4 @@ class WebsiteAssessmentController extends Controller
         return back()->with('success', 'Assessment removed.');
     }
 }
+

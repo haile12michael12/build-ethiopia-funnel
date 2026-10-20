@@ -182,3 +182,4 @@ class ClientProjectController extends Controller
         return back()->with('success', 'Milestone removed.');
     }
 }
+

@@ -58,3 +58,4 @@ class ClientProject extends Model
         return $this->hasMany(ClientProjectMilestone::class)->orderBy('due_date');
     }
 }
+
