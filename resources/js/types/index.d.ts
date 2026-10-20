@@ -22,6 +22,10 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface TranslationDictionary {
+    [key: string]: string | TranslationDictionary;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
@@ -30,8 +34,10 @@ export interface SharedData {
     sidebarOpen: boolean;
     locale: string;
     translations?: {
-        navigation?: Record<string, any>;
-        [key: string]: any;
+        navigation?: TranslationDictionary;
+        copilot?: Record<string, string>;
+        client_acquisition?: Record<string, string>;
+        [key: string]: unknown;
     };
     demo: { enabled: boolean; active: boolean; expires_at: string | null };
     [key: string]: unknown;

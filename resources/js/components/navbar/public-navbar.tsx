@@ -9,7 +9,6 @@ import {
 import { Input } from '@/components/ui/input';
 import {
     Sheet,
-    SheetClose,
     SheetContent,
     SheetHeader,
     SheetTitle,
@@ -24,9 +23,6 @@ import {
     ChevronDown,
     Code2,
     Command,
-    ExternalLink,
-    FileText,
-    Globe,
     Languages,
     Layers,
     Menu,
@@ -43,6 +39,10 @@ interface PublicNavbarProps {
     className?: string;
 }
 
+interface NavigationTranslationItem {
+    [key: string]: string | NavigationTranslationItem;
+}
+
 export function PublicNavbar({ className = '' }: PublicNavbarProps) {
     const { auth, locale: serverLocale, translations } = usePage<SharedData>().props;
     const currentUrl = usePage().url;
@@ -51,9 +51,9 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
     const t = (key: string, fallback: string): string => {
         if (!translations?.navigation) return fallback;
         const keys = key.split('.');
-        let current: any = translations.navigation;
+        let current: NavigationTranslationItem | string = translations.navigation;
         for (const k of keys) {
-            if (current && typeof current === 'object' && k in current) {
+            if (typeof current === 'object' && k in current) {
                 current = current[k];
             } else {
                 return fallback;

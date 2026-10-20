@@ -7,11 +7,8 @@ import { Head, Link } from '@inertiajs/react';
 import {
     ArrowRight,
     Clock,
-    Globe2,
     Mail,
     MapPin,
-    MessageSquare,
-    Phone,
     Send,
     Sparkles,
 } from 'lucide-react';

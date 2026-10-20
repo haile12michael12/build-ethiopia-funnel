@@ -43,7 +43,7 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
         },
     ];
 
-    const { data, setData, errors, processing, transform } = useForm({
+    const { data, setData, errors, processing } = useForm({
         title_en: project?.title_en || '',
         title_am: project?.title_am || '',
         slug: project?.slug || '',

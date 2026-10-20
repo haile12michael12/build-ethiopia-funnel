@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import type { FormEvent } from 'react';
 
 interface Draft {
     id: number;
@@ -80,7 +81,7 @@ const formatLocalDateTime = (value: string): string => {
     return date.toISOString().slice(0, 16);
 };
 
-export default function ContentStudioForm({ draft, versions, options, brandSettings }: Props) {
+export default function ContentStudioForm({ draft, versions, options }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Content Studio', href: route('content-studio.index') },
         { title: draft ? 'Edit draft' : 'Create content', href: draft ? route('content-studio.edit', draft.id) : route('content-studio.create') },

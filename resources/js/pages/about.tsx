@@ -3,15 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Head, Link } from '@inertiajs/react';
 import {
-    Award,
-    CheckCircle2,
     Code2,
     Globe2,
-    HeartHandshake,
-    Rocket,
     ShieldCheck,
     Sparkles,
-    Users,
 } from 'lucide-react';
 
 export default function About() {

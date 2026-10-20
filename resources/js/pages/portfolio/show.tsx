@@ -51,8 +51,6 @@ export default function PortfolioShow({ project, relatedProjects, categories, pr
           })
         : null;
 
-    const allScreenshots = [...(project.cover_image ? [project.cover_image] : []), ...(project.gallery || [])];
-
     return (
         <div className="flex min-h-screen flex-col justify-between bg-background text-foreground">
             <Head>
