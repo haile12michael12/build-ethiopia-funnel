@@ -33,6 +33,13 @@ class WorkspaceController extends Controller
                 'id' => $workspace->id,
                 'name' => $workspace->name,
                 'slug' => $workspace->slug,
+                'description' => $workspace->description,
+                'type' => $workspace->type,
+                'country' => $workspace->country,
+                'language' => $workspace->language,
+                'timezone' => $workspace->timezone,
+                'market' => $workspace->market,
+                'currency' => $workspace->currency,
                 'role' => $workspace->roleFor($user),
                 'members' => $workspace->members->map(fn (User $member) => [
                     'id' => $member->id,
@@ -67,6 +74,45 @@ class WorkspaceController extends Controller
             'inviteUrl' => session('workspace_invite_url'),
             'roles' => self::ROLES,
         ]);
+    }
+
+    public function edit(Request $request, Workspace $workspace): Response
+    {
+        $this->authorizeWorkspaceManagement($request, $workspace);
+
+        return Inertia::render('workspaces/settings', [
+            'workspace' => $workspace->only([
+                'id',
+                'name',
+                'description',
+                'type',
+                'country',
+                'language',
+                'timezone',
+                'market',
+                'currency',
+            ]),
+        ]);
+    }
+
+    public function update(Request $request, Workspace $workspace): RedirectResponse
+    {
+        $this->authorizeWorkspaceManagement($request, $workspace);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'type' => ['required', Rule::in(['agency', 'freelancer', 'creator', 'other'])],
+            'country' => ['nullable', 'string', 'size:2', 'alpha'],
+            'language' => ['required', Rule::in(['en', 'am'])],
+            'timezone' => ['required', 'timezone'],
+            'market' => ['required', Rule::in(['ethiopia', 'international'])],
+            'currency' => ['required', Rule::in(['ETB', 'USD'])],
+        ]);
+
+        $workspace->update($validated);
+
+        return to_route('workspaces.settings.edit', $workspace)->with('success', 'Workspace settings saved.');
     }
 
     public function store(Request $request): RedirectResponse
@@ -160,5 +206,10 @@ class WorkspaceController extends Controller
             'workspace' => $invitation->workspace->name,
             'role' => $invitation->role,
         ]);
+    }
+
+    private function authorizeWorkspaceManagement(Request $request, Workspace $workspace): void
+    {
+        abort_unless(in_array($workspace->roleFor($request->user()), ['owner', 'admin'], true), 403);
     }
 }

@@ -18,6 +18,7 @@ class MarketplaceTemplate extends Model
         'type',
         'name',
         'description',
+        'category',
         'preview_images',
         'tech_stack',
         'amount_minor',
@@ -26,6 +27,11 @@ class MarketplaceTemplate extends Model
         'version',
         'changelog',
         'license',
+        'license_terms',
+        'documentation_url',
+        'demo_url',
+        'compatibility',
+        'support_information',
         'file_path',
         'status',
         'contributor_revenue_share_percent',
@@ -38,6 +44,7 @@ class MarketplaceTemplate extends Model
             'tech_stack' => 'array',
             'amount_minor' => 'integer',
             'included_modules' => 'array',
+            'compatibility' => 'array',
             'contributor_revenue_share_percent' => 'decimal:2',
         ];
     }

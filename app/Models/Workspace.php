@@ -9,7 +9,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Workspace extends Model
 {
-    protected $fillable = ['owner_id', 'name', 'slug'];
+    protected $fillable = [
+        'owner_id',
+        'name',
+        'slug',
+        'description',
+        'type',
+        'country',
+        'language',
+        'timezone',
+        'market',
+        'currency',
+    ];
 
     public function owner(): BelongsTo
     {

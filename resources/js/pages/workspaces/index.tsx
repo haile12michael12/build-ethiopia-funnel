@@ -1,12 +1,19 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 
 interface Workspace {
     id: number;
     name: string;
     slug: string;
+    description: string | null;
+    type: string;
+    country: string | null;
+    language: string;
+    timezone: string;
+    market: string;
+    currency: string;
     role: string;
     members: Array<{ id: number; name: string; email: string; role: string }>;
     invitations: Array<{ id: number; email: string; role: string; expires_at: string }>;
@@ -105,34 +112,47 @@ export default function WorkspacesIndex({ workspaces, pendingInvitations, invite
                                     <p className="text-sm text-muted-foreground capitalize">
                                         {workspace.role} · {workspace.members.length} members
                                     </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {workspace.market} · {workspace.currency} · {workspace.timezone}
+                                    </p>
                                 </div>
-                                {['owner', 'admin'].includes(workspace.role) && (
-                                    <form onSubmit={(event) => inviteMember(event, workspace.id)} className="flex flex-wrap gap-2">
-                                        <input
-                                            name="email"
-                                            type="email"
-                                            required
-                                            maxLength={254}
-                                            placeholder="member@example.com"
-                                            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-                                        />
-                                        <select name="role" className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-                                            {roles
-                                                .filter((role) => role !== 'admin' || workspace.role === 'owner')
-                                                .map((role) => (
-                                                    <option key={role} value={role}>
-                                                        {role}
-                                                    </option>
-                                                ))}
-                                        </select>
-                                        <button
-                                            type="submit"
+                                <div className="flex flex-wrap gap-2">
+                                    {['owner', 'admin'].includes(workspace.role) && (
+                                        <Link
+                                            href={route('workspaces.settings.edit', workspace.id)}
                                             className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
                                         >
-                                            Invite
-                                        </button>
-                                    </form>
-                                )}
+                                            Settings
+                                        </Link>
+                                    )}
+                                    {['owner', 'admin'].includes(workspace.role) && (
+                                        <form onSubmit={(event) => inviteMember(event, workspace.id)} className="flex flex-wrap gap-2">
+                                            <input
+                                                name="email"
+                                                type="email"
+                                                required
+                                                maxLength={254}
+                                                placeholder="member@example.com"
+                                                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+                                            />
+                                            <select name="role" className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+                                                {roles
+                                                    .filter((role) => role !== 'admin' || workspace.role === 'owner')
+                                                    .map((role) => (
+                                                        <option key={role} value={role}>
+                                                            {role}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                            <button
+                                                type="submit"
+                                                className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
+                                            >
+                                                Invite
+                                            </button>
+                                        </form>
+                                    )}
+                                </div>
                             </div>
                             <div className="mt-4 grid gap-2 sm:grid-cols-2">
                                 {workspace.members.map((member) => (

@@ -22,14 +22,22 @@ class MarketplacePurchase extends Model
         'checkout_url',
         'paid_at',
         'provider_metadata',
+        'license_snapshot',
+        'license_terms_snapshot',
+        'license_accepted_at',
+        'contributor_share_amount_minor',
+        'platform_commission_amount_minor',
     ];
 
     protected function casts(): array
     {
         return [
             'amount_minor' => 'integer',
+            'contributor_share_amount_minor' => 'integer',
+            'platform_commission_amount_minor' => 'integer',
             'contributor_share_percent' => 'decimal:2',
             'paid_at' => 'datetime',
+            'license_accepted_at' => 'datetime',
             'provider_metadata' => 'array',
         ];
     }

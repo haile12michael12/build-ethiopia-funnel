@@ -147,6 +147,8 @@ Route::domain($appDomain)->group(function () {
             ->name('marketplace.review.update');
         Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
         Route::post('workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
+        Route::get('workspaces/{workspace}/settings', [WorkspaceController::class, 'edit'])->name('workspaces.settings.edit');
+        Route::put('workspaces/{workspace}/settings', [WorkspaceController::class, 'update'])->name('workspaces.settings.update');
         Route::post('workspaces/{workspace}/invitations', [WorkspaceController::class, 'invite'])->name('workspaces.invitations.store');
         Route::get('workspace-invitations/{token}/accept', [WorkspaceController::class, 'showInvitation'])
             ->where('token', '[A-Za-z0-9]+')

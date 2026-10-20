@@ -31,3 +31,7 @@ For legacy data, create or select one owner-controlled primary workspace per use
 ## Delivery boundary
 
 This plan is an audit and rollout boundary, not a claim that Phase 6 is already implemented. Tenant safety requires updating all resource access surfaces and background execution paths before workspace membership can safely expose existing data. Subscription activation, provider cost accounting, custom-domain readiness, or platform support access must not be represented as enabled until their external prerequisites and authorization controls are implemented and verified.
+
+## Initial implementation slice
+
+The first code slice adds workspace profile defaults and owner/admin-authorized settings for workspace name, description, type, country, language, timezone, market, and currency. It reuses the current membership-role checks and does not expose workspace switching as an application-data boundary. Core resources and jobs are still user-scoped; the tenant backfill and resource-isolation stages remain required before members can safely share those records.
