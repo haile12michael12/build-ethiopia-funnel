@@ -100,7 +100,7 @@ export function FunnelSupportChat({ funnelId, variantId }: FunnelSupportChatProp
                 >
                     <header className="flex items-center justify-between bg-gray-950 px-4 py-3 text-white">
                         <div className="flex items-center gap-2">
-                            <Bot aria-hidden="true" className="h-5 w-5 text-orange-400" />
+                            <Bot aria-hidden="true" className="h-5 w-5 text-green-400" />
                             <div>
                                 <h2 className="text-sm font-semibold">Page support</h2>
                                 <p className="text-xs text-gray-300">Ask about the information here</p>
@@ -123,7 +123,7 @@ export function FunnelSupportChat({ funnelId, variantId }: FunnelSupportChatProp
                             <div
                                 key={`${message.role}-${index}`}
                                 className={`max-w-[90%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
-                                    message.role === 'user' ? 'ml-auto bg-orange-500 text-white' : 'bg-white text-gray-800 shadow-sm'
+                                    message.role === 'user' ? 'ml-auto bg-green-500 text-white' : 'bg-white text-gray-800 shadow-sm'
                                 }`}
                             >
                                 <p className="break-words whitespace-pre-wrap">{message.content}</p>
@@ -158,7 +158,7 @@ export function FunnelSupportChat({ funnelId, variantId }: FunnelSupportChatProp
                             onChange={(event) => setQuestion(event.target.value)}
                             placeholder="Type your question…"
                             disabled={isSending}
-                            className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-60 sm:text-sm"
+                            className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-green-500 disabled:opacity-60 sm:text-sm"
                         />
                         <Button type="submit" size="icon" aria-label="Send question" disabled={isSending || !question.trim()}>
                             <Send aria-hidden="true" />

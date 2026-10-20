@@ -1,13 +1,5 @@
 import { Button } from '@/components/ui/button';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -22,18 +14,15 @@ import {
     Briefcase,
     ChevronDown,
     Code2,
-    Command,
     Languages,
     Layers,
     Menu,
     Newspaper,
-    Search,
     Sparkles,
     Workflow,
-    X,
     Zap,
 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 interface PublicNavbarProps {
     className?: string;
@@ -66,26 +55,11 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
 
     // State for interactive navigation
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [searchOpen, setSearchOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
     const [activeDropdown, setActiveDropdown] = useState<'services' | 'resources' | null>(null);
     const [mobileServicesExpanded, setMobileServicesExpanded] = useState(false);
     const [mobileResourcesExpanded, setMobileResourcesExpanded] = useState(false);
 
     const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Keyboard shortcut (Cmd+K / Ctrl+K) for search
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                setSearchOpen((prev) => !prev);
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
 
     // Switch language
     const handleLocaleSwitch = (newLocale: 'en' | 'am') => {
@@ -95,17 +69,6 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
             {},
             { preserveScroll: true }
         );
-    };
-
-    // Handle search submission
-    const handleSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const q = searchQuery.trim();
-        if (q) {
-            setSearchOpen(false);
-            setMobileOpen(false);
-            router.get(route('portfolio.index'), { search: q });
-        }
     };
 
     // Dropdown hover handlers with slight delay to prevent flickering
@@ -451,20 +414,6 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
 
                     {/* Right Action Controls */}
                     <div className="flex items-center gap-3">
-                        {/* Search Trigger Button */}
-                        <button
-                            type="button"
-                            onClick={() => setSearchOpen(true)}
-                            aria-label="Search portfolio projects"
-                            className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-                        >
-                            <Search className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline-block">Search projects...</span>
-                            <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-border/80 bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                <Command className="h-2.5 w-2.5" />K
-                            </kbd>
-                        </button>
-
                         {/* Language Switcher */}
                         <div
                             className="flex items-center rounded-lg border border-border bg-card p-0.5"
@@ -553,18 +502,6 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 <span>Hailab</span>
                                             </SheetTitle>
                                         </SheetHeader>
-
-                                        {/* Mobile Search Form */}
-                                        <form onSubmit={handleSearchSubmit} className="relative">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                type="text"
-                                                placeholder={t('search_placeholder', 'Search projects, technologies...')}
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="pl-9 bg-card"
-                                            />
-                                        </form>
 
                                         {/* Mobile Nav Links */}
                                         <nav className="flex flex-col space-y-1" aria-label="Mobile Navigation">
@@ -782,74 +719,6 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                     </div>
                 </div>
             </header>
-
-            {/* Accessible Search Dialog (Cmd+K / Ctrl+K) */}
-            <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-                <DialogContent className="sm:max-w-xl p-0 overflow-hidden bg-card border-border">
-                    <DialogHeader className="sr-only">
-                        <DialogTitle>Search Projects and Capabilities</DialogTitle>
-                        <DialogDescription>
-                            Type a keyword or select a category to search the agency portfolio.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form onSubmit={handleSearchSubmit} className="border-b border-border/80">
-                        <div className="relative flex items-center px-4">
-                            <Search className="h-5 w-5 text-muted-foreground" />
-                            <Input
-                                autoFocus
-                                type="text"
-                                placeholder={t('search_placeholder', 'Search projects, technologies, case studies...')}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="h-14 border-0 bg-transparent text-base focus-visible:ring-0 focus-visible:ring-offset-0 px-3 placeholder:text-muted-foreground/70"
-                            />
-                            {searchQuery && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearchQuery('')}
-                                    className="p-1 text-muted-foreground hover:text-foreground"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
-                            )}
-                        </div>
-                    </form>
-
-                    <div className="p-4 space-y-3">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            Popular Categories:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {[
-                                { label: 'AI Automation', cat: 'ai_automation' },
-                                { label: 'SaaS Platforms', cat: 'saas' },
-                                { label: 'Laravel Apps', cat: 'laravel' },
-                                { label: 'React & Next.js', cat: 'react_nextjs' },
-                                { label: 'E-Commerce', cat: 'ecommerce' },
-                                { label: 'CRM & Workflows', cat: 'crm' },
-                            ].map((preset) => (
-                                <button
-                                    key={preset.cat}
-                                    type="button"
-                                    onClick={() => {
-                                        setSearchOpen(false);
-                                        router.get(route('portfolio.index'), { category: preset.cat });
-                                    }}
-                                    className="rounded-lg border border-border/70 bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground hover:border-primary hover:bg-primary/10 transition-colors"
-                                >
-                                    {preset.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="border-t border-border/60 bg-muted/30 px-4 py-2.5 flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Press <kbd className="font-mono bg-background px-1.5 py-0.5 rounded border border-border">Enter</kbd> to search</span>
-                        <span>Press <kbd className="font-mono bg-background px-1.5 py-0.5 rounded border border-border">Esc</kbd> to close</span>
-                    </div>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }

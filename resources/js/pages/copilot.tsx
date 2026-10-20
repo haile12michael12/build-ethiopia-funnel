@@ -282,7 +282,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                                 <ArrowLeft className="h-4 w-4" />
                             </Link>
                             <h1 className="text-2xl font-bold">{t.title ?? 'Funnel Copilot'}</h1>
-                            <Sparkles className="h-5 w-5 text-orange-400" />
+                            <Sparkles className="h-5 w-5 text-green-400" />
                         </div>
                         <p className="text-sm text-muted-foreground">
                             {funnel.name} — {t.subtitle ?? 'AI-powered optimization & analytics'}
@@ -315,15 +315,15 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                                     type="checkbox"
                                     checked={includeAi}
                                     onChange={(e) => setIncludeAi(e.target.checked)}
-                                    className="accent-orange-500"
+                                    className="accent-green-500"
                                 />
-                                <Sparkles className="h-3.5 w-3.5 text-orange-400" />
+                                <Sparkles className="h-3.5 w-3.5 text-green-400" />
                                 {t.include_ai ?? 'AI advice'}
                             </label>
                             <button
                                 onClick={runAudit}
                                 disabled={isRunning}
-                                className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
+                                className="inline-flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-600 disabled:opacity-50"
                             >
                                 {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                                 {isRunning ? (t.running ?? 'Analyzing...') : (t.run_audit ?? 'Run Audit')}
@@ -433,7 +433,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                         <button
                             onClick={() => void askQuestion()}
                             disabled={isAsking || question.trim().length < 3}
-                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+                            className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 disabled:opacity-50"
                         >
                             {isAsking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
                             {isAsking ? (t.running ?? 'Analyzing...') : (t.ask ?? 'Ask')}
@@ -464,7 +464,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                                 aria-pressed={activeTab === tab.key}
                                 className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition ${
                                     activeTab === tab.key
-                                        ? 'bg-orange-500/20 text-orange-400'
+                                        ? 'bg-green-500/20 text-green-400'
                                         : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                 } ${tab.disabled ? 'cursor-not-allowed opacity-40' : ''}`}
                             >
@@ -614,7 +614,7 @@ function MetricsSection({ metrics, t }: { metrics: CopilotMetrics | null; t: Rec
                 {rates.map((rate) => (
                     <div key={rate.label} className="copilot-card rounded-xl border border-border p-4">
                         <p className="mb-1 text-xs text-muted-foreground">{rate.label}</p>
-                        <p className={`text-3xl font-bold ${rate.highlight ? 'text-orange-400' : ''}`}>{rate.value}</p>
+                        <p className={`text-3xl font-bold ${rate.highlight ? 'text-green-400' : ''}`}>{rate.value}</p>
                     </div>
                 ))}
             </div>
@@ -892,7 +892,7 @@ function RecommendationsSection({
                             <button
                                 onClick={() => setExpandedRec(isOpen ? null : rec.key)}
                                 aria-expanded={isOpen}
-                                className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-neutral-800/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500"
+                                className="flex w-full items-center gap-3 p-4 text-left transition hover:bg-neutral-800/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-500"
                             >
                                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor(rec.priority)}`}>
                                     {t.priority ?? 'Priority'} {rec.priority}
@@ -943,7 +943,7 @@ function RecommendationsSection({
                                     </div>
                                     <div>
                                         <p className="mb-1 text-xs font-medium text-muted-foreground">{t.suggested_action ?? 'Suggested Action'}</p>
-                                        <p className="text-orange-300">{rec.suggested_action}</p>
+                                        <p className="text-green-300">{rec.suggested_action}</p>
                                     </div>
                                     {rec.hypothesis && (
                                         <div>
@@ -987,7 +987,7 @@ function RecommendationsSection({
                                                     type="button"
                                                     onClick={() => onReview(rec, 'accepted')}
                                                     disabled={isBusy}
-                                                    className="rounded-md bg-orange-500/20 px-3 py-1.5 text-xs font-medium text-orange-300 hover:bg-orange-500/30 disabled:opacity-50"
+                                                    className="rounded-md bg-green-500/20 px-3 py-1.5 text-xs font-medium text-green-300 hover:bg-green-500/30 disabled:opacity-50"
                                                 >
                                                     {isBusy ? (t.saving ?? 'Saving…') : (t.accept ?? 'Accept')}
                                                 </button>
@@ -1175,7 +1175,7 @@ function AiAdviceSection({ advice, t }: { advice: AiAdvice; t: Record<string, st
             {advice.next_steps.length > 0 && (
                 <div className="copilot-card rounded-xl border border-border p-4">
                     <h3 className="mb-3 flex items-center gap-2 font-medium">
-                        <TrendingUp className="h-4 w-4 text-orange-400" /> {t.ai_next_steps ?? 'Next Steps'}
+                        <TrendingUp className="h-4 w-4 text-green-400" /> {t.ai_next_steps ?? 'Next Steps'}
                     </h3>
                     <ol className="list-inside list-decimal space-y-2 text-sm">
                         {advice.next_steps.map((step, i) => (
@@ -1209,7 +1209,7 @@ function ExperimentsSection({
                     </h3>
                     <Link
                         href={route('funnels.experiments.index', { funnel: funnel.id })}
-                        className="inline-flex items-center gap-1 rounded-md bg-orange-500/20 px-3 py-1.5 text-xs font-medium text-orange-400 transition hover:bg-orange-500/30"
+                        className="inline-flex items-center gap-1 rounded-md bg-green-500/20 px-3 py-1.5 text-xs font-medium text-green-400 transition hover:bg-green-500/30"
                     >
                         {t.manage_experiments ?? 'Manage experiments'}
                     </Link>
@@ -1324,7 +1324,7 @@ function HistorySection({
             case 'failed':
                 return <XCircle className="h-4 w-4 text-red-400" />;
             case 'running':
-                return <Loader2 className="h-4 w-4 animate-spin text-orange-400" />;
+                return <Loader2 className="h-4 w-4 animate-spin text-green-400" />;
             default:
                 return <Clock className="h-4 w-4 text-muted-foreground" />;
         }
@@ -1347,7 +1347,7 @@ function HistorySection({
                     key={item.id}
                     onClick={() => onLoad(item.id)}
                     className={`copilot-card flex w-full items-center gap-3 rounded-xl border border-border p-4 text-left transition hover:bg-neutral-800/30 ${
-                        currentId === item.id ? 'ring-1 ring-orange-500/50' : ''
+                        currentId === item.id ? 'ring-1 ring-green-500/50' : ''
                     }`}
                 >
                     {statusIcon(item.status)}
@@ -1366,7 +1366,7 @@ function HistorySection({
                         <p className="text-xs text-muted-foreground">
                             {item.recommendation_count} {(t.recommendations ?? 'recs').toLowerCase()}
                         </p>
-                        {item.has_ai_advice && <Sparkles className="mt-1 inline h-3 w-3 text-orange-400" />}
+                        {item.has_ai_advice && <Sparkles className="mt-1 inline h-3 w-3 text-green-400" />}
                     </div>
                     <p className="text-xs whitespace-nowrap text-muted-foreground">
                         {item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}

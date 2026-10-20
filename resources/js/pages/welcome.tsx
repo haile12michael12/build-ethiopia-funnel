@@ -94,7 +94,7 @@ export default function Welcome() {
                         <div className="text-center">
                             <h1 className="hero-title mb-6 text-5xl font-bold text-foreground md:text-7xl">
                                 Build High-Converting <br />
-                                <span className="bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">Marketing Funnels</span>
+                                <span className="bg-gradient-to-r from-primary to-green-500 bg-clip-text text-transparent">Marketing Funnels</span>
                             </h1>
                             <p className="hero-subtitle mx-auto mb-8 max-w-3xl text-xl text-muted-foreground md:text-2xl">
                                 Create stunning landing pages, capture leads, and drive conversions with our intuitive drag-and-drop funnel builder.

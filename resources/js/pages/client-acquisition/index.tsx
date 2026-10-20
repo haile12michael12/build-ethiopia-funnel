@@ -417,7 +417,7 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
                 <section id="project-request" className="scroll-mt-20 border-t border-border bg-gray-950 text-white">
                     <div ref={formSection} className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.75fr_1.25fr] lg:px-8 lg:py-20">
                         <div className="lg:sticky lg:top-24 lg:self-start">
-                            <p className="text-sm font-semibold tracking-wide text-orange-400 uppercase">{t('nav')}</p>
+                            <p className="text-sm font-semibold tracking-wide text-green-400 uppercase">{t('nav')}</p>
                             <h2 className="mt-3 text-3xl font-bold sm:text-4xl">{t('form_title')}</h2>
                             <p className="mt-4 leading-7 text-gray-300">
                                 {isAmharic

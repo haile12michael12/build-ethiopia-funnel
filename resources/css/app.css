@@ -85,7 +85,7 @@
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.1 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.623 0.214 36.376); /* Vibrant Orange */
+    --primary: oklch(0.627 0.194 149.214); /* Green */
     --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.18 0 0); /* Dark Gray */
     --secondary-foreground: oklch(0.985 0 0);
@@ -97,8 +97,8 @@
     --destructive-foreground: oklch(0.985 0 0);
     --border: oklch(0.2 0 0); /* Subtle Dark Border */
     --input: oklch(0.2 0 0);
-    --ring: oklch(0.623 0.214 36.376); /* Orange Ring */
-    --chart-1: oklch(0.623 0.214 36.376); /* Orange */
+    --ring: oklch(0.627 0.194 149.214);
+    --chart-1: oklch(0.627 0.194 149.214);
     --chart-2: oklch(0.6 0.118 184.704);
     --chart-3: oklch(0.398 0.07 227.392);
     --chart-4: oklch(0.828 0.189 84.429);
@@ -106,18 +106,18 @@
     --radius: 0.625rem;
     --sidebar: oklch(0.1 0 0); /* Match Background */
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.623 0.214 36.376);
+    --sidebar-primary: oklch(0.627 0.194 149.214);
     --sidebar-primary-foreground: oklch(0.985 0 0);
     --sidebar-accent: oklch(0.18 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.2 0 0);
-    --sidebar-ring: oklch(0.623 0.214 36.376);
+    --sidebar-ring: oklch(0.627 0.194 149.214);
 }
 
 /* 
    Keep .dark identical to :root to enforce consistency if class is added manually.
    If we ever want a light mode, we would redefine these here, but for now
-   we are "Black/Orange" native.
+   we are "Black/Green" native.
 */
 .dark {
     --background: oklch(0.1 0 0);
@@ -126,7 +126,7 @@
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.1 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.623 0.214 36.376);
+    --primary: oklch(0.627 0.194 149.214);
     --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.18 0 0);
     --secondary-foreground: oklch(0.985 0 0);
@@ -138,20 +138,20 @@
     --destructive-foreground: oklch(0.985 0 0);
     --border: oklch(0.2 0 0);
     --input: oklch(0.2 0 0);
-    --ring: oklch(0.623 0.214 36.376);
-    --chart-1: oklch(0.623 0.214 36.376);
+    --ring: oklch(0.627 0.194 149.214);
+    --chart-1: oklch(0.627 0.194 149.214);
     --chart-2: oklch(0.696 0.17 162.48);
     --chart-3: oklch(0.769 0.188 70.08);
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
     --sidebar: oklch(0.1 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.623 0.214 36.376);
+    --sidebar-primary: oklch(0.627 0.194 149.214);
     --sidebar-primary-foreground: oklch(0.985 0 0);
     --sidebar-accent: oklch(0.18 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.2 0 0);
-    --sidebar-ring: oklch(0.623 0.214 36.376);
+    --sidebar-ring: oklch(0.627 0.194 149.214);
 }
 
 @layer base {

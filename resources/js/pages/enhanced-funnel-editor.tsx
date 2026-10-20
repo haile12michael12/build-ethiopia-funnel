@@ -177,7 +177,7 @@ const starterTemplates: StarterTemplate[] = [
         sections: [
             section('lead-hero', 'two-column-66-33', [
                 column('lead-hero-copy', 62, [
-                    block('lead-eyebrow', 'text', { text: 'Free Growth Guide', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                    block('lead-eyebrow', 'text', { text: 'Free Growth Guide', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                     block('lead-headline', 'text', {
                         text: 'Get the 7-step funnel checklist used by high-converting teams',
                         fontSize: '44px',
@@ -255,7 +255,7 @@ const starterTemplates: StarterTemplate[] = [
                         block('webinar-eyebrow', 'text', {
                             text: 'Live Training',
                             fontSize: '14px',
-                            color: '#f97316',
+                            color: '#22c55e',
                             fontWeight: '700',
                             textAlign: 'center',
                         }),
@@ -321,7 +321,7 @@ const starterTemplates: StarterTemplate[] = [
                 'two-column',
                 [
                     column('launch-copy', 55, [
-                        block('launch-eyebrow', 'text', { text: 'New Release', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                        block('launch-eyebrow', 'text', { text: 'New Release', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                         block('launch-headline', 'text', {
                             text: 'Launch your next offer with a funnel that is ready to sell',
                             fontSize: '42px',
@@ -336,7 +336,7 @@ const starterTemplates: StarterTemplate[] = [
                         block(
                             'launch-button',
                             'button',
-                            { text: 'Join the waitlist', url: '#', backgroundColor: '#f97316', color: '#ffffff', borderRadius: '8px' },
+                            { text: 'Join the waitlist', url: '#', backgroundColor: '#22c55e', color: '#ffffff', borderRadius: '8px' },
                             { padding: '12px 18px' },
                         ),
                     ]),
@@ -385,7 +385,7 @@ const starterTemplates: StarterTemplate[] = [
         sections: [
             section('consult-hero', 'two-column-66-33', [
                 column('consult-copy', 62, [
-                    block('consult-eyebrow', 'text', { text: 'Book a Strategy Call', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                    block('consult-eyebrow', 'text', { text: 'Book a Strategy Call', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                     block('consult-headline', 'text', {
                         text: 'Find the fastest path from traffic to qualified sales conversations',
                         fontSize: '42px',
@@ -447,7 +447,7 @@ const starterTemplates: StarterTemplate[] = [
                 'two-column',
                 [
                     column('waitlist-copy', 58, [
-                        block('waitlist-eyebrow', 'text', { text: 'Coming Soon', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                        block('waitlist-eyebrow', 'text', { text: 'Coming Soon', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                         block('waitlist-headline', 'text', {
                             text: 'Be first in line when we open early access',
                             fontSize: '44px',
@@ -522,7 +522,7 @@ const starterTemplates: StarterTemplate[] = [
                         block('newsletter-eyebrow', 'text', {
                             text: 'Weekly Briefing',
                             fontSize: '14px',
-                            color: '#f97316',
+                            color: '#22c55e',
                             fontWeight: '700',
                             textAlign: 'center',
                         }),
@@ -577,7 +577,7 @@ const starterTemplates: StarterTemplate[] = [
         sections: [
             section('quote-hero', 'two-column-66-33', [
                 column('quote-copy', 62, [
-                    block('quote-eyebrow', 'text', { text: 'Fast Estimate', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                    block('quote-eyebrow', 'text', { text: 'Fast Estimate', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                     block('quote-headline', 'text', {
                         text: 'Tell us what you need and get a custom quote',
                         fontSize: '42px',
@@ -625,7 +625,7 @@ const starterTemplates: StarterTemplate[] = [
                         block('event-eyebrow', 'text', {
                             text: 'Private Event',
                             fontSize: '14px',
-                            color: '#f97316',
+                            color: '#22c55e',
                             fontWeight: '700',
                             textAlign: 'center',
                         }),
@@ -688,7 +688,7 @@ const starterTemplates: StarterTemplate[] = [
         sections: [
             section('course-hero', 'two-column', [
                 column('course-copy', 58, [
-                    block('course-eyebrow', 'text', { text: 'Online Course', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                    block('course-eyebrow', 'text', { text: 'Online Course', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                     block('course-headline', 'text', {
                         text: 'Learn the system behind profitable funnel launches',
                         fontSize: '42px',
@@ -703,7 +703,7 @@ const starterTemplates: StarterTemplate[] = [
                     block(
                         'course-button',
                         'button',
-                        { text: 'View curriculum', url: '#', backgroundColor: '#f97316', color: '#ffffff', borderRadius: '8px' },
+                        { text: 'View curriculum', url: '#', backgroundColor: '#22c55e', color: '#ffffff', borderRadius: '8px' },
                         { padding: '12px 18px' },
                     ),
                 ]),
@@ -756,7 +756,7 @@ const starterTemplates: StarterTemplate[] = [
         sections: [
             section('service-hero', 'two-column-66-33', [
                 column('service-copy', 62, [
-                    block('service-eyebrow', 'text', { text: 'Same-week appointments', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                    block('service-eyebrow', 'text', { text: 'Same-week appointments', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                     block('service-headline', 'text', {
                         text: 'Reliable service from a local team you can reach',
                         fontSize: '42px',
@@ -814,7 +814,7 @@ const starterTemplates: StarterTemplate[] = [
         sections: [
             section('estate-hero', 'two-column', [
                 column('estate-copy', 55, [
-                    block('estate-eyebrow', 'text', { text: 'Local Market Report', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                    block('estate-eyebrow', 'text', { text: 'Local Market Report', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                     block('estate-headline', 'text', {
                         text: 'Find out what homes like yours are selling for',
                         fontSize: '42px',
@@ -862,7 +862,7 @@ const starterTemplates: StarterTemplate[] = [
                         block('nonprofit-eyebrow', 'text', {
                             text: 'Community Campaign',
                             fontSize: '14px',
-                            color: '#f97316',
+                            color: '#22c55e',
                             fontWeight: '700',
                             textAlign: 'center',
                         }),
@@ -933,7 +933,7 @@ const starterTemplates: StarterTemplate[] = [
                 'two-column',
                 [
                     column('shop-copy', 55, [
-                        block('shop-eyebrow', 'text', { text: 'Limited Offer', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                        block('shop-eyebrow', 'text', { text: 'Limited Offer', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                         block('shop-headline', 'text', {
                             text: 'Launch-week bundle for your best customers',
                             fontSize: '42px',
@@ -948,7 +948,7 @@ const starterTemplates: StarterTemplate[] = [
                         block(
                             'shop-button',
                             'button',
-                            { text: 'Shop the offer', url: '#', backgroundColor: '#f97316', color: '#ffffff', borderRadius: '8px' },
+                            { text: 'Shop the offer', url: '#', backgroundColor: '#22c55e', color: '#ffffff', borderRadius: '8px' },
                             { padding: '12px 18px' },
                         ),
                     ]),
@@ -1000,7 +1000,7 @@ const starterTemplates: StarterTemplate[] = [
                     block('case-eyebrow', 'text', {
                         text: 'Customer Story',
                         fontSize: '14px',
-                        color: '#f97316',
+                        color: '#22c55e',
                         fontWeight: '700',
                         textAlign: 'center',
                     }),
@@ -1087,7 +1087,7 @@ const starterTemplates: StarterTemplate[] = [
         sections: [
             section('saas-hero', 'two-column-66-33', [
                 column('saas-copy', 62, [
-                    block('saas-eyebrow', 'text', { text: 'Product Demo', fontSize: '14px', color: '#f97316', fontWeight: '700' }),
+                    block('saas-eyebrow', 'text', { text: 'Product Demo', fontSize: '14px', color: '#22c55e', fontWeight: '700' }),
                     block('saas-headline', 'text', {
                         text: 'See how your team can turn more traffic into pipeline',
                         fontSize: '42px',
@@ -1605,7 +1605,7 @@ export default function EnhancedFunnelEditor({
                                 {initialFunnel?.id && (
                                     <Link
                                         href={route('copilot.show', { funnel: initialFunnel.id })}
-                                        className="flex items-center space-x-2 rounded-lg bg-orange-500/10 px-3 py-2 text-orange-300 transition-colors hover:bg-orange-500/20"
+                                        className="flex items-center space-x-2 rounded-lg bg-green-500/10 px-3 py-2 text-green-300 transition-colors hover:bg-green-500/20"
                                     >
                                         <Sparkles className="h-4 w-4" />
                                         <span>Copilot</span>

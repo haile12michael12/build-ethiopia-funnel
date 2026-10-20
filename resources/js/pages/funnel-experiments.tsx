@@ -126,7 +126,7 @@ export default function FunnelExperimentsPage({ funnel, variants, experiments }:
                             <ArrowLeft className="h-4 w-4" /> Back to Copilot
                         </Link>
                         <h1 className="flex items-center gap-2 text-2xl font-bold">
-                            <Beaker className="h-6 w-6 text-orange-400" /> Controlled experiments
+                            <Beaker className="h-6 w-6 text-green-400" /> Controlled experiments
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">
                             {funnel.name} · Published content stays unchanged; experiments serve existing saved variants only.
@@ -289,7 +289,7 @@ export default function FunnelExperimentsPage({ funnel, variants, experiments }:
                             allocated >= 100 ||
                             selected.some((id) => (weights[id] ?? variants.find((variant) => variant.id === id)?.weight ?? 0) < 1)
                         }
-                        className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+                        className="rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-600 disabled:opacity-50"
                     >
                         {busy ? 'Saving…' : 'Save draft'}
                     </button>
