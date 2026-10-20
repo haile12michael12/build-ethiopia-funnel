@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('status', 20)->default('draft');
             $table->timestamp('starts_at')->nullable();
             $table->timestamp('ends_at')->nullable();
+            $table->timestamp('ended_at')->nullable();
             $table->json('activity_history')->nullable();
             $table->timestamps();
             $table->index(['funnel_id', 'status', 'starts_at', 'ends_at'], 'funnel_experiment_runtime_idx');

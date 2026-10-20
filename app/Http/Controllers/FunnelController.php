@@ -140,9 +140,10 @@ class FunnelController extends Controller
         $assignment = $this->variantResolver->resolve($funnel, $request);
 
         Cookie::queue(cookie($assignment['cookie'], $assignment['value'], 60 * 24 * 30, '/', null, false, false, false, 'lax'));
+        Cookie::queue(cookie($assignment['experiment_cookie'], $assignment['experiment_cookie_value'], 60 * 24 * 30, '/', null, false, false, false, 'lax'));
 
         return Inertia::render('funnel-preview', [
-            'funnel' => $this->serializeFunnel($funnel, $assignment['variant']),
+            'funnel' => $this->serializeFunnel($funnel, $assignment['variant'], $assignment['experiment_id']),
             'previewMode' => false,
             'supportChatEnabled' => $funnel->is_published,
         ]);
@@ -396,7 +397,7 @@ class FunnelController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function serializeFunnel(Funnel $funnel, ?FunnelVariant $variant = null): array
+    private function serializeFunnel(Funnel $funnel, ?FunnelVariant $variant = null, ?int $experimentId = null): array
     {
         return [
             'id' => $funnel->id,
@@ -406,6 +407,7 @@ class FunnelController extends Controller
             'content' => $variant?->content ?? $funnel->content,
             'settings' => $variant?->settings ?? $funnel->settings,
             'variant_id' => $variant?->id,
+            'experiment_id' => $experimentId,
             'revision' => $funnel->revision,
             'updated_at' => $funnel->updated_at?->toISOString(),
             'status' => $funnel->status,

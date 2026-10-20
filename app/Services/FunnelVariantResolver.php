@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Funnel;
+use App\Models\FunnelExperiment;
 use App\Models\FunnelVariant;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,16 @@ class FunnelVariantResolver
     public function resolve(Funnel $funnel, Request $request): array
     {
         $cookie = 'of_variant_'.$funnel->id;
+        $experiment = $funnel->experiments()
+            ->where('status', 'running')
+            ->where(fn ($query) => $query->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($query) => $query->whereNull('ends_at')->orWhere('ends_at', '>', now()))
+            ->latest('id')
+            ->first();
+        if ($experiment && $experiment->isAcceptingTraffic()) {
+            return $this->resolveExperiment($funnel, $experiment, $request, $cookie);
+        }
+
         $variants = $funnel->variants()->where('is_active', true)->orderBy('id')->get();
         $selected = $variants->firstWhere('id', (int) $request->cookie($cookie));
 
@@ -31,6 +42,58 @@ class FunnelVariantResolver
             'variant' => $selected,
             'cookie' => $cookie,
             'value' => $selected ? (string) $selected->id : 'control',
+            'experiment_id' => null,
+            'experiment_cookie' => 'of_experiment_'.$funnel->id,
+            'experiment_cookie_value' => 'none',
+        ];
+    }
+
+    /**
+     * @return array{variant:FunnelVariant|null,cookie:string,value:string,experiment_id:int,experiment_cookie:string,experiment_cookie_value:string}
+     */
+    private function resolveExperiment(Funnel $funnel, FunnelExperiment $experiment, Request $request, string $cookie): array
+    {
+        $experimentCookie = 'of_experiment_'.$funnel->id;
+        $variants = $funnel->variants()
+            ->whereIn('id', $experiment->assignedVariantIds())
+            ->orderBy('id')
+            ->get()
+            ->keyBy('id');
+        $allocation = collect($experiment->allocations ?? []);
+        $assignedValue = (string) $request->cookie($experimentCookie, '');
+        $selectedId = null;
+        if (str_starts_with($assignedValue, $experiment->id.':')) {
+            $assignedVariant = substr($assignedValue, strlen((string) $experiment->id) + 1);
+            if ($assignedVariant === 'control') {
+                $selectedId = null;
+            } elseif (ctype_digit($assignedVariant) && $allocation->contains(fn (array $item) => (int) $item['variant_id'] === (int) $assignedVariant)) {
+                $selectedId = (int) $assignedVariant;
+            }
+        } else {
+            $roll = random_int(1, 100);
+            $cursor = 0;
+            foreach ($allocation as $item) {
+                $cursor += (int) $item['weight'];
+                if ($roll <= $cursor) {
+                    $selectedId = (int) $item['variant_id'];
+                    break;
+                }
+            }
+        }
+
+        $variant = $selectedId === null ? null : $variants->get($selectedId);
+        if ($selectedId !== null && ! $variant) {
+            $selectedId = null;
+        }
+        $value = $selectedId === null ? 'control' : (string) $selectedId;
+
+        return [
+            'variant' => $variant,
+            'cookie' => $cookie,
+            'value' => $value,
+            'experiment_id' => $experiment->id,
+            'experiment_cookie' => $experimentCookie,
+            'experiment_cookie_value' => $experiment->id.':'.$value,
         ];
     }
 }

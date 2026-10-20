@@ -7,6 +7,7 @@ use App\Jobs\SendLeadCaptureNotifications;
 use App\Models\Contact;
 use App\Models\ContactEmailPreference;
 use App\Models\Funnel;
+use App\Models\FunnelExperiment;
 use App\Models\FunnelEvent;
 use App\Services\Automation\AutomationEventRecorder;
 use App\Services\FunnelAnalyticsSanitizer;
@@ -49,9 +50,31 @@ class LeadCaptureController extends Controller
             'attribution.device' => ['nullable', Rule::in(['mobile', 'tablet', 'desktop'])],
             'session_id' => ['nullable', 'uuid'],
             'variant_id' => ['nullable', 'integer'],
+            'experiment_id' => ['nullable', 'integer'],
         ]);
 
-        if (isset($validated['variant_id']) && ! $funnel->variants()->whereKey($validated['variant_id'])->where('is_active', true)->exists()) {
+        $experiment = null;
+        if (isset($validated['experiment_id'])) {
+            $experiment = $funnel->experiments()->findOrFail($validated['experiment_id']);
+            $submittedVariant = isset($validated['variant_id']) ? (string) $validated['variant_id'] : 'control';
+            abort_unless(
+                $experiment->isAcceptingTraffic()
+                && (string) $request->cookie('of_experiment_'.$funnel->id) === $experiment->id.':'.$submittedVariant,
+                422,
+                'The submitted experiment assignment is invalid or no longer active.',
+            );
+            if (isset($validated['variant_id'])) {
+                abort_unless(in_array((int) $validated['variant_id'], $experiment->assignedVariantIds(), true), 422, 'The submitted variant is not part of this experiment.');
+            }
+        } elseif ($funnel->is_published && ! $request->user()?->can('update', $funnel)) {
+            abort_unless(
+                ! $funnel->experiments()->get()->contains(fn (FunnelExperiment $item) => $item->isAcceptingTraffic()),
+                422,
+                'An active experiment assignment is required.',
+            );
+        }
+
+        if (isset($validated['variant_id']) && ! $experiment && ! $funnel->variants()->whereKey($validated['variant_id'])->where('is_active', true)->exists()) {
             abort(422, 'Invalid experiment variant.');
         }
         if ($funnel->is_published && ! $request->user()?->can('update', $funnel)) {
@@ -64,9 +87,11 @@ class LeadCaptureController extends Controller
             $request,
             $validated,
             $funnel,
+            $experiment,
             $opportunityAutomation,
             $automationEvents,
             $analyticsSanitizer,
+            $experiment,
         ) {
             $dispatchAutomationImmediately = config('queue.default') !== 'sync';
             $email = strtolower($validated['email']);
@@ -111,6 +136,7 @@ class LeadCaptureController extends Controller
             $submission = $contact->submissions()->create([
                 'funnel_id' => $funnel->id,
                 'variant_id' => $validated['variant_id'] ?? null,
+                'experiment_id' => $experiment?->id,
                 'form_id' => $validated['form_id'] ?? null,
                 'fields' => $validated['fields'] ?? [],
                 'attribution' => $validated['attribution'] ?? [],
@@ -133,6 +159,7 @@ class LeadCaptureController extends Controller
                 'contact_id' => $contact->id,
                 'submission_id' => $submission->id,
                 'variant_id' => $validated['variant_id'] ?? null,
+                'experiment_id' => $experiment?->id,
                 'session_id' => $sessionId,
                 'form_id' => $validated['form_id'] ?? null,
                 'attribution' => $analyticsSanitizer->attribution($validated['attribution'] ?? []),
@@ -143,6 +170,7 @@ class LeadCaptureController extends Controller
                 'contact_id' => $contact->id,
                 'submission_id' => $submission->id,
                 'variant_id' => $validated['variant_id'] ?? null,
+                'experiment_id' => $experiment?->id,
                 'session_id' => $sessionId,
                 'form_id' => $validated['form_id'] ?? null,
                 'attribution' => $analyticsSanitizer->attribution($validated['attribution'] ?? []),
@@ -155,6 +183,7 @@ class LeadCaptureController extends Controller
                     'contact_id' => $contact->id,
                     'submission_id' => $submission->id,
                     'variant_id' => $validated['variant_id'] ?? null,
+                    'experiment_id' => $experiment?->id,
                     'session_id' => $sessionId,
                     'form_id' => $validated['form_id'] ?? null,
                     'attribution' => $analyticsSanitizer->attribution($validated['attribution'] ?? []),

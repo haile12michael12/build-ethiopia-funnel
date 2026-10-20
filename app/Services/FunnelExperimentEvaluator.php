@@ -14,7 +14,7 @@ class FunnelExperimentEvaluator
      */
     public function evaluate(FunnelExperiment $experiment): array
     {
-        $end = $experiment->ends_at ?? now();
+        $end = $experiment->ended_at ?? (($experiment->ends_at && $experiment->ends_at->isPast()) ? $experiment->ends_at : now());
         $events = $experiment->events()
             ->whereBetween('occurred_at', [
                 ($experiment->starts_at ?? $experiment->created_at)->toDateTimeString(),
@@ -26,12 +26,16 @@ class FunnelExperimentEvaluator
             ->whereIn('id', $experiment->assignedVariantIds())
             ->get()
             ->keyBy('id');
-        $groups = collect([null => 'Control'])->merge(
-            collect($experiment->allocations ?? [])
-                ->mapWithKeys(fn (array $allocation) => [(int) $allocation['variant_id'] => $variants->get((int) $allocation['variant_id'])?->name ?? 'Removed variant']),
-        );
+        $groups = collect([['variant_id' => null, 'name' => 'Control', 'weight' => max(0, 100 - collect($experiment->allocations)->sum('weight'))]])
+            ->concat(collect($experiment->allocations ?? [])->map(fn (array $allocation) => [
+                'variant_id' => (int) $allocation['variant_id'],
+                'name' => $variants->get((int) $allocation['variant_id'])?->name ?? 'Removed variant',
+                'weight' => (int) $allocation['weight'],
+            ]));
         $warnings = [];
-        $results = $groups->map(function (string $name, int|string|null $variantId) use ($events, $experiment, &$warnings) {
+        $results = $groups->map(function (array $group) use ($events, $experiment, &$warnings) {
+            $variantId = $group['variant_id'];
+            $name = $group['name'];
             $groupEvents = $events->filter(fn (FunnelEvent $event) => $event->variant_id === ($variantId === null ? null : (int) $variantId));
             $viewEvents = $groupEvents->where('event_type', 'view');
             $eligibleSessions = $viewEvents->pluck('session_id')->filter()->unique()->values();
@@ -63,9 +67,7 @@ class FunnelExperimentEvaluator
             return [
                 'variant_id' => $variantId,
                 'name' => $name,
-                'allocation_percent' => $variantId === null
-                    ? max(0, 100 - collect($experiment->allocations)->sum('weight'))
-                    : (int) collect($experiment->allocations)->firstWhere('variant_id', (int) $variantId)['weight'],
+                'allocation_percent' => $group['weight'],
                 'eligible_sessions' => $eligibleSessions->count(),
                 'exposures' => $exposureCount,
                 'numerator' => $numeratorSessions->count(),

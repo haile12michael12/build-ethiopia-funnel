@@ -86,6 +86,11 @@ class Funnel extends Model
         return $this->hasMany(FunnelVariant::class);
     }
 
+    public function experiments(): HasMany
+    {
+        return $this->hasMany(FunnelExperiment::class);
+    }
+
     public function opportunities(): HasMany
     {
         return $this->hasMany(Opportunity::class);

@@ -20,6 +20,7 @@ class FunnelExperiment extends Model
         'status',
         'starts_at',
         'ends_at',
+        'ended_at',
         'activity_history',
     ];
 
@@ -29,6 +30,7 @@ class FunnelExperiment extends Model
         'activity_history' => 'array',
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
+        'ended_at' => 'datetime',
     ];
 
     public function funnel(): BelongsTo
@@ -50,7 +52,8 @@ class FunnelExperiment extends Model
     {
         return $this->status === 'running'
             && ($this->starts_at === null || $this->starts_at->isPast())
-            && ($this->ends_at === null || $this->ends_at->isFuture());
+            && ($this->ends_at === null || $this->ends_at->isFuture())
+            && $this->ended_at === null;
     }
 
     public function assignedVariantIds(): array
@@ -72,7 +75,7 @@ class FunnelExperiment extends Model
         $this->update([
             'status' => $status,
             'starts_at' => $status === 'running' ? ($this->starts_at ?? now()) : $this->starts_at,
-            'ends_at' => in_array($status, ['paused', 'completed', 'cancelled'], true) ? now() : $this->ends_at,
+            'ended_at' => in_array($status, ['paused', 'completed', 'cancelled'], true) ? now() : null,
             'activity_history' => $history,
         ]);
     }

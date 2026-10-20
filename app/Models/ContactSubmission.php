@@ -11,6 +11,7 @@ class ContactSubmission extends Model
         'contact_id',
         'funnel_id',
         'variant_id',
+        'experiment_id',
         'form_id',
         'fields',
         'attribution',

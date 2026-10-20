@@ -6,6 +6,7 @@ use App\Jobs\CalculateLeadScore;
 use App\Models\Contact;
 use App\Models\Funnel;
 use App\Models\FunnelEvent;
+use App\Models\FunnelExperiment;
 use App\Services\FunnelAnalyticsSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,7 @@ class FunnelAnalyticsController extends Controller
             'event_id' => ['nullable', 'uuid'],
             'form_id' => ['nullable', 'string', 'max:80', 'regex:/^[a-zA-Z0-9_-]+$/'],
             'variant_id' => ['nullable', 'integer'],
+            'experiment_id' => ['nullable', 'integer'],
             'attribution' => ['nullable', 'array:utm_source,utm_medium,utm_campaign,utm_term,utm_content,referrer,landing_page,device'],
             'attribution.utm_source' => ['nullable', 'string', 'max:100', 'not_regex:/@/'],
             'attribution.utm_medium' => ['nullable', 'string', 'max:100', 'not_regex:/@/'],
@@ -91,8 +93,32 @@ class FunnelAnalyticsController extends Controller
             abort_unless($assignedVariant === $submittedVariant, 422, 'The reported variant does not match this visitor’s assignment.');
         }
 
-        if (isset($validated['variant_id']) && ! $funnel->variants()->whereKey($validated['variant_id'])->where('is_active', true)->exists()) {
-            abort(422, 'Invalid experiment variant.');
+        $experiment = null;
+        if (isset($validated['experiment_id'])) {
+            $experiment = $funnel->experiments()->findOrFail($validated['experiment_id']);
+            $submittedVariant = isset($validated['variant_id']) ? (string) $validated['variant_id'] : 'control';
+            abort_unless(
+                $experiment->isAcceptingTraffic()
+                && in_array((int) ($validated['variant_id'] ?? 0), $experiment->assignedVariantIds(), true) === isset($validated['variant_id'])
+                && (string) $request->cookie('of_experiment_'.$funnel->id) === $experiment->id.':'.$submittedVariant,
+                422,
+                'The reported experiment assignment is invalid or no longer active.',
+            );
+        } elseif ($funnel->is_published && ! $request->user()?->can('update', $funnel)) {
+            abort_unless(
+                ! $funnel->experiments()->get()->contains(fn (FunnelExperiment $item) => $item->isAcceptingTraffic()),
+                422,
+                'An active experiment assignment is required.',
+            );
+        }
+
+        if (isset($validated['variant_id'])) {
+            abort_unless($funnel->variants()->whereKey($validated['variant_id'])->exists(), 422, 'Invalid experiment variant.');
+            if ($experiment) {
+                abort_unless(in_array((int) $validated['variant_id'], $experiment->assignedVariantIds(), true), 422, 'The variant is not part of this experiment.');
+            } else {
+                abort_unless($funnel->variants()->whereKey($validated['variant_id'])->where('is_active', true)->exists(), 422, 'Invalid experiment variant.');
+            }
         }
 
         $sessionId = isset($validated['session_id']) ? hash('sha256', $validated['session_id']) : null;
@@ -122,6 +148,7 @@ class FunnelAnalyticsController extends Controller
                     'session_id' => $sessionId,
                     'form_id' => $validated['form_id'] ?? null,
                     'variant_id' => $validated['variant_id'] ?? null,
+                    'experiment_id' => $validated['experiment_id'] ?? null,
                     'client_event_id' => $validated['event_id'] ?? null,
                     'attribution' => $attribution,
                     'metadata' => $metadata,

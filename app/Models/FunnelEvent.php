@@ -13,6 +13,7 @@ class FunnelEvent extends Model
         'submission_id',
         'client_event_id',
         'variant_id',
+        'experiment_id',
         'event_type',
         'session_id',
         'form_id',
