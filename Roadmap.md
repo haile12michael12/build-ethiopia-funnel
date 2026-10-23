@@ -16,6 +16,7 @@ This roadmap is a planning aid for agents and contributors. It should guide prio
 - Custom domain mapping at the Laravel/React application layer.
 - CRM-lite contacts table, contacts page, contact detail page, notes, statuses, and submission timeline.
 - Contact search, status/funnel/date filters, and filtered CSV export.
+- CSV contact import with column mapping, preview, duplicate detection, and skip/update strategies.
 - Funnel-linked opportunity pipelines with configurable stages, deal values, forecasts, outcomes, activity history, and opt-in lead automation.
 - Funnel form submissions that capture leads and increment conversion counters.
 - Durable Automation Studio workflows with immutable published versions, event outbox enrollment, waits, branches, CRM actions, consent-aware email, signed webhooks, and observable run history.
@@ -35,7 +36,7 @@ This roadmap is a planning aid for agents and contributors. It should guide prio
 - Harden funnel CRUD behavior with focused feature tests.
 - Expand conditional operators and add reusable form-step presets.
 - Move starter layout definitions out of the editor page once the template library grows.
-- Add CSV contact import and duplicate management.
+- Add duplicate merge management for contacts that already exist.
 - Add configurable lead notification settings in the UI.
 - Improve autosave/manual save flows in the editor.
 - Expand editor block coverage and block-level property editing.

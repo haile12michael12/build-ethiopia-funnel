@@ -9,6 +9,7 @@ use App\Http\Controllers\ClientAcquisitionController;
 use App\Http\Controllers\ClientAcquisitionSettingsController;
 use App\Http\Controllers\ClientProjectController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\ContactImportController;
 use App\Http\Controllers\ContactLookupController;
 use App\Http\Controllers\ContentStudioController;
 use App\Http\Controllers\CopilotController;
@@ -42,14 +43,15 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SiteContentController;
 use App\Http\Controllers\WebsiteAssessmentController;
 use App\Http\Controllers\WorkspaceController;
-use App\Models\Domain;
 use App\Models\Contact;
 use App\Models\ContactActivity;
+use App\Models\Domain;
 use App\Models\FunnelEvent;
 use App\Services\ClientAcquisitionConfiguration;
 use App\Services\FunnelPublicUrlResolver;
 use App\Services\FunnelVariantResolver;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -204,15 +206,15 @@ Route::domain($appDomain)->group(function () {
             };
             $filteredContacts = $user->contacts()
                 ->whereBetween('created_at', [
-                    \Illuminate\Support\Carbon::parse($from)->startOfDay(),
-                    \Illuminate\Support\Carbon::parse($to)->endOfDay(),
+                    Carbon::parse($from)->startOfDay(),
+                    Carbon::parse($to)->endOfDay(),
                 ])
                 ->get()
                 ->filter(fn (Contact $contact) => $matchesContactFilters($contact));
             $filteredQualifiedContacts = $user->contacts()
                 ->whereBetween('created_at', [
-                    \Illuminate\Support\Carbon::parse($from)->startOfDay(),
-                    \Illuminate\Support\Carbon::parse($to)->endOfDay(),
+                    Carbon::parse($from)->startOfDay(),
+                    Carbon::parse($to)->endOfDay(),
                 ])
                 ->get()
                 ->filter(fn (Contact $contact) => $matchesContactFilters($contact, false) && $contact->status === 'qualified');
@@ -362,6 +364,9 @@ Route::domain($appDomain)->group(function () {
         Route::get('contacts', [ContactController::class, 'index'])->name('contacts.index');
         Route::get('contacts/lookup', ContactLookupController::class)->name('contacts.lookup');
         Route::get('contacts/export', [ContactController::class, 'export'])->name('contacts.export');
+        Route::get('contacts/import', [ContactImportController::class, 'create'])->name('contacts.import.create');
+        Route::post('contacts/import/preview', [ContactImportController::class, 'preview'])->name('contacts.import.preview');
+        Route::post('contacts/import', [ContactImportController::class, 'store'])->name('contacts.import.store');
         Route::get('contacts/{contact}', [ContactController::class, 'show'])->name('contacts.show');
         Route::patch('contacts/{contact}', [ContactController::class, 'update'])->name('contacts.update');
         Route::put('contacts/{contact}/details', [ContactController::class, 'updateDetails'])->name('contacts.details.update');

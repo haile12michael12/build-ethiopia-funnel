@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Download, Filter, Mail, Phone, Plus, RotateCcw, Search, UserRound, Users } from 'lucide-react';
+import { Download, Filter, Mail, Phone, Plus, RotateCcw, Search, Upload, UserRound, Users } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -170,6 +170,13 @@ export default function Contacts({ contacts, stats, filters, filterOptions }: Co
                         <p className="text-muted-foreground">Find, segment, and export leads captured from your funnels</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <Link
+                            href={route('contacts.import.create')}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                        >
+                            <Upload className="h-4 w-4" />
+                            Import CSV
+                        </Link>
                         {contacts.total > 0 ? (
                             <a
                                 href={route('contacts.export', {
