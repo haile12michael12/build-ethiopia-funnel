@@ -1,495 +1,259 @@
-import { PublicNavbar } from '@/components/navbar/public-navbar';
-import { type SharedData } from '@/types';
-import { type SiteContent } from '@/types/site-content';
-import { Head, Link, usePage } from '@inertiajs/react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useEffect, useRef } from 'react';
+import PublicLayout from '@/layouts/public-layout';
+import { Head, Link } from '@inertiajs/react';
 
-gsap.registerPlugin(ScrollTrigger);
-
-interface WelcomePageProps extends SharedData {
-    testimonials: SiteContent[];
+interface Service {
+    id: number;
+    title_en: string;
+    summary_en: string | null;
+    slug: string;
 }
 
-export default function Welcome() {
-    const { auth, locale, testimonials } = usePage<WelcomePageProps>().props;
-    const isAmharic = locale === 'am';
-    const heroRef = useRef<HTMLDivElement>(null);
+interface Project {
+    id: number;
+    title_en: string;
+    summary_en: string | null;
+    slug: string;
+    cover_image: string | null;
+}
 
-    useEffect(() => {
-        const ctx = gsap.context(() => {
-            // Hero animations
-            gsap.fromTo('.hero-title', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1, ease: 'power3.out' });
+interface Product {
+    id: number;
+    slug: string;
+    name: string;
+    description: string;
+    amount_minor: number | null;
+    currency: string;
+    image: string | null;
+}
 
-            gsap.fromTo('.hero-subtitle', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1, delay: 0.2, ease: 'power3.out' });
+interface Testimonial {
+    id: number;
+    title_en: string;
+    summary_en: string | null;
+    person_name_en: string | null;
+    person_role_en: string | null;
+    company_en: string | null;
+}
 
-            gsap.fromTo('.hero-buttons', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1, delay: 0.4, ease: 'power3.out' });
+interface WelcomeProps {
+    services: Service[];
+    projects: Project[];
+    products: Product[];
+    testimonials: Testimonial[];
+}
 
-            gsap.fromTo('.hero-demo', { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 1.2, delay: 0.6, ease: 'power3.out' });
+function productPrice(product: Product): string {
+    if (product.amount_minor === null) return 'Price available soon';
+    if (product.amount_minor === 0) return 'Free';
 
-            // Feature cards animation
-            gsap.fromTo(
-                '.feature-card',
-                { opacity: 0, y: 50 },
-                {
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.8,
-                    stagger: 0.1,
-                    ease: 'power3.out',
-                    scrollTrigger: {
-                        trigger: '.features-grid',
-                        start: 'top 80%',
-                        toggleActions: 'play none none reverse',
-                    },
-                },
-            );
+    return `${product.currency} ${(product.amount_minor / 100).toFixed(2)}`;
+}
 
-            // Testimonial cards animation
-            gsap.fromTo(
-                '.testimonial-card',
-                { opacity: 0, x: 50 },
-                {
-                    opacity: 1,
-                    x: 0,
-                    duration: 0.8,
-                    stagger: 0.2,
-                    ease: 'power3.out',
-                    scrollTrigger: {
-                        trigger: '.testimonials-grid',
-                        start: 'top 80%',
-                        toggleActions: 'play none none reverse',
-                    },
-                },
-            );
-
-            // Demo floating animation
-            gsap.to('.demo-float', {
-                y: -10,
-                duration: 2,
-                ease: 'power2.inOut',
-                yoyo: true,
-                repeat: -1,
-            });
-        }, heroRef);
-
-        return () => ctx.revert();
-    }, []);
-
+export default function Welcome({ services, projects, products, testimonials }: WelcomeProps) {
     return (
-        <>
-            <Head title="Hailab - Build High-Converting Marketing Funnels">
-                <link rel="preconnect" href="https://fonts.bunny.net" />
-                <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
+        <PublicLayout>
+            <Head title="Hailab · Software, AI and Automation">
+                <meta
+                    name="description"
+                    content="Software development, AI integrations, and workflow automation for businesses in Ethiopia and internationally."
+                />
             </Head>
-
-            <div ref={heroRef} className="min-h-screen bg-background text-foreground">
-                {/* Navigation */}
-                <PublicNavbar />
-
-                {/* Hero Section */}
-                <section className="bg-gradient-to-b from-background to-background/50 px-4 pt-24 pb-16 sm:px-6 lg:px-8">
-                    <div className="mx-auto max-w-7xl">
-                        <div className="text-center">
-                            <h1 className="hero-title mb-6 text-5xl font-bold text-foreground md:text-7xl">
-                                Build High-Converting <br />
-                                <span className="bg-gradient-to-r from-primary to-green-500 bg-clip-text text-transparent">Marketing Funnels</span>
+            <main>
+                <section className="border-b border-border/60 bg-gradient-to-br from-background via-background to-primary/10">
+                    <div className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:px-8 lg:py-28">
+                        <div>
+                            <p className="text-sm font-semibold tracking-wide text-primary">Software · AI · Automation</p>
+                            <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+                                Build useful digital products for your business.
                             </h1>
-                            <p className="hero-subtitle mx-auto mb-8 max-w-3xl text-xl text-muted-foreground md:text-2xl">
-                                Create stunning landing pages, capture leads, and drive conversions with our intuitive drag-and-drop funnel builder.
-                                No coding required.
+                            <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
+                                Hailab develops web applications, integrates practical AI, and automates business workflows for clients in Ethiopia
+                                and internationally.
                             </p>
-                            <div className="hero-buttons mb-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                                {!auth.user && (
-                                    <Link
-                                        href={route('register')}
-                                        className="rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-105 hover:bg-primary/90"
-                                    >
-                                        Start Building Free
-                                    </Link>
-                                )}
-                                <button className="rounded-lg border border-border bg-secondary px-8 py-4 text-lg font-semibold text-secondary-foreground shadow-lg transition-all hover:scale-105 hover:bg-secondary/80">
-                                    Watch Demo
-                                </button>
-                            </div>
-                            <p className="mb-16 text-sm text-muted-foreground">Free forever • No credit card required • Open source</p>
-                        </div>
-
-                        {/* Demo Preview */}
-                        <div className="hero-demo mx-auto max-w-6xl">
-                            <div className="demo-float relative">
-                                <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-                                    <div className="flex items-center space-x-2 bg-muted px-4 py-3">
-                                        <div className="h-3 w-3 rounded-full bg-red-500/50"></div>
-                                        <div className="h-3 w-3 rounded-full bg-yellow-500/50"></div>
-                                        <div className="h-3 w-3 rounded-full bg-green-500/50"></div>
-                                        <div className="flex-1 text-center text-sm text-muted-foreground">hailab/editor</div>
-                                    </div>
-                                    <div className="p-8">
-                                        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                                            <div className="lg:col-span-2">
-                                                <h3 className="mb-4 text-xl font-semibold text-foreground">Live Preview</h3>
-                                                <div className="rounded-lg border border-border bg-secondary/50 p-6">
-                                                    <div className="space-y-4">
-                                                        <div className="h-4 w-3/4 rounded bg-muted-foreground/20"></div>
-                                                        <div className="h-4 w-1/2 rounded bg-muted-foreground/20"></div>
-                                                        <div className="h-8 w-32 rounded bg-primary/20"></div>
-                                                    </div>
-                                                </div>
-                                                <p className="mt-2 text-sm text-muted-foreground">Interactive Demo</p>
-                                                <p className="text-xs text-muted-foreground/60">Click to explore the drag-and-drop editor</p>
-                                            </div>
-                                            <div>
-                                                <h3 className="mb-4 text-xl font-semibold text-foreground">Block Library</h3>
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center space-x-3 rounded-lg border border-border bg-secondary p-3">
-                                                        <span className="text-lg">📝</span>
-                                                        <span className="text-sm font-medium text-foreground">Text Block</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-3 rounded-lg border border-border bg-secondary p-3">
-                                                        <span className="text-lg">🖼️</span>
-                                                        <span className="text-sm font-medium text-foreground">Image Block</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-3 rounded-lg border border-border bg-secondary p-3">
-                                                        <span className="text-lg">🔳</span>
-                                                        <span className="text-sm font-medium text-foreground">Button Block</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-3 rounded-lg border border-border bg-secondary p-3">
-                                                        <span className="text-lg">📝</span>
-                                                        <span className="text-sm font-medium text-foreground">Form Block</span>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-6">
-                                                    <h4 className="mb-2 font-semibold text-foreground">Properties</h4>
-                                                    <div className="space-y-2 text-sm">
-                                                        <div className="flex justify-between">
-                                                            <span className="text-muted-foreground">Background:</span>
-                                                            <div className="h-4 w-4 rounded bg-primary"></div>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-muted-foreground">Font Size:</span>
-                                                            <span className="text-foreground">18px</span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-muted-foreground">Padding:</span>
-                                                            <span className="text-foreground">16px</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="mt-6 text-center">
-                                            <Link
-                                                href={route('demo')}
-                                                className="inline-flex rounded-lg bg-primary px-6 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                                            >
-                                                Launch Demo
-                                            </Link>
-                                            <p className="mt-2 text-xs text-muted-foreground">
-                                                Open an isolated, editable sandbox. No signup required.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Demo Video Section */}
-                <section className="border-y border-border bg-card px-4 py-16 sm:px-6 lg:px-8">
-                    <div className="mx-auto max-w-7xl text-center">
-                        <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">See Hailab in Action</h2>
-                        <p className="mb-8 text-xl text-muted-foreground">
-                            Watch how easy it is to build professional funnels with our drag-and-drop editor
-                        </p>
-                        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-                            <button className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground">Desktop</button>
-                            <button className="rounded-lg border border-border bg-secondary px-4 py-2 font-medium text-secondary-foreground">
-                                Tablet
-                            </button>
-                            <button className="rounded-lg border border-border bg-secondary px-4 py-2 font-medium text-secondary-foreground">
-                                Mobile
-                            </button>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Features Section */}
-                <section className="bg-background px-4 py-16 sm:px-6 lg:px-8">
-                    <div className="mx-auto max-w-7xl">
-                        <div className="mb-16 text-center">
-                            <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">Everything You Need to Build Funnels</h2>
-                            <p className="text-xl text-muted-foreground">Powerful features that make funnel building fast, easy, and effective.</p>
-                        </div>
-                        <div className="features-grid grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                            <div className="feature-card group rounded-xl border border-border bg-card p-6 shadow-lg transition-colors hover:border-primary/50">
-                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
-                                    <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"
-                                        />
-                                    </svg>
-                                </div>
-                                <h3 className="mb-2 text-xl font-semibold text-foreground">Drag & Drop Builder</h3>
-                                <p className="text-muted-foreground">
-                                    Intuitive visual editor that makes funnel creation as easy as moving blocks around.
-                                </p>
-                            </div>
-
-                            <div className="feature-card group rounded-xl border border-border bg-card p-6 shadow-lg transition-colors hover:border-primary/50">
-                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
-                                    <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                        />
-                                    </svg>
-                                </div>
-                                <h3 className="mb-2 text-xl font-semibold text-foreground">Beautiful Templates</h3>
-                                <p className="text-muted-foreground">Start with professionally designed templates optimized for conversions.</p>
-                            </div>
-
-                            <div className="feature-card group rounded-xl border border-border bg-card p-6 shadow-lg transition-colors hover:border-primary/50">
-                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
-                                    <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                        />
-                                    </svg>
-                                </div>
-                                <h3 className="mb-2 text-xl font-semibold text-foreground">Mobile Responsive</h3>
-                                <p className="text-muted-foreground">All funnels automatically adapt to look perfect on any device or screen size.</p>
-                            </div>
-
-                            <div className="feature-card group rounded-xl border border-border bg-card p-6 shadow-lg transition-colors hover:border-primary/50">
-                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
-                                    <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                        />
-                                    </svg>
-                                </div>
-                                <h3 className="mb-2 text-xl font-semibold text-foreground">Analytics & Tracking</h3>
-                                <p className="text-muted-foreground">Built-in analytics to track conversions, page views, and funnel performance.</p>
-                            </div>
-
-                            <div className="feature-card group rounded-xl border border-border bg-card p-6 shadow-lg transition-colors hover:border-primary/50">
-                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
-                                    <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                        />
-                                    </svg>
-                                </div>
-                                <h3 className="mb-2 text-xl font-semibold text-foreground">A/B Testing</h3>
-                                <p className="text-muted-foreground">Test different versions of your funnels to optimize for maximum conversions.</p>
-                            </div>
-
-                            <div className="feature-card group rounded-xl border border-border bg-card p-6 shadow-lg transition-colors hover:border-primary/50">
-                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
-                                    <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <h3 className="mb-2 text-xl font-semibold text-foreground">Lightning Fast</h3>
-                                <p className="text-muted-foreground">Optimized for speed with instant loading and smooth user experiences.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Testimonials Section */}
-                <section className="border-y border-border bg-card px-4 py-16 sm:px-6 lg:px-8">
-                    <div className="mx-auto max-w-7xl">
-                        <div className="mb-16 text-center">
-                            <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">Loved by Marketing Teams</h2>
-                            <p className="text-xl text-muted-foreground">See what our users are saying about Hailab</p>
-                        </div>
-                        <div className="testimonials-grid grid grid-cols-1 gap-8 md:grid-cols-3">
-                            {testimonials.map((testimonial) => {
-                                const name = isAmharic && testimonial.person_name_am ? testimonial.person_name_am : testimonial.person_name_en;
-                                const role = isAmharic && testimonial.person_role_am ? testimonial.person_role_am : testimonial.person_role_en;
-                                const company = isAmharic && testimonial.company_am ? testimonial.company_am : testimonial.company_en;
-
-                                return (
-                                    <div key={testimonial.id} className="testimonial-card rounded-xl border border-border bg-secondary/30 p-6">
-                                        <div className="mb-4 flex items-center">
-                                            {testimonial.image ? (
-                                                <img className="mr-4 h-12 w-12 rounded-full border border-border object-cover" src={testimonial.image} alt={name ?? ''} />
-                                            ) : (
-                                                <div aria-hidden="true" className="mr-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
-                                                    {name?.slice(0, 1)}
-                                                </div>
-                                            )}
-                                            <div>
-                                                <h4 className="font-semibold text-foreground">{name}</h4>
-                                                <p className="text-sm text-muted-foreground">{[role, company].filter(Boolean).join(', ')}</p>
-                                            </div>
-                                        </div>
-                                        <p className="whitespace-pre-line text-muted-foreground italic">
-                                            “{isAmharic && testimonial.body_am ? testimonial.body_am : testimonial.body_en}”
-                                        </p>
-                                    </div>
-                                );
-                            })}
-                            {!testimonials.length && (
-                                <p className="text-center text-sm text-muted-foreground md:col-span-3">
-                                    {isAmharic ? 'የደንበኞች ምስክርነቶች በቅርቡ ይታያሉ።' : 'Customer testimonials will appear here soon.'}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
-                {/* CTA Section */}
-                <section className="bg-gradient-to-r from-primary/90 to-primary px-4 py-16 sm:px-6 lg:px-8">
-                    <div className="mx-auto max-w-4xl text-center">
-                        <h2 className="mb-4 text-3xl font-bold text-primary-foreground md:text-4xl">Ready to Build Your First Funnel?</h2>
-                        <p className="mb-8 text-xl text-primary-foreground/90">
-                            Join thousands of marketers who are already using Hailab to create high-converting funnels. Start building for free
-                            today.
-                        </p>
-                        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-                            {!auth.user && (
+                            <div className="mt-8 flex flex-wrap gap-3">
                                 <Link
-                                    href={route('register')}
-                                    className="rounded-lg bg-background px-8 py-4 text-lg font-semibold text-foreground shadow-lg transition-all hover:scale-105 hover:bg-background/90"
+                                    href={route('client-acquisition.show')}
+                                    className="rounded-md bg-primary px-5 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                                 >
-                                    Start Building Free
+                                    Start a project inquiry
                                 </Link>
-                            )}
-                            <a
-                                href="https://github.com/haile12michael12/build-ethiopia-funnel"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="rounded-lg border-2 border-primary-foreground bg-transparent px-8 py-4 text-lg font-semibold text-primary-foreground transition-all hover:scale-105 hover:bg-primary-foreground hover:text-primary"
-                            >
-                                View on GitHub
-                            </a>
-                        </div>
-                        <div className="mt-8">
-                            <div className="flex items-center justify-center space-x-8 text-primary-foreground/80">
-                                <div className="flex items-center">
-                                    <span className="mr-2 text-2xl">✨</span>
-                                    <span>No Credit Card Required</span>
-                                </div>
-                                <div className="flex items-center">
-                                    <span className="mr-2 text-2xl">🚀</span>
-                                    <span>Deploy Anywhere</span>
-                                </div>
+                                <Link
+                                    href={route('portfolio.index')}
+                                    className="rounded-md border border-border bg-card px-5 py-3 font-semibold text-foreground transition-colors hover:bg-muted"
+                                >
+                                    Explore portfolio
+                                </Link>
                             </div>
+                        </div>
+                        <div className="rounded-2xl border border-border bg-card/80 p-6 shadow-xl sm:p-8">
+                            <p className="text-sm font-semibold text-primary">What I build</p>
+                            <ul className="mt-5 space-y-4">
+                                <li className="border-l-2 border-primary pl-4">
+                                    <h2 className="font-semibold text-foreground">Software development</h2>
+                                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                                        Web applications and digital platforms shaped around real business requirements.
+                                    </p>
+                                </li>
+                                <li className="border-l-2 border-primary pl-4">
+                                    <h2 className="font-semibold text-foreground">AI and automation</h2>
+                                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                                        AI integrations and workflow automation designed to support everyday operations.
+                                    </p>
+                                </li>
+                                <li className="border-l-2 border-primary pl-4">
+                                    <h2 className="font-semibold text-foreground">Digital products</h2>
+                                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                                        Downloadable tools and resources available through the customer storefront.
+                                    </p>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </section>
 
-                {/* Footer */}
-                <footer className="border-t border-border bg-background py-16 text-foreground">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+                {services.length > 0 && (
+                    <section aria-labelledby="services-heading" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+                        <div className="flex flex-wrap items-end justify-between gap-4">
                             <div>
-                                <h3 className="mb-4 text-2xl font-bold">Hailab</h3>
-                                <p className="text-muted-foreground">
-                                    The open-source funnel builder that helps you create high-converting marketing funnels without coding.
-                                </p>
+                                <p className="text-sm font-semibold text-primary">Services</p>
+                                <h2 id="services-heading" className="mt-2 text-3xl font-bold text-foreground">
+                                    Practical help from idea to delivery
+                                </h2>
                             </div>
-                            <div>
-                                <h4 className="mb-4 font-semibold">Product</h4>
-                                <ul className="space-y-2 text-muted-foreground">
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Features
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Templates
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Pricing
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Changelog
-                                        </a>
-                                    </li>
-                                </ul>
+                            <Link href={route('services')} className="font-semibold text-foreground underline underline-offset-4">
+                                View all services
+                            </Link>
+                        </div>
+                        <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                            {services.map((service) => (
+                                <article key={service.id} className="rounded-xl border border-border bg-card p-5">
+                                    <h3 className="text-lg font-semibold text-foreground">{service.title_en}</h3>
+                                    {service.summary_en && <p className="mt-2 text-sm leading-6 text-muted-foreground">{service.summary_en}</p>}
+                                </article>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {projects.length > 0 && (
+                    <section aria-labelledby="portfolio-heading" className="border-y border-border/60 bg-card/40">
+                        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+                            <div className="flex flex-wrap items-end justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-semibold text-primary">Selected work</p>
+                                    <h2 id="portfolio-heading" className="mt-2 text-3xl font-bold text-foreground">
+                                        Portfolio and case studies
+                                    </h2>
+                                </div>
+                                <Link href={route('portfolio.index')} className="font-semibold text-foreground underline underline-offset-4">
+                                    Browse the portfolio
+                                </Link>
                             </div>
-                            <div>
-                                <h4 className="mb-4 font-semibold">Resources</h4>
-                                <ul className="space-y-2 text-muted-foreground">
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Documentation
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Blog
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Community
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Support
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div>
-                                <h4 className="mb-4 font-semibold">Company</h4>
-                                <ul className="space-y-2 text-muted-foreground">
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            About
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Careers
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Privacy
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" className="transition-colors hover:text-primary">
-                                            Terms
-                                        </a>
-                                    </li>
-                                </ul>
+                            <div className="mt-8 grid gap-6 md:grid-cols-3">
+                                {projects.map((project) => (
+                                    <Link
+                                        key={project.id}
+                                        href={route('portfolio.show', project.slug)}
+                                        className="overflow-hidden rounded-xl border border-border bg-card transition-transform hover:-translate-y-1"
+                                    >
+                                        {project.cover_image && (
+                                            <img src={project.cover_image} alt="" className="aspect-video w-full object-cover" loading="lazy" />
+                                        )}
+                                        <div className="p-5">
+                                            <h3 className="text-lg font-semibold text-foreground">{project.title_en}</h3>
+                                            {project.summary_en && (
+                                                <p className="mt-2 text-sm leading-6 text-muted-foreground">{project.summary_en}</p>
+                                            )}
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
                         </div>
-                        <div className="mt-12 border-t border-border pt-8 text-center text-muted-foreground">
-                            <p>© 2025 Hailab. All rights reserved.</p>
+                    </section>
+                )}
+
+                <section aria-labelledby="products-heading" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+                    <div className="flex flex-wrap items-end justify-between gap-4">
+                        <div>
+                            <p className="text-sm font-semibold text-primary">Storefront</p>
+                            <h2 id="products-heading" className="mt-2 text-3xl font-bold text-foreground">
+                                Digital products
+                            </h2>
+                            <p className="mt-2 max-w-2xl text-muted-foreground">
+                                Browse available products and securely access purchases through your account.
+                            </p>
                         </div>
+                        <Link href={route('marketplace.index')} className="font-semibold text-foreground underline underline-offset-4">
+                            View all products
+                        </Link>
                     </div>
-                </footer>
-            </div>
-        </>
+                    {products.length > 0 ? (
+                        <div className="mt-8 grid gap-5 md:grid-cols-3">
+                            {products.map((product) => (
+                                <article key={product.id} className="overflow-hidden rounded-xl border border-border bg-card">
+                                    {product.image && <img src={product.image} alt="" className="aspect-video w-full object-cover" loading="lazy" />}
+                                    <div className="p-5">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <h3 className="font-semibold text-foreground">{product.name}</h3>
+                                            <span className="text-sm font-semibold whitespace-nowrap text-primary">{productPrice(product)}</span>
+                                        </div>
+                                        <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">{product.description}</p>
+                                        <Link
+                                            href={route('marketplace.show', product.slug)}
+                                            className="mt-4 inline-block text-sm font-semibold text-foreground underline underline-offset-4"
+                                        >
+                                            Product details
+                                        </Link>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="mt-8 rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">
+                            Digital products will appear here when they are published.
+                        </p>
+                    )}
+                </section>
+
+                {testimonials.length > 0 && (
+                    <section aria-labelledby="testimonials-heading" className="border-y border-border/60 bg-card/40">
+                        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+                            <h2 id="testimonials-heading" className="text-3xl font-bold text-foreground">
+                                Client feedback
+                            </h2>
+                            <div className="mt-8 grid gap-5 md:grid-cols-3">
+                                {testimonials.slice(0, 3).map((item) => (
+                                    <figure key={item.id} className="rounded-xl border border-border bg-card p-5">
+                                        <blockquote className="leading-7 text-muted-foreground">{item.summary_en || item.title_en}</blockquote>
+                                        {(item.person_name_en || item.company_en) && (
+                                            <figcaption className="mt-4 text-sm font-semibold text-foreground">
+                                                {item.person_name_en}
+                                                {item.person_role_en ? ` · ${item.person_role_en}` : ''}
+                                                {item.company_en ? ` · ${item.company_en}` : ''}
+                                            </figcaption>
+                                        )}
+                                    </figure>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+                    <div className="rounded-2xl bg-primary px-6 py-10 text-center text-primary-foreground sm:px-10">
+                        <h2 className="text-3xl font-bold">Have a project in mind?</h2>
+                        <p className="mx-auto mt-3 max-w-2xl text-primary-foreground/80">
+                            Share your goals, service interests, and preferred timeline through the project inquiry form.
+                        </p>
+                        <Link
+                            href={route('client-acquisition.show')}
+                            className="mt-6 inline-flex rounded-md bg-background px-5 py-3 font-semibold text-foreground transition-colors hover:bg-background/90"
+                        >
+                            Contact Hailab
+                        </Link>
+                    </div>
+                </section>
+            </main>
+        </PublicLayout>
     );
 }

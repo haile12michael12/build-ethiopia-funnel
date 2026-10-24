@@ -15,6 +15,7 @@ import {
     MessageSquareQuote,
     Plus,
     ShoppingBag,
+    ShoppingCart,
     Users,
     UsersRound,
     Workflow,
@@ -38,6 +39,11 @@ const mainNavItems: NavItem[] = [
         title: 'Marketplace',
         href: '/marketplace',
         icon: ShoppingBag,
+    },
+    {
+        title: 'Orders',
+        href: '/manage/orders',
+        icon: ShoppingCart,
     },
     {
         title: 'Developer analytics',

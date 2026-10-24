@@ -16,6 +16,7 @@ test('profile page is displayed', function () {
 });
 
 test('profile information can be updated', function () {
+    config(['business.owner_email' => 'other-owner@example.com']);
     $user = User::factory()->create();
 
     $response = $this
@@ -34,6 +35,22 @@ test('profile information can be updated', function () {
     expect($user->name)->toBe('Test User');
     expect($user->email)->toBe('test@example.com');
     expect($user->email_verified_at)->toBeNull();
+});
+
+test('the business owner must update the configured owner email before changing their profile email', function () {
+    $user = User::factory()->create();
+    config(['business.owner_email' => $user->email]);
+
+    $this->actingAs($user)
+        ->from('/settings/profile')
+        ->patch('/settings/profile', [
+            'name' => $user->name,
+            'email' => 'new-owner@example.com',
+        ])
+        ->assertSessionHasErrors('email')
+        ->assertRedirect('/settings/profile');
+
+    expect($user->fresh()->email)->not->toBe('new-owner@example.com');
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {

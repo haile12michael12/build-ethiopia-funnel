@@ -46,9 +46,10 @@ test('the owner can inspect a draft funnel by slug', function () {
     $this->actingAs($user)->get(route('funnels.show', $funnel->slug))->assertOk();
 });
 
-test('funnels created by different users receive globally unique public slugs', function () {
+test('only the configured business owner can create a funnel', function () {
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
+    config(['business.owner_email' => $firstUser->email]);
 
     $payload = [
         'name' => 'Shared Offer',
@@ -57,8 +58,8 @@ test('funnels created by different users receive globally unique public slugs', 
     ];
 
     $this->actingAs($firstUser)->post(route('funnels.store'), $payload)->assertRedirect();
-    $this->actingAs($secondUser)->post(route('funnels.store'), $payload)->assertRedirect();
+    $this->actingAs($secondUser)->post(route('funnels.store'), $payload)->assertForbidden();
 
     expect($firstUser->funnels()->firstOrFail()->slug)->toBe('shared-offer')
-        ->and($secondUser->funnels()->firstOrFail()->slug)->toBe('shared-offer-1');
+        ->and($secondUser->funnels()->exists())->toBeFalse();
 });

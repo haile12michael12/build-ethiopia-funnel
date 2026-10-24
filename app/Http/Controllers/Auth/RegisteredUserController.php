@@ -47,6 +47,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect()->intended(route('account.orders.index', absolute: false));
+        return to_route('account.orders.index');
     }
 }

@@ -1,28 +1,8 @@
 import { Button } from '@/components/ui/button';
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
-import {
-    ArrowRight,
-    Bot,
-    Briefcase,
-    ChevronDown,
-    Code2,
-    Languages,
-    Layers,
-    Menu,
-    Newspaper,
-    ShoppingBag,
-    Sparkles,
-    Workflow,
-    Zap,
-} from 'lucide-react';
+import { ArrowRight, Bot, Briefcase, ChevronDown, Code2, Languages, Layers, Menu, Newspaper, Sparkles, Workflow, Zap } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 interface PublicNavbarProps {
@@ -65,11 +45,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
     // Switch language
     const handleLocaleSwitch = (newLocale: 'en' | 'am') => {
         if (newLocale === currentLocale) return;
-        router.post(
-            route('locale.update', { locale: newLocale }),
-            {},
-            { preserveScroll: true }
-        );
+        router.post(route('locale.update', { locale: newLocale }), {}, { preserveScroll: true });
     };
 
     // Dropdown hover handlers with slight delay to prevent flickering
@@ -97,34 +73,27 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
 
     return (
         <>
-            <header
-                className={`sticky top-0 z-40 w-full border-b border-border/70 bg-background/80 backdrop-blur-md transition-colors ${className}`}
-            >
+            <header className={`sticky top-0 z-40 w-full border-b border-border/70 bg-background/80 backdrop-blur-md transition-colors ${className}`}>
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                     {/* Brand Logo */}
                     <div className="flex items-center gap-6">
                         <Link
                             href={route('home')}
-                            className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
+                            className="flex items-center gap-2 rounded-md text-xl font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
                         >
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-extrabold text-sm shadow-sm">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-extrabold text-primary-foreground shadow-sm">
                                 OF
                             </span>
                             <span className="hidden sm:inline-block">Hailab</span>
                         </Link>
 
                         {/* Desktop Navigation Links */}
-                        <nav
-                            className="hidden lg:flex items-center space-x-1"
-                            aria-label="Main Navigation"
-                        >
+                        <nav className="hidden items-center space-x-1 lg:flex" aria-label="Main Navigation">
                             {/* Home */}
                             <Link
                                 href={route('home')}
                                 className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                                    isHomeActive
-                                        ? 'text-primary font-semibold'
-                                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                    isHomeActive ? 'font-semibold text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                 }`}
                             >
                                 {t('home', 'Home')}
@@ -134,9 +103,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                             <Link
                                 href={route('portfolio.index')}
                                 className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                                    isPortfolioActive
-                                        ? 'text-primary font-semibold'
-                                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                    isPortfolioActive ? 'font-semibold text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                 }`}
                             >
                                 {t('portfolio', 'Work & Portfolio')}
@@ -146,7 +113,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                 href={route('marketplace.index')}
                                 className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                                     currentUrl.startsWith('/marketplace')
-                                        ? 'text-primary font-semibold'
+                                        ? 'font-semibold text-primary'
                                         : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                 }`}
                             >
@@ -154,22 +121,16 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                             </Link>
 
                             {/* Services Mega Menu Dropdown */}
-                            <div
-                                className="relative"
-                                onMouseEnter={() => handleMouseEnter('services')}
-                                onMouseLeave={handleMouseLeave}
-                            >
+                            <div className="relative" onMouseEnter={() => handleMouseEnter('services')} onMouseLeave={handleMouseLeave}>
                                 <button
                                     type="button"
                                     aria-expanded={activeDropdown === 'services'}
                                     aria-haspopup="true"
                                     aria-controls="services-mega-menu"
-                                    onClick={() =>
-                                        setActiveDropdown(activeDropdown === 'services' ? null : 'services')
-                                    }
+                                    onClick={() => setActiveDropdown(activeDropdown === 'services' ? null : 'services')}
                                     className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                                         isServicesActive || activeDropdown === 'services'
-                                            ? 'text-primary font-semibold'
+                                            ? 'font-semibold text-primary'
                                             : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                     }`}
                                 >
@@ -185,13 +146,11 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                 {activeDropdown === 'services' && (
                                     <div
                                         id="services-mega-menu"
-                                        className="absolute left-1/2 -translate-x-1/4 top-full mt-1 w-[680px] rounded-2xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150"
+                                        className="absolute top-full left-1/2 mt-1 w-[680px] -translate-x-1/4 rounded-2xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl duration-150 animate-in fade-in-0 zoom-in-95"
                                     >
                                         <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-3">
                                             <div>
-                                                <h3 className="text-sm font-bold text-foreground">
-                                                    {t('services', 'Engineering & Solutions')}
-                                                </h3>
+                                                <h3 className="text-sm font-bold text-foreground">{t('services', 'Engineering & Solutions')}</h3>
                                                 <p className="text-xs text-muted-foreground">
                                                     {t('services_tagline', 'Scalable software and AI automation engineered for growth.')}
                                                 </p>
@@ -213,15 +172,18 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 onClick={() => setActiveDropdown(null)}
                                                 className="group flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-muted/60"
                                             >
-                                                <div className="rounded-lg bg-blue-500/10 p-2.5 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                                <div className="rounded-lg bg-blue-500/10 p-2.5 text-blue-500 transition-colors group-hover:bg-blue-500 group-hover:text-white">
                                                     <Code2 className="h-5 w-5" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                    <h4 className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
                                                         {t('categories.web_dev', 'Web Development')}
                                                     </h4>
                                                     <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                                        {t('categories.web_dev_desc', 'High-performance Laravel, React, and Next.js applications and portals.')}
+                                                        {t(
+                                                            'categories.web_dev_desc',
+                                                            'High-performance Laravel, React, and Next.js applications and portals.',
+                                                        )}
                                                     </p>
                                                 </div>
                                             </Link>
@@ -232,15 +194,18 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 onClick={() => setActiveDropdown(null)}
                                                 className="group flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-muted/60"
                                             >
-                                                <div className="rounded-lg bg-purple-500/10 p-2.5 text-purple-500 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                                                <div className="rounded-lg bg-purple-500/10 p-2.5 text-purple-500 transition-colors group-hover:bg-purple-500 group-hover:text-white">
                                                     <Bot className="h-5 w-5" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                    <h4 className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
                                                         {t('categories.ai_apps', 'AI Applications')}
                                                     </h4>
                                                     <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                                        {t('categories.ai_apps_desc', 'Intelligent LLM workflows, conversational bots, and RAG architectures.')}
+                                                        {t(
+                                                            'categories.ai_apps_desc',
+                                                            'Intelligent LLM workflows, conversational bots, and RAG architectures.',
+                                                        )}
                                                     </p>
                                                 </div>
                                             </Link>
@@ -251,15 +216,18 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 onClick={() => setActiveDropdown(null)}
                                                 className="group flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-muted/60"
                                             >
-                                                <div className="rounded-lg bg-amber-500/10 p-2.5 text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                                                <div className="rounded-lg bg-amber-500/10 p-2.5 text-amber-500 transition-colors group-hover:bg-amber-500 group-hover:text-white">
                                                     <Workflow className="h-5 w-5" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                    <h4 className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
                                                         {t('categories.automation', 'Business Automation')}
                                                     </h4>
                                                     <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                                        {t('categories.automation_desc', 'Custom CRM systems, lead routing pipelines, and webhook orchestrations.')}
+                                                        {t(
+                                                            'categories.automation_desc',
+                                                            'Custom CRM systems, lead routing pipelines, and webhook orchestrations.',
+                                                        )}
                                                     </p>
                                                 </div>
                                             </Link>
@@ -270,22 +238,25 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 onClick={() => setActiveDropdown(null)}
                                                 className="group flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-muted/60"
                                             >
-                                                <div className="rounded-lg bg-green-500/10 p-2.5 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-colors">
+                                                <div className="rounded-lg bg-green-500/10 p-2.5 text-green-500 transition-colors group-hover:bg-green-500 group-hover:text-white">
                                                     <Layers className="h-5 w-5" />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                    <h4 className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
                                                         {t('categories.saas', 'SaaS Development')}
                                                     </h4>
                                                     <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                                        {t('categories.saas_desc', 'Multi-tenant subscription architectures, dashboards, and payment flows.')}
+                                                        {t(
+                                                            'categories.saas_desc',
+                                                            'Multi-tenant subscription architectures, dashboards, and payment flows.',
+                                                        )}
                                                     </p>
                                                 </div>
                                             </Link>
                                         </div>
 
                                         {/* Bottom Callout banner */}
-                                        <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3 flex items-center justify-between">
+                                        <div className="mt-4 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-3">
                                             <div className="flex items-center gap-2">
                                                 <Sparkles className="h-4 w-4 text-primary" />
                                                 <span className="text-xs font-medium text-foreground">
@@ -295,7 +266,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                             <Link
                                                 href={route('business-audit.show')}
                                                 onClick={() => setActiveDropdown(null)}
-                                                className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                                                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                                             >
                                                 <span>Free Growth Audit</span>
                                                 <ArrowRight className="h-3 w-3" />
@@ -306,22 +277,16 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                             </div>
 
                             {/* Resources Dropdown (Blog & Case Studies) */}
-                            <div
-                                className="relative"
-                                onMouseEnter={() => handleMouseEnter('resources')}
-                                onMouseLeave={handleMouseLeave}
-                            >
+                            <div className="relative" onMouseEnter={() => handleMouseEnter('resources')} onMouseLeave={handleMouseLeave}>
                                 <button
                                     type="button"
                                     aria-expanded={activeDropdown === 'resources'}
                                     aria-haspopup="true"
                                     aria-controls="resources-dropdown-menu"
-                                    onClick={() =>
-                                        setActiveDropdown(activeDropdown === 'resources' ? null : 'resources')
-                                    }
+                                    onClick={() => setActiveDropdown(activeDropdown === 'resources' ? null : 'resources')}
                                     className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                                         isBlogActive || activeDropdown === 'resources'
-                                            ? 'text-primary font-semibold'
+                                            ? 'font-semibold text-primary'
                                             : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                     }`}
                                 >
@@ -336,7 +301,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                 {activeDropdown === 'resources' && (
                                     <div
                                         id="resources-dropdown-menu"
-                                        className="absolute left-0 top-full mt-1 w-72 rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150 space-y-1"
+                                        className="absolute top-full left-0 mt-1 w-72 space-y-1 rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-xl duration-150 animate-in fade-in-0 zoom-in-95"
                                     >
                                         {/* Case Studies */}
                                         <Link
@@ -348,9 +313,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 <Briefcase className="h-4 w-4" />
                                             </div>
                                             <div>
-                                                <h4 className="text-sm font-semibold text-foreground">
-                                                    {t('case_studies', 'Case Studies')}
-                                                </h4>
+                                                <h4 className="text-sm font-semibold text-foreground">{t('case_studies', 'Case Studies')}</h4>
                                                 <p className="text-xs text-muted-foreground">
                                                     {t('case_studies_desc', 'Real-world software architectures and results.')}
                                                 </p>
@@ -367,9 +330,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 <Newspaper className="h-4 w-4" />
                                             </div>
                                             <div>
-                                                <h4 className="text-sm font-semibold text-foreground">
-                                                    {t('blog', 'Blog & Insights')}
-                                                </h4>
+                                                <h4 className="text-sm font-semibold text-foreground">{t('blog', 'Blog & Insights')}</h4>
                                                 <p className="text-xs text-muted-foreground">
                                                     {t('blog_desc', 'Engineering deep dives and SaaS tutorials.')}
                                                 </p>
@@ -386,12 +347,8 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 <Zap className="h-4 w-4" />
                                             </div>
                                             <div>
-                                                <h4 className="text-sm font-semibold text-foreground">
-                                                    Interactive Demo
-                                                </h4>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Test the live funnel builder sandbox.
-                                                </p>
+                                                <h4 className="text-sm font-semibold text-foreground">Interactive Demo</h4>
+                                                <p className="text-xs text-muted-foreground">Test the live funnel builder sandbox.</p>
                                             </div>
                                         </Link>
                                     </div>
@@ -402,9 +359,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                             <Link
                                 href={route('about')}
                                 className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                                    isAboutActive
-                                        ? 'text-primary font-semibold'
-                                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                    isAboutActive ? 'font-semibold text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                 }`}
                             >
                                 {t('about', 'About Us')}
@@ -414,9 +369,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                             <Link
                                 href={route('contact')}
                                 className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                                    isContactActive
-                                        ? 'text-primary font-semibold'
-                                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                    isContactActive ? 'font-semibold text-primary' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                 }`}
                             >
                                 {t('contact', 'Contact')}
@@ -427,11 +380,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                     {/* Right Action Controls */}
                     <div className="flex items-center gap-3">
                         {/* Language Switcher */}
-                        <div
-                            className="flex items-center rounded-lg border border-border bg-card p-0.5"
-                            role="group"
-                            aria-label="Language selector"
-                        >
+                        <div className="flex items-center rounded-lg border border-border bg-card p-0.5" role="group" aria-label="Language selector">
                             <button
                                 type="button"
                                 onClick={() => handleLocaleSwitch('en')}
@@ -447,7 +396,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                             <button
                                 type="button"
                                 onClick={() => handleLocaleSwitch('am')}
-                                className={`rounded px-2 py-1 text-xs font-semibold transition-colors font-amharic ${
+                                className={`font-amharic rounded px-2 py-1 text-xs font-semibold transition-colors ${
                                     currentLocale === 'am'
                                         ? 'bg-primary text-primary-foreground shadow-xs'
                                         : 'text-muted-foreground hover:text-foreground'
@@ -459,7 +408,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                         </div>
 
                         {/* Auth / CTA Buttons */}
-                        <div className="hidden sm:flex items-center gap-2">
+                        <div className="hidden items-center gap-2 sm:flex">
                             {auth.user ? (
                                 auth.is_business_owner ? (
                                     <Button asChild size="sm" variant="outline">
@@ -478,22 +427,16 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                             ) : (
                                 <>
                                     <Button asChild size="sm" variant="ghost">
-                                        <Link href={route('login')}>
-                                            {t('sign_in', 'Sign In')}
-                                        </Link>
+                                        <Link href={route('login')}>{t('sign_in', 'Sign In')}</Link>
                                     </Button>
                                     <Button asChild size="sm" variant="ghost">
                                         <Link href={route('register')}>Register</Link>
                                     </Button>
                                     <Button asChild size="sm" variant="outline">
-                                        <Link href={route('client-acquisition.show')}>
-                                            {t('start_project', 'Start a Project')}
-                                        </Link>
+                                        <Link href={route('client-acquisition.show')}>{t('start_project', 'Start a Project')}</Link>
                                     </Button>
                                     <Button asChild size="sm">
-                                        <Link href={route('business-audit.show')}>
-                                            {t('growth_audit', 'Free Growth Audit')}
-                                        </Link>
+                                        <Link href={route('business-audit.show')}>{t('growth_audit', 'Free Growth Audit')}</Link>
                                     </Button>
                                 </>
                             )}
@@ -503,24 +446,16 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                         <div className="lg:hidden">
                             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                                 <SheetTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9"
-                                        aria-label="Open mobile navigation"
-                                    >
+                                    <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Open mobile navigation">
                                         <Menu className="h-5 w-5" />
                                     </Button>
                                 </SheetTrigger>
 
-                                <SheetContent
-                                    side="right"
-                                    className="w-full sm:max-w-md p-6 overflow-y-auto flex flex-col justify-between"
-                                >
+                                <SheetContent side="right" className="flex w-full flex-col justify-between overflow-y-auto p-6 sm:max-w-md">
                                     <div className="space-y-6">
                                         <SheetHeader className="flex flex-row items-center justify-between border-b border-border pb-4">
-                                            <SheetTitle className="text-lg font-bold flex items-center gap-2">
-                                                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
+                                            <SheetTitle className="flex items-center gap-2 text-lg font-bold">
+                                                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
                                                     OF
                                                 </span>
                                                 <span>Hailab</span>
@@ -533,9 +468,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 href={route('home')}
                                                 onClick={() => setMobileOpen(false)}
                                                 className={`rounded-lg px-3 py-2.5 text-base font-medium transition-colors ${
-                                                    isHomeActive
-                                                        ? 'bg-primary/10 text-primary font-semibold'
-                                                        : 'text-foreground hover:bg-muted'
+                                                    isHomeActive ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted'
                                                 }`}
                                             >
                                                 {t('home', 'Home')}
@@ -545,9 +478,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 href={route('portfolio.index')}
                                                 onClick={() => setMobileOpen(false)}
                                                 className={`rounded-lg px-3 py-2.5 text-base font-medium transition-colors ${
-                                                    isPortfolioActive
-                                                        ? 'bg-primary/10 text-primary font-semibold'
-                                                        : 'text-foreground hover:bg-muted'
+                                                    isPortfolioActive ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted'
                                                 }`}
                                             >
                                                 {t('portfolio', 'Work & Portfolio')}
@@ -575,7 +506,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                     />
                                                 </button>
                                                 {mobileServicesExpanded && (
-                                                    <div className="border-t border-border/60 px-3 py-2 space-y-2 text-sm bg-muted/20">
+                                                    <div className="space-y-2 border-t border-border/60 bg-muted/20 px-3 py-2 text-sm">
                                                         <Link
                                                             href="/services#web-dev"
                                                             onClick={() => setMobileOpen(false)}
@@ -627,7 +558,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                     />
                                                 </button>
                                                 {mobileResourcesExpanded && (
-                                                    <div className="border-t border-border/60 px-3 py-2 space-y-2 text-sm bg-muted/20">
+                                                    <div className="space-y-2 border-t border-border/60 bg-muted/20 px-3 py-2 text-sm">
                                                         <Link
                                                             href={route('portfolio.index')}
                                                             onClick={() => setMobileOpen(false)}
@@ -660,9 +591,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 href={route('about')}
                                                 onClick={() => setMobileOpen(false)}
                                                 className={`rounded-lg px-3 py-2.5 text-base font-medium transition-colors ${
-                                                    isAboutActive
-                                                        ? 'bg-primary/10 text-primary font-semibold'
-                                                        : 'text-foreground hover:bg-muted'
+                                                    isAboutActive ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted'
                                                 }`}
                                             >
                                                 {t('about', 'About Us')}
@@ -672,9 +601,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 href={route('contact')}
                                                 onClick={() => setMobileOpen(false)}
                                                 className={`rounded-lg px-3 py-2.5 text-base font-medium transition-colors ${
-                                                    isContactActive
-                                                        ? 'bg-primary/10 text-primary font-semibold'
-                                                        : 'text-foreground hover:bg-muted'
+                                                    isContactActive ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted'
                                                 }`}
                                             >
                                                 {t('contact', 'Contact')}
@@ -683,14 +610,14 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                     </div>
 
                                     {/* Mobile Bottom Actions */}
-                                    <div className="border-t border-border pt-4 space-y-3">
+                                    <div className="space-y-3 border-t border-border pt-4">
                                         <Button asChild className="w-full">
                                             <Link href={route('client-acquisition.show')} onClick={() => setMobileOpen(false)}>
                                                 {t('start_project', 'Start a Project')}
                                             </Link>
                                         </Button>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                                 <Languages className="h-4 w-4" />
                                                 <span>Language:</span>
                                             </span>
@@ -709,7 +636,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleLocaleSwitch('am')}
-                                                    className={`rounded px-2.5 py-1 text-xs font-semibold font-amharic ${
+                                                    className={`font-amharic rounded px-2.5 py-1 text-xs font-semibold ${
                                                         currentLocale === 'am'
                                                             ? 'bg-primary text-primary-foreground'
                                                             : 'text-muted-foreground hover:text-foreground'
@@ -752,10 +679,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                     </Link>
                                                 </Button>
                                                 <Button asChild className="w-full">
-                                                    <Link
-                                                        href={route('business-audit.show')}
-                                                        onClick={() => setMobileOpen(false)}
-                                                    >
+                                                    <Link href={route('business-audit.show')} onClick={() => setMobileOpen(false)}>
                                                         {t('growth_audit', 'Free Audit')}
                                                     </Link>
                                                 </Button>

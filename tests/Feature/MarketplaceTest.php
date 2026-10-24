@@ -68,7 +68,8 @@ test('storefront only lists published products and only the owner can submit lis
             ->has('products.data', 1)
             ->where('products.data.0.slug', 'public-template'));
 
-    $customer = User::factory()->create();
+    config(['business.owner_email' => 'owner@example.test']);
+    $customer = User::factory()->create(['email_verified_at' => now()]);
     $this->actingAs($customer)->post(route('marketplace.submissions.store'), [
         'type' => 'template',
         'name' => 'Customer Product',

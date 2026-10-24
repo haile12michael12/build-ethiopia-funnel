@@ -145,8 +145,10 @@ Route::domain($appDomain)->group(function () {
             ->name('marketplace.checkout.return');
         Route::get('account/orders', [MarketplacePurchaseController::class, 'index'])->name('account.orders.index');
         Route::get('account/orders/{purchase}', [MarketplacePurchaseController::class, 'show'])->name('account.orders.show');
+    });
 
-        Route::middleware('business-owner')->group(function () {
+    Route::middleware(['auth', 'verified', 'business-owner'])->group(function () {
+        Route::get('manage/orders', [MarketplacePurchaseController::class, 'adminIndex'])->name('marketplace.orders.index');
         Route::post('marketplace/contributor-submissions', [MarketplaceController::class, 'submit'])
             ->middleware('throttle:5,60')
             ->name('marketplace.submissions.store');
@@ -470,7 +472,6 @@ Route::domain($appDomain)->group(function () {
         Route::get('site-content/{type}/{entry}/edit', [SiteContentController::class, 'edit'])->name('site-content.edit');
         Route::put('site-content/{type}/{entry}', [SiteContentController::class, 'update'])->name('site-content.update');
         Route::delete('site-content/{type}/{entry}', [SiteContentController::class, 'destroy'])->name('site-content.destroy');
-        });
     });
 
     require __DIR__.'/settings.php';

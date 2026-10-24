@@ -49,11 +49,13 @@ class ClientAcquisitionController extends Controller
 
         return Inertia::render('client-acquisition/index', [
             'services' => SiteContent::query()
+                ->where('user_id', $owner->id)
                 ->where('type', 'service')
                 ->published()
                 ->ordered()
                 ->get(['id', 'title_en', 'title_am', 'summary_en', 'summary_am', 'image', 'slug']),
             'projects' => Project::query()
+                ->where('user_id', $owner->id)
                 ->published()
                 ->featured()
                 ->ordered()

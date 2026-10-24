@@ -9,6 +9,7 @@ uses(RefreshDatabase::class);
 
 test('guests can browse published projects in public portfolio', function () {
     $user = User::factory()->create();
+    config(['business.owner_email' => $user->email]);
 
     $published = Project::factory()->published()->create([
         'user_id' => $user->id,
@@ -31,6 +32,7 @@ test('guests can browse published projects in public portfolio', function () {
 
 test('draft and unpublished projects return 404 to public visitors', function () {
     $user = User::factory()->create();
+    config(['business.owner_email' => $user->email]);
 
     $draft = Project::factory()->draft()->create([
         'user_id' => $user->id,
@@ -42,6 +44,7 @@ test('draft and unpublished projects return 404 to public visitors', function ()
 
 test('scheduled future projects are suppressed from public view', function () {
     $user = User::factory()->create();
+    config(['business.owner_email' => $user->email]);
 
     $futureProject = Project::factory()->create([
         'user_id' => $user->id,
@@ -62,7 +65,8 @@ test('scheduled future projects are suppressed from public view', function () {
 });
 
 test('authenticated owner can preview an unpublished project', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
     $draft = Project::factory()->draft()->create([
         'user_id' => $owner->id,
         'title_en' => 'WIP Automation Engine',
@@ -87,6 +91,7 @@ test('guests cannot preview draft projects', function () {
 
 test('public portfolio supports category filtering and search queries', function () {
     $user = User::factory()->create();
+    config(['business.owner_email' => $user->email]);
 
     Project::factory()->published()->create([
         'user_id' => $user->id,
@@ -121,6 +126,7 @@ test('public portfolio supports category filtering and search queries', function
 
 test('public project detail page displays related projects from the same category', function () {
     $user = User::factory()->create();
+    config(['business.owner_email' => $user->email]);
 
     $main = Project::factory()->published()->create([
         'user_id' => $user->id,

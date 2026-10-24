@@ -21,6 +21,11 @@ class MarketplaceAccessService
             return true;
         }
 
+        return $this->hasPaidPurchase($user, $template);
+    }
+
+    public function hasPaidPurchase(User $user, MarketplaceTemplate $template): bool
+    {
         if ($user->marketplacePurchases()
             ->where('status', 'paid')
             ->where(function ($query) use ($template): void {

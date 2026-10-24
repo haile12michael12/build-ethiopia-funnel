@@ -42,7 +42,7 @@ function createPublishedClientAnalyticsFunnel(User $owner, array $overrides = []
 
 test('public project funnel renders localized choices and default settings', function () {
     $owner = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
 
     $this->withoutVite()
         ->get(route('client-acquisition.show'))
@@ -56,7 +56,7 @@ test('public project funnel renders localized choices and default settings', fun
 
 test('project submission persists explainable scoring, preferences and signed confirmation', function () {
     $owner = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
 
     $response = $this->post(route('client-acquisition.store'), validClientProjectPayload())
         ->assertRedirect();
@@ -91,7 +91,7 @@ test('project submission persists explainable scoring, preferences and signed co
 
 test('repeat project requests update the owner contact while retaining submission history', function () {
     $owner = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
 
     $this->post(route('client-acquisition.store'), validClientProjectPayload())->assertRedirect();
     $this->post(route('client-acquisition.store'), validClientProjectPayload([
@@ -110,7 +110,7 @@ test('repeat project requests update the owner contact while retaining submissio
 
 test('repeat submissions keep original attribution while each submission records its own source', function () {
     $owner = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
 
     $this->post(route('client-acquisition.store'), validClientProjectPayload([
         'attribution' => [
@@ -134,7 +134,7 @@ test('repeat submissions keep original attribution while each submission records
 
 test('saving scoring rules recalculates existing project lead scores', function () {
     $owner = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
     $this->post(route('client-acquisition.store'), validClientProjectPayload())->assertRedirect();
     $contact = $owner->contacts()->where('email', 'selam@example.com')->firstOrFail();
     $previousScore = $contact->lead_score;
@@ -149,7 +149,7 @@ test('saving scoring rules recalculates existing project lead scores', function 
 
 test('project requests reject mismatched markets and invalid option keys', function () {
     $owner = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
 
     $this->post(route('client-acquisition.store'), validClientProjectPayload([
         'market' => 'international',
@@ -163,7 +163,7 @@ test('project requests reject mismatched markets and invalid option keys', funct
 
 test('project funnel records linked experiment assignment on conversion and submission', function () {
     $owner = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
     $funnel = createPublishedClientAnalyticsFunnel($owner);
     $variant = $funnel->variants()->create([
         'name' => 'Alternative hero',
@@ -242,7 +242,7 @@ test('project funnel records linked experiment assignment on conversion and subm
 
 test('an unpublished linked funnel pauses analytics without breaking the public project request', function () {
     $owner = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
     $funnel = createPublishedClientAnalyticsFunnel($owner);
     ClientAcquisitionSettings::query()->create([
         'user_id' => $owner->id,
@@ -275,7 +275,7 @@ test('an unpublished linked funnel pauses analytics without breaking the public 
 test('client acquisition settings remain restricted to the configured owner', function () {
     $owner = User::factory()->create();
     $otherUser = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
 
     $this->actingAs($otherUser)
         ->get(route('client-acquisition.settings.edit'))
@@ -294,7 +294,7 @@ test('settings cannot link analytics to a funnel owned by another user', functio
         'name' => 'Foreign funnel',
         'slug' => 'foreign-funnel',
     ]);
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
 
     $this->actingAs($owner)
         ->put(route('client-acquisition.settings.update'), [
@@ -307,7 +307,8 @@ test('settings cannot link analytics to a funnel owned by another user', functio
 });
 
 test('CRM contact detail includes private project qualification and scoring details for its owner', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
     $contact = $owner->contacts()->create([
         'email' => 'selam@example.com',
         'name' => 'Selam Tesfaye',
@@ -348,7 +349,7 @@ test('CRM contact detail includes private project qualification and scoring deta
 test('signed confirmation cannot expose a different owner or another lead source', function () {
     $owner = User::factory()->create();
     $otherOwner = User::factory()->create();
-    config(['business-audit.owner_id' => $owner->id]);
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
     $privateContact = $otherOwner->contacts()->create([
         'email' => 'private@example.com',
         'source' => 'client_acquisition',

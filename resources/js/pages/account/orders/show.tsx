@@ -15,8 +15,7 @@ interface Order {
         type: string;
         support_information?: string | null;
     } | null;
-    can_download: boolean;
-    download_url: string | null;
+    downloads: Array<{ name: string; url: string }>;
 }
 
 export default function OrderShow({ order }: { order: Order }) {
@@ -43,7 +42,7 @@ export default function OrderShow({ order }: { order: Order }) {
                         </div>
                         <div>
                             <dt className="text-sm text-muted-foreground">Payment reference</dt>
-                            <dd className="mt-1 break-all font-mono text-sm">{order.reference}</dd>
+                            <dd className="mt-1 font-mono text-sm break-all">{order.reference}</dd>
                         </div>
                         <div>
                             <dt className="text-sm text-muted-foreground">Paid on</dt>
@@ -51,13 +50,18 @@ export default function OrderShow({ order }: { order: Order }) {
                         </div>
                     </dl>
 
-                    {order.can_download && order.download_url ? (
-                        <a
-                            href={order.download_url}
-                            className="mt-7 inline-flex rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground"
-                        >
-                            Download your product
-                        </a>
+                    {order.downloads.length > 0 ? (
+                        <div className="mt-7 flex flex-wrap gap-3">
+                            {order.downloads.map((product) => (
+                                <a
+                                    key={product.url}
+                                    href={product.url}
+                                    className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground"
+                                >
+                                    Download {product.name}
+                                </a>
+                            ))}
+                        </div>
                     ) : order.status !== 'paid' ? (
                         <p className="mt-7 rounded-lg bg-muted p-4 text-sm text-muted-foreground">
                             Access will be available after the payment provider confirms your payment. A return page alone does not confirm payment.

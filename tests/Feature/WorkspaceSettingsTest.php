@@ -57,6 +57,7 @@ test('workspace settings are limited to authorized members and valid regional va
     $member = User::factory()->create();
     $workspace = createWorkspaceForSettings($owner);
     $workspace->members()->attach($member->id, ['role' => 'editor']);
+    config(['business.owner_email' => $owner->email]);
 
     $this->actingAs($member)->get(route('workspaces.settings.edit', $workspace))->assertForbidden();
     $this->actingAs($member)->put(route('workspaces.settings.update', $workspace), [

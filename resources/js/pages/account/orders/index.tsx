@@ -51,9 +51,7 @@ export default function OrdersIndex({ orders }: { orders: OrdersPage }) {
                             {orders.data.map((order) => (
                                 <li key={order.id} className="flex flex-wrap items-center justify-between gap-4 p-5">
                                     <div>
-                                        <h2 className="font-semibold">
-                                            {order.product?.name ?? 'Product no longer available'}
-                                        </h2>
+                                        <h2 className="font-semibold">{order.product?.name ?? 'Product no longer available'}</h2>
                                         <p className="mt-1 text-sm text-muted-foreground">
                                             Order {order.reference}
                                             {order.created_at ? ` · ${new Date(order.created_at).toLocaleDateString()}` : ''}
@@ -64,7 +62,7 @@ export default function OrdersIndex({ orders }: { orders: OrdersPage }) {
                                             <p className="font-semibold">
                                                 {order.currency} {(order.amount_minor / 100).toFixed(2)}
                                             </p>
-                                            <p className="text-sm capitalize text-muted-foreground">{order.status}</p>
+                                            <p className="text-sm text-muted-foreground capitalize">{order.status}</p>
                                         </div>
                                         <Link
                                             href={route('account.orders.show', order.id)}

@@ -190,7 +190,7 @@ test('follow-up tasks can be created completed and listed by due view without cr
     $this->actingAs($other)->post(route('follow-up-tasks.store', $contact->id), [
         'title' => 'Unauthorized',
         'due_at' => now()->addHour()->format('Y-m-d\TH:i'),
-    ])->assertNotFound();
+    ])->assertForbidden();
 });
 
 test('lead analytics use actual contacts and opportunity outcomes for the selected period', function () {

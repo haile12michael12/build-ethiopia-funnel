@@ -63,6 +63,8 @@ test('customers cannot access owner management routes but can use their own acco
     $this->actingAs($customer)
         ->get(route('marketplace.review.index'))->assertForbidden();
     $this->actingAs($customer)
+        ->get(route('marketplace.orders.index'))->assertForbidden();
+    $this->actingAs($customer)
         ->post(route('marketplace.submissions.store'), [])->assertForbidden();
 
     $this->actingAs($customer)
@@ -90,6 +92,14 @@ test('the configured existing owner retains access to the business dashboard and
 
     $this->actingAs($owner)->get(route('dashboard'))->assertOk();
     $this->actingAs($owner)->get(route('marketplace.review.index'))->assertOk();
+    $this->actingAs($owner)->get(route('marketplace.orders.index'))->assertOk();
+});
+
+test('owner management access fails closed when the owner email is not configured', function () {
+    config(['business.owner_email' => '']);
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get(route('dashboard'))->assertForbidden();
 });
 
 test('the storefront hides contributor products while retaining curated products', function () {
@@ -114,4 +124,3 @@ test('the storefront hides contributor products while retaining curated products
     $this->get(route('marketplace.show', 'contributor-product'))->assertNotFound();
     $this->get(route('marketplace.show', 'owner-product'))->assertOk();
 });
-

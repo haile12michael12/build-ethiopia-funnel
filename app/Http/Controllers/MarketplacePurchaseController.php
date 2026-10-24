@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MarketplacePurchase;
+use App\Models\MarketplaceTemplate;
 use App\Services\Marketplace\MarketplaceAccessService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -10,6 +11,25 @@ use Inertia\Response;
 
 class MarketplacePurchaseController extends Controller
 {
+    public function adminIndex(): Response
+    {
+        $orders = MarketplacePurchase::query()
+            ->with(['buyer:id,name,email', 'template:id,name,slug,type'])
+            ->latest()
+            ->paginate(20);
+
+        return Inertia::render('marketplace/orders/index', [
+            'orders' => [
+                'data' => $orders->getCollection()->map(fn (MarketplacePurchase $purchase): array => [
+                    ...$this->present($purchase),
+                    'buyer' => $purchase->buyer?->only(['name', 'email']),
+                ])->values(),
+                'links' => $orders->linkCollection()->toArray(),
+                'total' => $orders->total(),
+            ],
+        ]);
+    }
+
     public function index(Request $request): Response
     {
         $orders = $request->user()
@@ -34,20 +54,29 @@ class MarketplacePurchaseController extends Controller
     ): Response {
         $purchase = $request->user()
             ->marketplacePurchases()
-            ->with('template')
+            ->with('template.bundleItems:id,name,slug,type')
             ->findOrFail($purchase->id);
+
+        $downloadableProducts = collect();
+        if ($purchase->status === 'paid' && $purchase->template) {
+            $products = $purchase->template->type === 'bundle'
+                ? $purchase->template->bundleItems->where('type', 'template')
+                : collect([$purchase->template])->where('type', 'template');
+
+            $downloadableProducts = $products
+                ->filter(fn (MarketplaceTemplate $product): bool => $access->hasPaidPurchase($request->user(), $product))
+                ->map(fn (MarketplaceTemplate $product): array => [
+                    'name' => $product->name,
+                    'url' => route('marketplace.download', $product->slug),
+                ])
+                ->values();
+        }
 
         return Inertia::render('account/orders/show', [
             'order' => [
                 ...$this->present($purchase),
                 'product' => $purchase->template?->only(['name', 'slug', 'type', 'support_information']),
-                'can_download' => $purchase->template !== null
-                    && $purchase->template->type === 'template'
-                    && $access->hasAccess($request->user(), $purchase->template),
-                'download_url' => $purchase->template?->type === 'template'
-                    && $access->hasAccess($request->user(), $purchase->template)
-                        ? route('marketplace.download', $purchase->template->slug)
-                        : null,
+                'downloads' => $downloadableProducts,
             ],
         ]);
     }

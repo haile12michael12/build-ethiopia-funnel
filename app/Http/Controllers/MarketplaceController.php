@@ -9,7 +9,6 @@ use App\Models\Workspace;
 use App\Services\Marketplace\ChapaPaymentGateway;
 use App\Services\Marketplace\MarketplaceAccessService;
 use App\Services\Marketplace\MarketplacePurchaseService;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -32,7 +31,7 @@ class MarketplaceController extends Controller
             'sort' => ['nullable', Rule::in(['relevance', 'newest', 'price_asc', 'price_desc'])],
         ]);
 
-        $products = $this->businessStoreProducts()
+        $products = MarketplaceTemplate::query()->businessStore()
             ->where('status', 'published')
             ->with('owner:id,name')
             ->when($filters['search'] ?? null, function ($query, string $search): void {
@@ -77,7 +76,7 @@ class MarketplaceController extends Controller
                 'currency' => $filters['currency'] ?? '',
                 'sort' => $filters['sort'] ?? 'relevance',
             ],
-            'categories' => $this->businessStoreProducts()->where('status', 'published')
+            'categories' => MarketplaceTemplate::query()->businessStore()->where('status', 'published')
                 ->whereNotNull('category')->distinct()->orderBy('category')->pluck('category'),
             'canReview' => $this->canReview($request->user()),
             'authenticated' => (bool) $request->user(),
@@ -241,7 +240,7 @@ class MarketplaceController extends Controller
         abort_unless($this->canReview($request->user()), 403);
 
         return Inertia::render('marketplace/review', [
-            'products' => $this->businessStoreProducts()->with(['owner:id,name,email', 'workspace:id,name'])->withCount('bundleItems')->latest()->get()->map(fn (MarketplaceTemplate $product): array => [
+            'products' => MarketplaceTemplate::query()->businessStore()->with(['owner:id,name,email', 'workspace:id,name'])->withCount('bundleItems')->latest()->get()->map(fn (MarketplaceTemplate $product): array => [
                 ...$this->present($product),
                 'owner' => $product->owner?->only(['name', 'email']),
                 'workspace' => $product->workspace?->name,
@@ -249,7 +248,7 @@ class MarketplaceController extends Controller
                 'revenue_share_percent' => $product->contributor_revenue_share_percent,
                 'bundle_item_count' => $product->bundle_items_count,
             ]),
-            'bundleOptions' => $this->businessStoreProducts()->where('status', 'published')->where('type', 'template')
+            'bundleOptions' => MarketplaceTemplate::query()->businessStore()->where('status', 'published')->where('type', 'template')
                 ->get(['id', 'name'])->map(fn (MarketplaceTemplate $template): array => $template->only(['id', 'name'])),
         ]);
     }
@@ -287,7 +286,7 @@ class MarketplaceController extends Controller
         }
 
         $bundleIds = array_values(array_unique($validated['bundle_template_ids'] ?? []));
-        if ($bundleIds !== [] && $this->businessStoreProducts()->whereIn('id', $bundleIds)->count() !== count($bundleIds)) {
+        if ($bundleIds !== [] && MarketplaceTemplate::query()->businessStore()->whereIn('id', $bundleIds)->count() !== count($bundleIds)) {
             throw ValidationException::withMessages([
                 'bundle_template_ids' => 'Bundles may only contain products from this storefront.',
             ]);
@@ -422,8 +421,15 @@ class MarketplaceController extends Controller
 
     public function download(Request $request, MarketplaceTemplate $template)
     {
-        abort_unless($template->status === 'published' || $template->owner_id === $request->user()->id, 404);
-        abort_unless(app(MarketplaceAccessService::class)->hasAccess($request->user(), $template), 403);
+        $access = app(MarketplaceAccessService::class);
+        $hasAccess = $access->hasAccess($request->user(), $template);
+        $hasPaidPurchase = $access->hasPaidPurchase($request->user(), $template);
+        abort_unless(
+            $template->owner_id === $request->user()->id
+            || ($template->status === 'published' && $hasAccess)
+            || $hasPaidPurchase,
+            403,
+        );
         abort_unless($template->type === 'template' && $template->file_path, 404);
         abort_unless(Storage::disk('local')->exists($template->file_path), 404);
 
@@ -435,41 +441,9 @@ class MarketplaceController extends Controller
         return $user?->isBusinessOwner() ?? false;
     }
 
-    private function businessStoreProducts(): Builder
-    {
-        $ownerId = $this->businessOwnerId();
-
-        return MarketplaceTemplate::query()->where(function (Builder $query) use ($ownerId): void {
-            $query->where(function (Builder $query): void {
-                $query->whereNull('owner_id')->whereNull('workspace_id');
-            });
-
-            if ($ownerId !== null) {
-                $query->orWhere('owner_id', $ownerId);
-            }
-        });
-    }
-
     private function isBusinessStoreProduct(MarketplaceTemplate $template): bool
     {
-        $ownerId = $this->businessOwnerId();
-
-        return ($template->owner_id === null && $template->workspace_id === null)
-            || ($ownerId !== null && $template->owner_id === $ownerId);
-    }
-
-    private function businessOwnerId(): ?int
-    {
-        $email = config('business.owner_email');
-        if (! is_string($email) || trim($email) === '') {
-            return null;
-        }
-
-        $id = User::query()
-            ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($email))])
-            ->value('id');
-
-        return $id === null ? null : (int) $id;
+        return MarketplaceTemplate::query()->businessStore()->whereKey($template->id)->exists();
     }
 
     private function authorizeListingManagement(Request $request, MarketplaceTemplate $template): void

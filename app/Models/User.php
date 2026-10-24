@@ -49,6 +49,18 @@ class User extends Authenticatable
             && hash_equals(mb_strtolower(trim($ownerEmail)), mb_strtolower($this->email));
     }
 
+    public static function configuredBusinessOwner(): ?self
+    {
+        $ownerEmail = config('business.owner_email');
+        if (! is_string($ownerEmail) || trim($ownerEmail) === '') {
+            return null;
+        }
+
+        return static::query()
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($ownerEmail))])
+            ->first();
+    }
+
     /**
      * Get the attributes that should be cast.
      *

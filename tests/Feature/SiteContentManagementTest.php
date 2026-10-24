@@ -13,7 +13,8 @@ test('guests cannot access site content management', function () {
 });
 
 test('users can create bilingual content with SEO metadata and publish it', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $user->email]);
 
     $this->actingAs($user)->post(route('site-content.store', 'service'), [
         'title_en' => 'Custom software engineering',
@@ -37,7 +38,8 @@ test('users can create bilingual content with SEO metadata and publish it', func
 });
 
 test('users cannot edit or delete another users content', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
     $otherUser = User::factory()->create();
     $content = SiteContent::query()->create([
         'user_id' => $owner->id,
@@ -50,16 +52,17 @@ test('users cannot edit or delete another users content', function () {
 
     $this->actingAs($otherUser)
         ->get(route('site-content.edit', ['type' => 'blog', 'entry' => $content->id]))
-        ->assertNotFound();
+        ->assertForbidden();
     $this->actingAs($otherUser)
         ->delete(route('site-content.destroy', ['type' => 'blog', 'entry' => $content->id]))
-        ->assertNotFound();
+        ->assertForbidden();
 
     $this->assertDatabaseHas('site_contents', ['id' => $content->id]);
 });
 
 test('public blog only renders published entries and supports bilingual pages', function () {
     $user = User::factory()->create();
+    config(['business.owner_email' => $user->email]);
     $article = SiteContent::query()->create([
         'user_id' => $user->id,
         'type' => 'blog',
@@ -131,7 +134,8 @@ test('public blog only renders published entries and supports bilingual pages', 
 });
 
 test('site content admin lists are restricted to the selected type and owner', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $user->email]);
     SiteContent::query()->create([
         'user_id' => $user->id,
         'type' => 'service',
@@ -169,6 +173,7 @@ test('site content admin lists are restricted to the selected type and owner', f
 
 test('public services and homepage use only published CMS entries', function () {
     $user = User::factory()->create();
+    config(['business.owner_email' => $user->email]);
     SiteContent::query()->create([
         'user_id' => $user->id,
         'type' => 'service',

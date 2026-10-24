@@ -89,9 +89,5 @@ test('developer analytics summarize recorded events and verified marketplace pur
 
     $anotherUser = User::factory()->create();
     $this->actingAs($anotherUser)->get(route('developer-analytics.index'))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->where('metrics.unique_visitors', 0)
-            ->where('metrics.paid_purchases', 0)
-            ->where('revenue', []));
+        ->assertForbidden();
 });

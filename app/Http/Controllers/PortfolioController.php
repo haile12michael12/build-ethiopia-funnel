@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,8 +18,10 @@ class PortfolioController extends Controller
         $search = $request->string('search')->trim()->value();
         $category = $request->string('category')->trim()->value();
         $tech = $request->string('tech')->trim()->value();
+        $ownerId = User::configuredBusinessOwner()?->id ?? 0;
 
         $featured = Project::query()
+            ->where('user_id', $ownerId)
             ->published()
             ->featured()
             ->ordered()
@@ -26,6 +29,7 @@ class PortfolioController extends Controller
             ->get();
 
         $projects = Project::query()
+            ->where('user_id', $ownerId)
             ->published()
             ->when($search, fn ($q) => $q->search($search))
             ->when($category && $category !== 'all', fn ($q) => $q->filterCategory($category))
@@ -52,6 +56,7 @@ class PortfolioController extends Controller
     public function show(Project $project): Response
     {
         abort_unless(
+            $project->user_id === (User::configuredBusinessOwner()?->id ?? 0) &&
             $project->is_published &&
             $project->status === 'published' &&
             $project->published_at !== null &&
@@ -61,6 +66,7 @@ class PortfolioController extends Controller
         );
 
         $relatedProjects = Project::query()
+            ->where('user_id', $project->user_id)
             ->published()
             ->where('id', '!=', $project->id)
             ->where('category', $project->category)

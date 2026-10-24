@@ -18,7 +18,8 @@ beforeEach(function () {
 });
 
 test('workspace invitations assign scoped roles and only the invited email can accept', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
     $invitee = User::factory()->create(['email' => 'editor@example.com']);
     $workspace = Workspace::query()->create([
         'owner_id' => $owner->id,
@@ -40,19 +41,15 @@ test('workspace invitations assign scoped roles and only the invited email can a
         ->assertForbidden();
 
     $this->actingAs($invitee)->get(route('workspaces.invitations.show', $token))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('workspaces/accept')
-            ->where('workspace', 'Product Team')
-            ->where('role', 'editor'));
+        ->assertForbidden();
     $this->actingAs($invitee)->post(route('workspaces.invitations.accept', $token))
-        ->assertRedirect(route('workspaces.index'));
+        ->assertForbidden();
 
-    expect($workspace->fresh()->members()->whereKey($invitee->id)->firstOrFail()->pivot->role)->toBe('editor')
-        ->and($workspace->invitations()->firstOrFail()->accepted_at)->not->toBeNull();
+    expect($workspace->fresh()->members()->whereKey($invitee->id)->exists())->toBeFalse()
+        ->and($workspace->invitations()->firstOrFail()->accepted_at)->toBeNull();
 });
 
-test('workspace admins cannot grant admin role and viewers cannot submit workspace templates', function () {
+test('workspace roles cannot grant customers access to management or product submission routes', function () {
     $owner = User::factory()->create();
     $admin = User::factory()->create();
     $viewer = User::factory()->create();
@@ -92,11 +89,11 @@ test('workspace admins cannot grant admin role and viewers cannot submit workspa
         'version' => '1.0.0',
         'license' => 'Team use',
         'workspace_id' => $workspace->id,
-    ])->assertRedirect(route('marketplace.index'));
+    ])->assertForbidden();
     $this->actingAs($viewer)->get(route('marketplace.index'))
         ->assertInertia(fn ($page) => $page
-            ->where('mySubmissions.0.name', 'Workspace starter')
-            ->where('mySubmissions.0.workspace', 'Roles Team'));
+            ->has('mySubmissions', 0)
+            ->has('workspaces', 0));
 });
 
 test('workspace members can access approved workspace template artifacts', function () {
@@ -131,7 +128,8 @@ test('workspace members can access approved workspace template artifacts', funct
 
 test('developer ai recommendations are queued with minimized inputs then held for human review', function () {
     Queue::fake();
-    $user = User::factory()->create();
+    $user = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $user->email]);
     $funnel = $user->funnels()->create([
         'slug' => 'developer-quiz',
         'name' => 'Developer quiz',
@@ -185,7 +183,8 @@ test('developer ai recommendations are queued with minimized inputs then held fo
 });
 
 test('ai recommendation requests are restricted to the contact owner and developer leads', function () {
-    $owner = User::factory()->create();
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
     $other = User::factory()->create();
     $contact = $owner->contacts()->create([
         'email' => 'ordinary@example.com',

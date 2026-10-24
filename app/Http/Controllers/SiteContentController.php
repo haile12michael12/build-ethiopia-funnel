@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MarketplaceTemplate;
+use App\Models\Project;
 use App\Models\SiteContent;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -112,39 +116,72 @@ class SiteContentController extends Controller
     public function services(): Response
     {
         return Inertia::render('services', [
-            'services' => SiteContent::query()->where('type', 'service')->published()->ordered()->get(),
-            'seoPage' => SiteContent::query()->where('type', 'page')->where('slug', 'services')->published()->first(),
+            'services' => $this->businessContent('service')->published()->ordered()->get(),
+            'seoPage' => $this->businessContent('page')->where('slug', 'services')->published()->first(),
         ]);
     }
 
     public function home(): Response
     {
-        $homePage = SiteContent::query()->where('type', 'page')->where('slug', 'home')->published()->first();
+        $homePage = $this->businessContent('page')->where('slug', 'home')->published()->first();
         if ($homePage) {
             return Inertia::render('site-content/show', ['content' => $homePage]);
         }
 
-        return Inertia::render('welcome', ['testimonials' => $this->homeTestimonials()]);
+        $ownerId = User::configuredBusinessOwner()?->id ?? 0;
+
+        return Inertia::render('welcome', [
+            'services' => $this->businessContent('service')
+                ->published()
+                ->ordered()
+                ->limit(4)
+                ->get(['id', 'title_en', 'title_am', 'summary_en', 'summary_am', 'slug']),
+            'projects' => Project::query()
+                ->where('user_id', $ownerId)
+                ->published()
+                ->featured()
+                ->ordered()
+                ->limit(3)
+                ->get(['id', 'title_en', 'title_am', 'slug', 'summary_en', 'summary_am', 'cover_image']),
+            'products' => MarketplaceTemplate::query()
+                ->businessStore()
+                ->where('status', 'published')
+                ->orderBy('name')
+                ->limit(3)
+                ->get(['id', 'slug', 'name', 'description', 'amount_minor', 'currency', 'preview_images'])
+                ->map(fn (MarketplaceTemplate $product): array => [
+                    'id' => $product->id,
+                    'slug' => $product->slug,
+                    'name' => $product->name,
+                    'description' => $product->description,
+                    'amount_minor' => $product->amount_minor,
+                    'currency' => $product->currency,
+                    'image' => isset($product->preview_images[0])
+                        ? Storage::disk('public')->url($product->preview_images[0])
+                        : null,
+                ]),
+            'testimonials' => $this->homeTestimonials(),
+        ]);
     }
 
     public function blog(): Response
     {
         return Inertia::render('blog', [
-            'articles' => SiteContent::query()->where('type', 'blog')->published()->ordered()->paginate(10),
-            'seoPage' => SiteContent::query()->where('type', 'page')->where('slug', 'blog')->published()->first(),
+            'articles' => $this->businessContent('blog')->published()->ordered()->paginate(10),
+            'seoPage' => $this->businessContent('page')->where('slug', 'blog')->published()->first(),
         ]);
     }
 
     public function blogShow(SiteContent $content): Response
     {
-        abort_unless($content->type === 'blog' && $this->isPublished($content), 404);
+        abort_unless($this->isBusinessContent($content) && $content->type === 'blog' && $this->isPublished($content), 404);
 
         return Inertia::render('site-content/show', ['content' => $content]);
     }
 
     public function namedPage(string $slug): Response
     {
-        $content = SiteContent::query()->where('type', 'page')->where('slug', $slug)->published()->first();
+        $content = $this->businessContent('page')->where('slug', $slug)->published()->first();
         if ($content) {
             return Inertia::render('site-content/show', ['content' => $content]);
         }
@@ -156,14 +193,26 @@ class SiteContentController extends Controller
 
     public function page(SiteContent $content): Response
     {
-        abort_unless($content->type === 'page' && $this->isPublished($content), 404);
+        abort_unless($this->isBusinessContent($content) && $content->type === 'page' && $this->isPublished($content), 404);
 
         return Inertia::render('site-content/show', ['content' => $content]);
     }
 
     public function homeTestimonials(): array
     {
-        return SiteContent::query()->where('type', 'testimonial')->published()->ordered()->get()->all();
+        return $this->businessContent('testimonial')->published()->ordered()->get()->all();
+    }
+
+    private function businessContent(string $type): Builder
+    {
+        return SiteContent::query()
+            ->where('user_id', User::configuredBusinessOwner()?->id ?? 0)
+            ->where('type', $type);
+    }
+
+    private function isBusinessContent(SiteContent $content): bool
+    {
+        return $content->user_id === (User::configuredBusinessOwner()?->id ?? 0);
     }
 
     private function validatedContent(Request $request, string $type, ?SiteContent $content = null): array

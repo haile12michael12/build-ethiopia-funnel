@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -47,6 +48,21 @@ class MarketplaceTemplate extends Model
             'compatibility' => 'array',
             'contributor_revenue_share_percent' => 'decimal:2',
         ];
+    }
+
+    public function scopeBusinessStore(Builder $query): Builder
+    {
+        $ownerId = User::configuredBusinessOwner()?->id;
+
+        return $query->where(function (Builder $query) use ($ownerId): void {
+            $query->where(function (Builder $query): void {
+                $query->whereNull('owner_id')->whereNull('workspace_id');
+            });
+
+            if ($ownerId !== null) {
+                $query->orWhere('owner_id', $ownerId);
+            }
+        });
     }
 
     public function owner(): BelongsTo

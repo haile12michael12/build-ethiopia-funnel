@@ -1,89 +1,80 @@
 import PublicLayout from '@/layouts/public-layout';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Head, Link } from '@inertiajs/react';
-import {
-    Code2,
-    Globe2,
-    ShieldCheck,
-    Sparkles,
-} from 'lucide-react';
+import { ArrowRight, Code2, Layers3, Sparkles } from 'lucide-react';
+
+const approach = [
+    {
+        title: 'Understand the need',
+        description: 'Clarify the business goal, users, constraints, and what a useful result should do.',
+        icon: Layers3,
+    },
+    {
+        title: 'Build the right solution',
+        description: 'Develop software, AI integrations, or workflow automation that fits the agreed requirements.',
+        icon: Code2,
+    },
+    {
+        title: 'Review and hand over',
+        description: 'Test the work, explain how it operates, and agree on any next steps.',
+        icon: Sparkles,
+    },
+];
 
 export default function About() {
     return (
         <PublicLayout>
-            <Head title="About Our Engineering Agency - Hailab" />
-
-            {/* Hero */}
-            <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-b from-card/80 to-background py-16 sm:py-24">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-                    <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary mb-6">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        <span>About Hailab</span>
-                    </div>
-
-                    <h1 className="mx-auto max-w-4xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
-                        We Engineer High-Impact Software For Growing Enterprises
-                    </h1>
-
-                    <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-                        Based in Addis Ababa and delivering globally, we bridge cutting-edge artificial intelligence with rock-solid Laravel & React engineering to solve complex business bottlenecks.
-                    </p>
-                </div>
-            </section>
-
-            {/* Core Values */}
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
-                        <div className="rounded-xl bg-primary/10 p-3 text-primary w-fit">
-                            <Code2 className="h-6 w-6" />
-                        </div>
-                        <h3 className="text-xl font-bold text-foreground">Architectural Excellence</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                            We don't cut corners on software foundations. We write strictly typed, test-backed, and security-hardened code designed to scale gracefully under real traffic.
+            <Head title="About Hailab" />
+            <main>
+                <section className="border-b border-border/60 bg-gradient-to-b from-card/80 to-background py-16 sm:py-24">
+                    <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+                        <p className="text-sm font-semibold tracking-wide text-primary">About Hailab</p>
+                        <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
+                            Software and automation built around your business needs
+                        </h1>
+                        <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
+                            Hailab is a single-owner software business offering web application development, AI integrations, workflow automation, and
+                            digital products for clients in Ethiopia and internationally.
                         </p>
                     </div>
+                </section>
 
-                    <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
-                        <div className="rounded-xl bg-primary/10 p-3 text-primary w-fit">
-                            <ShieldCheck className="h-6 w-6" />
-                        </div>
-                        <h3 className="text-xl font-bold text-foreground">Security & Reliability</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                            From data encryption and role-based policies to webhook idempotency and SSRF defenses, our production deployments meet strict enterprise standards.
-                        </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-border bg-card p-6 space-y-3">
-                        <div className="rounded-xl bg-primary/10 p-3 text-primary w-fit">
-                            <Globe2 className="h-6 w-6" />
-                        </div>
-                        <h3 className="text-xl font-bold text-foreground">Bilingual & Local Context</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                            We build native solutions that embrace local ecosystems (such as Amharic localization and Ethiopian payment gateways) while upholding international engineering standards.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Team / Mission Section */}
-                <div className="mt-20 rounded-2xl border border-border bg-card p-8 sm:p-12">
-                    <div className="max-w-3xl space-y-6">
-                        <Badge variant="outline">Our Mission</Badge>
-                        <h2 className="text-3xl font-bold text-foreground">
-                            Democratizing intelligent software and conversion engineering
+                <section aria-labelledby="approach-heading" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+                    <div className="max-w-2xl">
+                        <p className="text-sm font-semibold text-primary">Working approach</p>
+                        <h2 id="approach-heading" className="mt-2 text-3xl font-bold text-foreground">
+                            Clear steps from requirements to handoff
                         </h2>
-                        <p className="text-muted-foreground leading-relaxed">
-                            Hailab began with a singular focus: to equip creators, startups, and growing enterprises with world-class funnel building, customer relationship pipelines, and automated intelligence without the bloated costs and constraints of proprietary platforms.
+                    </div>
+                    <div className="mt-8 grid gap-6 md:grid-cols-3">
+                        {approach.map(({ title, description, icon: Icon }) => (
+                            <article key={title} className="rounded-2xl border border-border bg-card p-6">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <Icon className="h-5 w-5" aria-hidden="true" />
+                                </div>
+                                <h3 className="mt-4 text-lg font-semibold text-foreground">{title}</h3>
+                                <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+                            </article>
+                        ))}
+                    </div>
+                    <div className="mt-10 rounded-2xl border border-border bg-card p-6 sm:p-8">
+                        <h2 className="text-2xl font-bold text-foreground">Explore the work</h2>
+                        <p className="mt-2 text-muted-foreground">
+                            Browse published projects and digital products, or send a project inquiry to discuss a specific requirement.
                         </p>
-                        <div className="pt-2">
-                            <Button asChild>
-                                <Link href={route('portfolio.index')}>Explore Our Work</Link>
-                            </Button>
+                        <div className="mt-5 flex flex-wrap gap-3">
+                            <Link href={route('portfolio.index')} className="rounded-md border border-border px-4 py-2 font-medium hover:bg-muted">
+                                Portfolio
+                            </Link>
+                            <Link
+                                href={route('client-acquisition.show')}
+                                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground"
+                            >
+                                Start a project inquiry <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                            </Link>
                         </div>
                     </div>
-                </div>
-            </div>
+                </section>
+            </main>
         </PublicLayout>
     );
 }

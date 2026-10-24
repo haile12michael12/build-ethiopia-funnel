@@ -20,7 +20,17 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('account.orders.index', absolute: false));
+});
+
+test('the configured owner is redirected to the administrator dashboard after login', function () {
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
+
+    $this->post('/login', [
+        'email' => $owner->email,
+        'password' => 'password',
+    ])->assertRedirect(route('dashboard', absolute: false));
 });
 
 test('users can not authenticate with invalid password', function () {
