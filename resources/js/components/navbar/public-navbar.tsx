@@ -18,6 +18,7 @@ import {
     Layers,
     Menu,
     Newspaper,
+    ShoppingBag,
     Sparkles,
     Workflow,
     Zap,
@@ -139,6 +140,17 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                 }`}
                             >
                                 {t('portfolio', 'Work & Portfolio')}
+                            </Link>
+
+                            <Link
+                                href={route('marketplace.index')}
+                                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                                    currentUrl.startsWith('/marketplace')
+                                        ? 'text-primary font-semibold'
+                                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                }`}
+                            >
+                                Products
                             </Link>
 
                             {/* Services Mega Menu Dropdown */}
@@ -449,17 +461,29 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                         {/* Auth / CTA Buttons */}
                         <div className="hidden sm:flex items-center gap-2">
                             {auth.user ? (
-                                <Button asChild size="sm" variant="outline">
-                                    <Link href={route('dashboard')}>
-                                        {t('dashboard', 'Dashboard')}
-                                    </Link>
-                                </Button>
+                                auth.is_business_owner ? (
+                                    <Button asChild size="sm" variant="outline">
+                                        <Link href={route('dashboard')}>Admin Dashboard</Link>
+                                    </Button>
+                                ) : (
+                                    <>
+                                        <Button asChild size="sm" variant="outline">
+                                            <Link href={route('account.orders.index')}>My Account / Orders</Link>
+                                        </Button>
+                                        <Button size="sm" variant="ghost" onClick={() => router.post(route('logout'))}>
+                                            Log out
+                                        </Button>
+                                    </>
+                                )
                             ) : (
                                 <>
                                     <Button asChild size="sm" variant="ghost">
                                         <Link href={route('login')}>
                                             {t('sign_in', 'Sign In')}
                                         </Link>
+                                    </Button>
+                                    <Button asChild size="sm" variant="ghost">
+                                        <Link href={route('register')}>Register</Link>
                                     </Button>
                                     <Button asChild size="sm" variant="outline">
                                         <Link href={route('client-acquisition.show')}>
@@ -527,6 +551,13 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 }`}
                                             >
                                                 {t('portfolio', 'Work & Portfolio')}
+                                            </Link>
+                                            <Link
+                                                href={route('marketplace.index')}
+                                                onClick={() => setMobileOpen(false)}
+                                                className="rounded-lg px-3 py-2.5 text-base font-medium text-foreground transition-colors hover:bg-muted"
+                                            >
+                                                Products
                                             </Link>
 
                                             {/* Mobile Services Accordion */}
@@ -690,16 +721,34 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                         </div>
 
                                         {auth.user ? (
-                                            <Button asChild className="w-full">
-                                                <Link href={route('dashboard')} onClick={() => setMobileOpen(false)}>
-                                                    {t('dashboard', 'Dashboard')}
-                                                </Link>
-                                            </Button>
+                                            auth.is_business_owner ? (
+                                                <Button asChild className="w-full">
+                                                    <Link href={route('dashboard')} onClick={() => setMobileOpen(false)}>
+                                                        Admin Dashboard
+                                                    </Link>
+                                                </Button>
+                                            ) : (
+                                                <div className="grid gap-2">
+                                                    <Button asChild className="w-full">
+                                                        <Link href={route('account.orders.index')} onClick={() => setMobileOpen(false)}>
+                                                            My Account / Orders
+                                                        </Link>
+                                                    </Button>
+                                                    <Button variant="outline" className="w-full" onClick={() => router.post(route('logout'))}>
+                                                        Log out
+                                                    </Button>
+                                                </div>
+                                            )
                                         ) : (
                                             <div className="grid grid-cols-2 gap-2">
                                                 <Button asChild variant="outline" className="w-full">
                                                     <Link href={route('login')} onClick={() => setMobileOpen(false)}>
                                                         {t('sign_in', 'Sign In')}
+                                                    </Link>
+                                                </Button>
+                                                <Button asChild variant="outline" className="w-full">
+                                                    <Link href={route('register')} onClick={() => setMobileOpen(false)}>
+                                                        Register
                                                     </Link>
                                                 </Button>
                                                 <Button asChild className="w-full">

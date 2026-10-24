@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->validateCsrfTokens(except: ['marketplace/chapa/webhook']);
+        $middleware->alias([
+            'business-owner' => \App\Http\Middleware\EnsureBusinessOwner::class,
+        ]);
 
         $middleware->web(append: [
             HandleAppearance::class,

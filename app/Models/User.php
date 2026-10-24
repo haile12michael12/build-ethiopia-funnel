@@ -40,6 +40,15 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    public function isBusinessOwner(): bool
+    {
+        $ownerEmail = config('business.owner_email');
+
+        return is_string($ownerEmail)
+            && trim($ownerEmail) !== ''
+            && hash_equals(mb_strtolower(trim($ownerEmail)), mb_strtolower($this->email));
+    }
+
     /**
      * Get the attributes that should be cast.
      *

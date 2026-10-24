@@ -57,7 +57,7 @@ beforeEach(function () {
     Storage::fake('local');
 });
 
-test('marketplace catalog only lists published products and contributor submissions await review', function () {
+test('storefront only lists published products and only the owner can submit listings', function () {
     marketplaceTemplate(['slug' => 'public-template']);
     marketplaceTemplate(['slug' => 'private-template', 'status' => 'pending_review']);
 
@@ -68,7 +68,20 @@ test('marketplace catalog only lists published products and contributor submissi
             ->has('products.data', 1)
             ->where('products.data.0.slug', 'public-template'));
 
-    $owner = User::factory()->create();
+    $customer = User::factory()->create();
+    $this->actingAs($customer)->post(route('marketplace.submissions.store'), [
+        'type' => 'template',
+        'name' => 'Customer Product',
+        'description' => 'A customer must not manage the catalog.',
+        'tech_stack' => ['React'],
+        'included_modules' => ['authentication'],
+        'version' => '1.0.0',
+        'license' => 'Personal use',
+    ])->assertForbidden();
+    expect(MarketplaceTemplate::query()->where('name', 'Customer Product')->exists())->toBeFalse();
+
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
     $this->actingAs($owner)->post(route('marketplace.submissions.store'), [
         'type' => 'template',
         'name' => 'Contributor Starter',
@@ -292,13 +305,13 @@ test('membership checkout remains explicitly disabled until recurring billing is
 });
 
 test('reviewers must explicitly publish listings and private template artifacts are required', function () {
-    $reviewer = User::factory()->create(['email' => 'reviewer@example.test']);
+    $reviewer = User::factory()->create(['email' => 'owner@example.test']);
     $template = marketplaceTemplate([
         'slug' => 'awaiting-artifact',
         'status' => 'pending_review',
         'file_path' => null,
     ]);
-    config(['marketplace.reviewer_emails' => ['reviewer@example.test']]);
+    config(['business.owner_email' => $reviewer->email]);
 
     $this->actingAs($reviewer)->put(route('marketplace.review.update', $template), [
         'status' => 'published',
@@ -357,8 +370,9 @@ test('marketplace filters only search published listings and retain pagination s
             ->where('filters.price', 'paid'));
 });
 
-test('contributors can update only their own listing and changes return it to review', function () {
-    $owner = User::factory()->create();
+test('only the business owner can update a storefront listing', function () {
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
     $other = User::factory()->create();
     $product = marketplaceTemplate([
         'owner_id' => $owner->id,
@@ -366,10 +380,10 @@ test('contributors can update only their own listing and changes return it to re
         'category' => 'development',
     ]);
 
-    $this->actingAs($other)->get(route('marketplace.contributor-listings.edit', $product))->assertNotFound();
+    $this->actingAs($other)->get(route('marketplace.contributor-listings.edit', $product))->assertForbidden();
     $this->actingAs($other)->put(route('marketplace.contributor-listings.update', $product), [
         'name' => 'Unauthorized update',
-    ])->assertNotFound();
+    ])->assertForbidden();
 
     $this->actingAs($owner)->put(route('marketplace.contributor-listings.update', $product), [
         'name' => 'Updated Toolkit',
@@ -393,11 +407,9 @@ test('contributors can update only their own listing and changes return it to re
         ->and($product->fresh()->amount_minor)->toBe(12500);
 });
 
-test('purchase records preserve the accepted license and currency-specific revenue split', function () {
+test('storefront purchase records preserve the accepted license and server-configured price', function () {
     $buyer = User::factory()->create();
-    $creator = User::factory()->create();
     $product = marketplaceTemplate([
-        'owner_id' => $creator->id,
         'slug' => 'creator-paid-product',
         'license' => 'Agency use',
         'license_terms' => 'Use within one agency organization.',
@@ -417,8 +429,8 @@ test('purchase records preserve the accepted license and currency-specific reven
     expect($purchase->license_snapshot)->toBe('Agency use')
         ->and($purchase->license_terms_snapshot)->toBe('Use within one agency organization.')
         ->and($purchase->currency)->toBe('ETB')
-        ->and($purchase->contributor_share_amount_minor)->toBe(8750)
-        ->and($purchase->platform_commission_amount_minor)->toBe(3750)
+        ->and($purchase->contributor_share_amount_minor)->toBe(0)
+        ->and($purchase->platform_commission_amount_minor)->toBe(12500)
         ->and($purchase->amount_minor)->toBe(
             $purchase->contributor_share_amount_minor + $purchase->platform_commission_amount_minor,
         );

@@ -33,7 +33,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $destination = $request->user()->isBusinessOwner()
+            ? route('dashboard', absolute: false)
+            : route('account.orders.index', absolute: false);
+
+        return redirect()->intended($destination);
     }
 
     /**

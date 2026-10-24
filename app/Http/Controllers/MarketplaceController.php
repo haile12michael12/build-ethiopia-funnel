@@ -9,6 +9,7 @@ use App\Models\Workspace;
 use App\Services\Marketplace\ChapaPaymentGateway;
 use App\Services\Marketplace\MarketplaceAccessService;
 use App\Services\Marketplace\MarketplacePurchaseService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -31,7 +32,7 @@ class MarketplaceController extends Controller
             'sort' => ['nullable', Rule::in(['relevance', 'newest', 'price_asc', 'price_desc'])],
         ]);
 
-        $products = MarketplaceTemplate::query()
+        $products = $this->businessStoreProducts()
             ->where('status', 'published')
             ->with('owner:id,name')
             ->when($filters['search'] ?? null, function ($query, string $search): void {
@@ -76,11 +77,11 @@ class MarketplaceController extends Controller
                 'currency' => $filters['currency'] ?? '',
                 'sort' => $filters['sort'] ?? 'relevance',
             ],
-            'categories' => MarketplaceTemplate::query()->where('status', 'published')
+            'categories' => $this->businessStoreProducts()->where('status', 'published')
                 ->whereNotNull('category')->distinct()->orderBy('category')->pluck('category'),
             'canReview' => $this->canReview($request->user()),
             'authenticated' => (bool) $request->user(),
-            'mySubmissions' => $request->user()
+            'mySubmissions' => $request->user()?->isBusinessOwner()
                 ? MarketplaceTemplate::query()
                     ->with('workspace:id,name')
                     ->where(function ($query) use ($request): void {
@@ -100,7 +101,7 @@ class MarketplaceController extends Controller
                             || in_array($product->workspace?->roleFor($request->user()), ['owner', 'admin', 'editor'], true),
                     ])
                 : [],
-            'workspaces' => $request->user()
+            'workspaces' => $request->user()?->isBusinessOwner()
                 ? Workspace::query()
                     ->where('owner_id', $request->user()->id)
                     ->orWhereHas('members', fn ($query) => $query->whereKey($request->user()->id)
@@ -113,7 +114,7 @@ class MarketplaceController extends Controller
 
     public function show(Request $request, MarketplaceTemplate $template): Response
     {
-        abort_unless($template->status === 'published', 404);
+        abort_unless($template->status === 'published' && $this->isBusinessStoreProduct($template), 404);
 
         $template->load(['owner:id,name', 'bundleItems:id,name,slug,type,amount_minor,currency']);
         $access = $request->user() && app(MarketplaceAccessService::class)->hasAccess($request->user(), $template);
@@ -240,7 +241,7 @@ class MarketplaceController extends Controller
         abort_unless($this->canReview($request->user()), 403);
 
         return Inertia::render('marketplace/review', [
-            'products' => MarketplaceTemplate::query()->with(['owner:id,name,email', 'workspace:id,name'])->withCount('bundleItems')->latest()->get()->map(fn (MarketplaceTemplate $product): array => [
+            'products' => $this->businessStoreProducts()->with(['owner:id,name,email', 'workspace:id,name'])->withCount('bundleItems')->latest()->get()->map(fn (MarketplaceTemplate $product): array => [
                 ...$this->present($product),
                 'owner' => $product->owner?->only(['name', 'email']),
                 'workspace' => $product->workspace?->name,
@@ -248,7 +249,7 @@ class MarketplaceController extends Controller
                 'revenue_share_percent' => $product->contributor_revenue_share_percent,
                 'bundle_item_count' => $product->bundle_items_count,
             ]),
-            'bundleOptions' => MarketplaceTemplate::query()->where('status', 'published')->where('type', 'template')
+            'bundleOptions' => $this->businessStoreProducts()->where('status', 'published')->where('type', 'template')
                 ->get(['id', 'name'])->map(fn (MarketplaceTemplate $template): array => $template->only(['id', 'name'])),
         ]);
     }
@@ -256,6 +257,7 @@ class MarketplaceController extends Controller
     public function review(Request $request, MarketplaceTemplate $template): RedirectResponse
     {
         abort_unless($this->canReview($request->user()), 403);
+        abort_unless($this->isBusinessStoreProduct($template), 404);
 
         $validated = $request->validate([
             'status' => ['required', Rule::in(['published', 'rejected'])],
@@ -285,6 +287,11 @@ class MarketplaceController extends Controller
         }
 
         $bundleIds = array_values(array_unique($validated['bundle_template_ids'] ?? []));
+        if ($bundleIds !== [] && $this->businessStoreProducts()->whereIn('id', $bundleIds)->count() !== count($bundleIds)) {
+            throw ValidationException::withMessages([
+                'bundle_template_ids' => 'Bundles may only contain products from this storefront.',
+            ]);
+        }
         if ($validated['status'] === 'published') {
             if ($template->type === 'template' && ! $filePath) {
                 throw ValidationException::withMessages([
@@ -323,7 +330,7 @@ class MarketplaceController extends Controller
     public function checkout(Request $request, MarketplaceTemplate $template, ChapaPaymentGateway $gateway): RedirectResponse
     {
         $request->validate(['license_accepted' => ['required', 'accepted']]);
-        abort_unless($template->status === 'published', 404);
+        abort_unless($template->status === 'published' && $this->isBusinessStoreProduct($template), 404);
         abort_if($template->type === 'membership', 422, 'Recurring membership checkout is not enabled.');
         abort_if($template->amount_minor === null || $template->amount_minor <= 0, 422, 'This listing does not have a paid price configured.');
         abort_if($template->type === 'template' && ! $template->file_path, 422, 'This template is not available for purchase yet.');
@@ -425,11 +432,44 @@ class MarketplaceController extends Controller
 
     private function canReview(?User $user): bool
     {
-        return $user !== null && in_array(
-            mb_strtolower($user->email),
-            array_map('mb_strtolower', config('marketplace.reviewer_emails', [])),
-            true,
-        );
+        return $user?->isBusinessOwner() ?? false;
+    }
+
+    private function businessStoreProducts(): Builder
+    {
+        $ownerId = $this->businessOwnerId();
+
+        return MarketplaceTemplate::query()->where(function (Builder $query) use ($ownerId): void {
+            $query->where(function (Builder $query): void {
+                $query->whereNull('owner_id')->whereNull('workspace_id');
+            });
+
+            if ($ownerId !== null) {
+                $query->orWhere('owner_id', $ownerId);
+            }
+        });
+    }
+
+    private function isBusinessStoreProduct(MarketplaceTemplate $template): bool
+    {
+        $ownerId = $this->businessOwnerId();
+
+        return ($template->owner_id === null && $template->workspace_id === null)
+            || ($ownerId !== null && $template->owner_id === $ownerId);
+    }
+
+    private function businessOwnerId(): ?int
+    {
+        $email = config('business.owner_email');
+        if (! is_string($email) || trim($email) === '') {
+            return null;
+        }
+
+        $id = User::query()
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($email))])
+            ->value('id');
+
+        return $id === null ? null : (int) $id;
     }
 
     private function authorizeListingManagement(Request $request, MarketplaceTemplate $template): void

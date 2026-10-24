@@ -1,5 +1,4 @@
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import PublicLayout from '@/layouts/public-layout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -39,10 +38,6 @@ interface MarketplaceShowProps {
 export default function MarketplaceShow({ product, authenticated, hasAccess, purchased, checkoutEnabled }: MarketplaceShowProps) {
     const [checkingOut, setCheckingOut] = useState(false);
     const [licenseAccepted, setLicenseAccepted] = useState(false);
-    const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Marketplace', href: route('marketplace.index') },
-        { title: product.name, href: route('marketplace.show', product.slug) },
-    ];
     const price =
         product.amount_minor === null
             ? 'Price to be configured'
@@ -51,8 +46,8 @@ export default function MarketplaceShow({ product, authenticated, hasAccess, pur
               : `${product.currency} ${(product.amount_minor / 100).toFixed(2)}`;
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`${product.name} · Marketplace`} />
+        <PublicLayout>
+            <Head title={`${product.name} · Products`} />
             <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
                 <Link href={route('marketplace.index')} className="w-fit text-sm text-muted-foreground underline">
                     ← Back to marketplace
@@ -218,6 +213,6 @@ export default function MarketplaceShow({ product, authenticated, hasAccess, pur
                     </section>
                 )}
             </main>
-        </AppLayout>
+        </PublicLayout>
     );
 }

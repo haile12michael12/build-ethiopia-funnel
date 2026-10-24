@@ -1,5 +1,4 @@
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import PublicLayout from '@/layouts/public-layout';
 import { Head, Link, router } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 
@@ -44,8 +43,6 @@ interface MarketplacePageProps {
     categories: string[];
     filters: { search: string; category: string; type: string; price: string; currency: string; sort: string };
 }
-
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Marketplace', href: route('marketplace.index') }];
 
 function priceLabel(product: MarketplaceProduct): string {
     if (product.amount_minor === null) return 'Price to be configured';
@@ -117,15 +114,14 @@ export default function MarketplaceIndex({
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Developer Marketplace" />
+        <PublicLayout>
+            <Head title="Products" />
             <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 p-6">
                 <header className="flex flex-wrap items-end justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-foreground">Developer Marketplace</h1>
+                        <h1 className="text-3xl font-bold text-foreground">Digital Products</h1>
                         <p className="mt-2 max-w-2xl text-muted-foreground">
-                            Browse developer starters and templates. Prices are configured by marketplace reviewers; recurring Pro membership checkout
-                            is not available yet.
+                            Browse practical digital products for your business and development work.
                         </p>
                     </div>
                     {canReview && (
@@ -261,7 +257,7 @@ export default function MarketplaceIndex({
                     </nav>
                 )}
 
-                <section className="rounded-xl border border-border bg-card p-6">
+                {canReview && <section className="rounded-xl border border-border bg-card p-6">
                     <h2 className="text-xl font-semibold text-foreground">Contribute a template</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                         Submissions are private until reviewed and approved. Do not include secrets in submitted project files.
@@ -433,8 +429,8 @@ export default function MarketplaceIndex({
                             Sign in to submit a template
                         </Link>
                     )}
-                </section>
+                </section>}
             </main>
-        </AppLayout>
+        </PublicLayout>
     );
 }

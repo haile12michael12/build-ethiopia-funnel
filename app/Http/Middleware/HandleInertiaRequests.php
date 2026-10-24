@@ -56,6 +56,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'auth' => [
                 'user' => $request->user(),
+                'is_business_owner' => $request->user()?->isBusinessOwner() ?? false,
             ],
             'demo' => [
                 'enabled' => (bool) config('demo.enabled'),

@@ -35,6 +35,7 @@ use App\Http\Controllers\GitHubProfileController;
 use App\Http\Controllers\LeadCaptureController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\MarketplaceController;
+use App\Http\Controllers\MarketplacePurchaseController;
 use App\Http\Controllers\OpportunityController;
 use App\Http\Controllers\PipelineController;
 use App\Http\Controllers\PipelineStageController;
@@ -135,6 +136,17 @@ Route::domain($appDomain)->group(function () {
     Route::post('/locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
     Route::middleware(['auth', 'verified'])->group(function () {
+        Route::get('marketplace/{template:slug}/download', [MarketplaceController::class, 'download'])
+            ->name('marketplace.download');
+        Route::post('marketplace/{template:slug}/checkout', [MarketplaceController::class, 'checkout'])
+            ->middleware('throttle:5,10')
+            ->name('marketplace.checkout');
+        Route::get('marketplace/checkout/return', [MarketplaceController::class, 'checkoutReturn'])
+            ->name('marketplace.checkout.return');
+        Route::get('account/orders', [MarketplacePurchaseController::class, 'index'])->name('account.orders.index');
+        Route::get('account/orders/{purchase}', [MarketplacePurchaseController::class, 'show'])->name('account.orders.show');
+
+        Route::middleware('business-owner')->group(function () {
         Route::post('marketplace/contributor-submissions', [MarketplaceController::class, 'submit'])
             ->middleware('throttle:5,60')
             ->name('marketplace.submissions.store');
@@ -143,13 +155,6 @@ Route::domain($appDomain)->group(function () {
         Route::put('marketplace/contributor-listings/{template}', [MarketplaceController::class, 'updateListing'])
             ->middleware('throttle:10,60')
             ->name('marketplace.contributor-listings.update');
-        Route::get('marketplace/{template:slug}/download', [MarketplaceController::class, 'download'])
-            ->name('marketplace.download');
-        Route::post('marketplace/{template:slug}/checkout', [MarketplaceController::class, 'checkout'])
-            ->middleware('throttle:5,10')
-            ->name('marketplace.checkout');
-        Route::get('marketplace/checkout/return', [MarketplaceController::class, 'checkoutReturn'])
-            ->name('marketplace.checkout.return');
         Route::get('marketplace/manage/review', [MarketplaceController::class, 'reviewerIndex'])
             ->name('marketplace.review.index');
         Route::put('marketplace/manage/review/{template}', [MarketplaceController::class, 'review'])
@@ -465,6 +470,7 @@ Route::domain($appDomain)->group(function () {
         Route::get('site-content/{type}/{entry}/edit', [SiteContentController::class, 'edit'])->name('site-content.edit');
         Route::put('site-content/{type}/{entry}', [SiteContentController::class, 'update'])->name('site-content.update');
         Route::delete('site-content/{type}/{entry}', [SiteContentController::class, 'destroy'])->name('site-content.destroy');
+        });
     });
 
     require __DIR__.'/settings.php';
