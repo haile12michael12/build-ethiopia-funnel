@@ -71,6 +71,7 @@ test('email verification status is unchanged when the email address is unchanged
 });
 
 test('user can delete their account', function () {
+    config(['business.owner_email' => 'other-owner@example.com']);
     $user = User::factory()->create();
 
     $response = $this

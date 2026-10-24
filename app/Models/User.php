@@ -42,22 +42,38 @@ class User extends Authenticatable
 
     public function isBusinessOwner(): bool
     {
-        $ownerEmail = config('business.owner_email');
-
-        return is_string($ownerEmail)
-            && trim($ownerEmail) !== ''
-            && hash_equals(mb_strtolower(trim($ownerEmail)), mb_strtolower($this->email));
+        return static::emailMatchesConfiguredOwner($this->email);
     }
 
-    public static function configuredBusinessOwner(): ?self
+    public static function configuredOwnerEmail(): ?string
     {
         $ownerEmail = config('business.owner_email');
         if (! is_string($ownerEmail) || trim($ownerEmail) === '') {
             return null;
         }
 
+        return mb_strtolower(trim($ownerEmail));
+    }
+
+    public static function emailMatchesConfiguredOwner(?string $email): bool
+    {
+        $ownerEmail = static::configuredOwnerEmail();
+
+        return $ownerEmail !== null
+            && is_string($email)
+            && trim($email) !== ''
+            && hash_equals($ownerEmail, mb_strtolower(trim($email)));
+    }
+
+    public static function configuredBusinessOwner(): ?self
+    {
+        $ownerEmail = static::configuredOwnerEmail();
+        if ($ownerEmail === null) {
+            return null;
+        }
+
         return static::query()
-            ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($ownerEmail))])
+            ->whereRaw('LOWER(email) = ?', [$ownerEmail])
             ->first();
     }
 

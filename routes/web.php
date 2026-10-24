@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuditFunnelController;
 use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\AutomationRunController;
@@ -116,6 +117,8 @@ Route::domain($appDomain)->group(function () {
     Route::get('/f/{funnel:slug}', [FunnelController::class, 'show'])->name('funnels.show');
     Route::get('/marketplace', [MarketplaceController::class, 'index'])->name('marketplace.index');
     Route::get('/marketplace/{template:slug}', [MarketplaceController::class, 'show'])->name('marketplace.show');
+    Route::get('/products', [MarketplaceController::class, 'index'])->name('products.index');
+    Route::get('/products/{template:slug}', [MarketplaceController::class, 'show'])->name('products.show');
     Route::get('email/unsubscribe/{preference}', [EmailPreferenceController::class, 'show'])
         ->middleware('signed')
         ->name('email.unsubscribe.show');
@@ -128,7 +131,7 @@ Route::domain($appDomain)->group(function () {
     Route::get('/portfolio/{project:slug}', [PortfolioController::class, 'show'])->name('portfolio.show');
     Route::get('/case-studies', fn () => redirect()->route('portfolio.index'))->name('case-studies');
     Route::get('/services', [SiteContentController::class, 'services'])->name('services');
-    Route::get('/contact', [SiteContentController::class, 'namedPage'])->defaults('slug', 'contact')->name('contact');
+    Route::get('/contact', [ClientAcquisitionController::class, 'contact'])->name('contact');
     Route::get('/about', [SiteContentController::class, 'namedPage'])->defaults('slug', 'about')->name('about');
     Route::get('/blog', [SiteContentController::class, 'blog'])->name('blog.index');
     Route::get('/blog/{content:slug}', [SiteContentController::class, 'blogShow'])->name('blog.show');
@@ -143,6 +146,7 @@ Route::domain($appDomain)->group(function () {
             ->name('marketplace.checkout');
         Route::get('marketplace/checkout/return', [MarketplaceController::class, 'checkoutReturn'])
             ->name('marketplace.checkout.return');
+        Route::get('account', [AccountController::class, 'index'])->name('account.index');
         Route::get('account/orders', [MarketplacePurchaseController::class, 'index'])->name('account.orders.index');
         Route::get('account/orders/{purchase}', [MarketplacePurchaseController::class, 'show'])->name('account.orders.show');
     });

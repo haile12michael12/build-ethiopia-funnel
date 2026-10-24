@@ -106,6 +106,7 @@ test('curated marketplace catalog seeds templates, a bundle and a deferred membe
 });
 
 test('checkout creates a pending purchase and grants access only after provider verification', function () {
+    config(['business.owner_email' => 'owner@business.test']);
     $buyer = User::factory()->create();
     $template = marketplaceTemplate();
     Http::fake([
@@ -140,6 +141,7 @@ test('checkout creates a pending purchase and grants access only after provider 
 });
 
 test('checkout cannot be forged by a return with mismatched payment details', function () {
+    config(['business.owner_email' => 'owner@business.test']);
     $buyer = User::factory()->create();
     $template = marketplaceTemplate();
     $purchase = MarketplacePurchase::query()->create([
@@ -260,6 +262,7 @@ test('unpriced products cannot start Chapa checkout', function () {
 });
 
 test('download access is private and a paid bundle unlocks included templates', function () {
+    config(['business.owner_email' => 'owner@business.test']);
     Storage::disk('local')->put('marketplace/test-template/template.zip', 'zip-data');
     $buyer = User::factory()->create();
     $otherUser = User::factory()->create();
@@ -409,6 +412,7 @@ test('only the business owner can update a storefront listing', function () {
 });
 
 test('storefront purchase records preserve the accepted license and server-configured price', function () {
+    config(['business.owner_email' => 'owner@business.test']);
     $buyer = User::factory()->create();
     $product = marketplaceTemplate([
         'slug' => 'creator-paid-product',

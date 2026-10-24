@@ -49,6 +49,8 @@ class ProfileController extends Controller
             'password' => ['required', 'current_password'],
         ]);
 
+        abort_if($request->user()->isBusinessOwner(), 403, 'The administrator account cannot be deleted from the profile page.');
+
         $user = $request->user();
 
         Auth::logout();

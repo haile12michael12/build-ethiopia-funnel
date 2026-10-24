@@ -33,7 +33,19 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                'unique:'.User::class,
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (is_string($value) && User::emailMatchesConfiguredOwner($value)) {
+                        $fail('This email cannot be used to register a customer account.');
+                    }
+                },
+            ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -47,6 +59,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return to_route('account.orders.index');
+        return to_route('account.index');
     }
 }

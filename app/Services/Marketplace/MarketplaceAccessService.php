@@ -9,15 +9,11 @@ class MarketplaceAccessService
 {
     public function hasAccess(User $user, MarketplaceTemplate $template): bool
     {
-        if ($template->owner_id === $user->id) {
+        if ($user->isBusinessOwner() && MarketplaceTemplate::query()->businessStore()->whereKey($template->id)->exists()) {
             return true;
         }
 
-        if ($template->workspace_id && $template->workspace?->members()->whereKey($user->id)->exists()) {
-            return true;
-        }
-
-        if ($template->amount_minor === 0) {
+        if ($template->amount_minor === 0 && $template->status === 'published') {
             return true;
         }
 

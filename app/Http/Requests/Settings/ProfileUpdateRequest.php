@@ -43,15 +43,21 @@ class ProfileUpdateRequest extends FormRequest
                 $user = $this->user();
                 $email = $this->input('email');
 
-                if (
-                    $user instanceof User
-                    && $user->isBusinessOwner()
-                    && is_string($email)
-                    && mb_strtolower($email) !== mb_strtolower($user->email)
-                ) {
+                if (! $user instanceof User || ! is_string($email)) {
+                    return;
+                }
+
+                if ($user->isBusinessOwner() && mb_strtolower($email) !== mb_strtolower($user->email)) {
                     $validator->errors()->add(
                         'email',
                         'Update ADMIN_EMAIL in the server configuration before changing the owner account email.',
+                    );
+                }
+
+                if (! $user->isBusinessOwner() && User::emailMatchesConfiguredOwner($email)) {
+                    $validator->errors()->add(
+                        'email',
+                        'This email cannot be used for a customer account.',
                     );
                 }
             },

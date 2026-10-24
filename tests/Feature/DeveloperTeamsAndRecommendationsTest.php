@@ -4,6 +4,7 @@ use App\Contracts\CopilotAdvisor;
 use App\Jobs\GenerateDeveloperAiRecommendations;
 use App\Models\Contact;
 use App\Models\DeveloperAiRecommendation;
+use App\Models\MarketplacePurchase;
 use App\Models\MarketplaceTemplate;
 use App\Models\User;
 use App\Models\Workspace;
@@ -96,9 +97,11 @@ test('workspace roles cannot grant customers access to management or product sub
             ->has('workspaces', 0));
 });
 
-test('workspace members can access approved workspace template artifacts', function () {
-    $owner = User::factory()->create();
+test('single-owner access control denies workspace members entitlement to paid artifacts and grants only purchasers or the owner', function () {
+    $owner = User::factory()->create(['email' => 'business-owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
     $member = User::factory()->create();
+    $purchaser = User::factory()->create();
     $workspace = Workspace::query()->create([
         'owner_id' => $owner->id,
         'name' => 'Shared Assets',
@@ -123,7 +126,25 @@ test('workspace members can access approved workspace template artifacts', funct
         'currency' => 'ETB',
     ]);
 
-    expect(app(MarketplaceAccessService::class)->hasAccess($member, $template))->toBeTrue();
+    $service = app(MarketplaceAccessService::class);
+
+    // Legacy multi-tenant workspace membership no longer grants entitlement in the single-owner model.
+    expect($service->hasAccess($member, $template))->toBeFalse();
+
+    // A genuine verified purchase does grant entitlement.
+    MarketplacePurchase::query()->create([
+        'buyer_id' => $purchaser->id,
+        'template_id' => $template->id,
+        'tx_ref' => 'SINGLE-OWNER-PURCHASE-1',
+        'amount_minor' => 1000,
+        'currency' => 'ETB',
+        'status' => 'paid',
+        'paid_at' => now(),
+    ]);
+    expect($service->hasAccess($purchaser, $template))->toBeTrue();
+
+    // The configured business owner retains access to their own store artifacts.
+    expect($service->hasAccess($owner, $template))->toBeTrue();
 });
 
 test('developer ai recommendations are queued with minimized inputs then held for human review', function () {

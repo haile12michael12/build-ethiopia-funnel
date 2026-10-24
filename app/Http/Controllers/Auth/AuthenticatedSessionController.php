@@ -34,7 +34,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         if (! $request->user()->isBusinessOwner()) {
-            return to_route('account.orders.index');
+            return to_route('account.index');
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

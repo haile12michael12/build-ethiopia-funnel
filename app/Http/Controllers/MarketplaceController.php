@@ -17,6 +17,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class MarketplaceController extends Controller
 {
@@ -343,6 +344,8 @@ class MarketplaceController extends Controller
             ->where('buyer_id', $request->user()->id)
             ->where('template_id', $template->id)
             ->where('status', 'pending')
+            ->where('amount_minor', $template->amount_minor)
+            ->where('currency', $template->currency)
             ->latest()
             ->first();
         if (! $purchase) {
