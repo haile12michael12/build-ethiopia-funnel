@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContactSubmission;
+use App\Models\SiteEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -88,6 +89,13 @@ class ClientAcquisitionAnalyticsController extends Controller
             ->whereBetween('created_at', [$from, $to])
             ->count();
 
+        $siteEventCounts = SiteEvent::query()
+            ->whereBetween('occurred_at', [$from, $to])
+            ->groupBy('event_type')
+            ->selectRaw('event_type, COUNT(*) as aggregate')
+            ->pluck('aggregate', 'event_type')
+            ->all();
+
         return Inertia::render('client-acquisition/analytics', [
             'filters' => ['date_from' => $from->toDateString(), 'date_to' => $to->toDateString()],
             'metrics' => [
@@ -107,6 +115,7 @@ class ClientAcquisitionAnalyticsController extends Controller
                     ->where('due_at', '<', now())
                     ->count(),
                 'won_revenue' => $wonRevenue,
+                'site_event_counts' => $siteEventCounts,
             ],
         ]);
     }

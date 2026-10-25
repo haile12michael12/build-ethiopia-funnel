@@ -3,16 +3,19 @@ import { EtbBudgetSelector } from '@/components/audit/EtbBudgetSelector';
 import { ProjectTimelineSelector } from '@/components/audit/ProjectTimelineSelector';
 import { ServiceInterestSelector } from '@/components/audit/ServiceInterestSelector';
 import { WebsiteStatusField } from '@/components/audit/WebsiteStatusField';
+import { siteSessionId } from '@/lib/site-session';
 import { type BusinessAuditOptions } from '@/types/business-audit';
 import { Head, useForm } from '@inertiajs/react';
 import { ArrowRight, ChartNoAxesCombined } from 'lucide-react';
-import { type FormEvent } from 'react';
+import { type FormEvent, useEffect, useRef } from 'react';
 
 interface BusinessGrowthProps {
     options: BusinessAuditOptions;
 }
 
 export default function BusinessGrowth({ options }: BusinessGrowthProps) {
+    const startedRecorded = useRef(false);
+
     const form = useForm({
         name: '',
         business_name: '',
@@ -20,13 +23,40 @@ export default function BusinessGrowth({ options }: BusinessGrowthProps) {
         phone: '',
         website: '',
         website_status: '',
+        market: 'ethiopia',
+        country: '',
         service_interests: [] as string[],
         budget: '',
         timeline: '',
+        session_id: '',
     });
+
+    useEffect(() => {
+        form.setData('session_id', siteSessionId());
+        if (startedRecorded.current) return;
+        startedRecorded.current = true;
+
+        const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+        fetch('/site-events', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+            body: JSON.stringify({ event: 'audit_started', session_id: siteSessionId(), topic: 'audit' }),
+        }).catch(() => {
+            // Analytics are best-effort.
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const budgetOptions = form.data.market === 'international' ? options.international_budgets : options.budgets;
+
+    const setMarket = (market: string) => {
+        form.setData((current) => ({ ...current, market, budget: '' }));
+    };
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        form.transform((data) => ({ ...data, session_id: siteSessionId() }));
         form.post(route('business-audit.store'));
     };
 
@@ -60,6 +90,44 @@ export default function BusinessGrowth({ options }: BusinessGrowthProps) {
                             />
                         </section>
 
+                        <fieldset className="space-y-3">
+                            <legend className="text-sm font-semibold">Where is your business or target market?</legend>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {options.markets.map((market) => (
+                                    <label
+                                        key={market.value}
+                                        className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-colors ${
+                                            form.data.market === market.value
+                                                ? 'border-primary bg-primary/5 font-semibold'
+                                                : 'border-border hover:border-primary/40'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="market"
+                                            value={market.value}
+                                            checked={form.data.market === market.value}
+                                            onChange={() => setMarket(market.value)}
+                                            className="accent-primary"
+                                        />
+                                        {market.label}
+                                    </label>
+                                ))}
+                            </div>
+                            <label className="block space-y-2 text-sm font-semibold">
+                                Country (optional)
+                                <input
+                                    type="text"
+                                    maxLength={120}
+                                    value={form.data.country}
+                                    onChange={(event) => form.setData('country', event.target.value)}
+                                    placeholder="e.g. Ethiopia, Kenya, United States"
+                                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 font-normal"
+                                />
+                            </label>
+                            {form.errors.country && <span className="block text-xs text-destructive">{form.errors.country}</span>}
+                        </fieldset>
+
                         <WebsiteStatusField
                             value={form.data.website_status}
                             options={options.website_statuses}
@@ -77,7 +145,7 @@ export default function BusinessGrowth({ options }: BusinessGrowthProps) {
                         <div className="grid gap-5 sm:grid-cols-2">
                             <EtbBudgetSelector
                                 value={form.data.budget}
-                                options={options.budgets}
+                                options={budgetOptions}
                                 error={form.errors.budget}
                                 onChange={(value) => form.setData('budget', value)}
                             />

@@ -2,9 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
+use App\Services\ClientAcquisitionConfiguration;
+use Closure;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 use Tighten\Ziggy\Ziggy;
 
 class HandleInertiaRequests extends Middleware
@@ -19,6 +24,20 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     /**
+     * Apply the visitor's session locale before controllers run so
+     * page content and shared translations render in that language.
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $locale = $request->session()->get('locale', config('app.locale', 'en'));
+        if (in_array($locale, ['en', 'am'], true)) {
+            app()->setLocale($locale);
+        }
+
+        return parent::handle($request, $next);
+    }
+
+    /**
      * Determines the current asset version.
      *
      * @see https://inertiajs.com/asset-versioning
@@ -26,6 +45,19 @@ class HandleInertiaRequests extends Middleware
     public function version(Request $request): ?string
     {
         return parent::version($request);
+    }
+
+    private function conciergeEnabled(): bool
+    {
+        return Cache::remember('shared:concierge-enabled', 60, function (): bool {
+            $owner = User::configuredBusinessOwner();
+
+            if (! $owner) {
+                return false;
+            }
+
+            return (bool) app(ClientAcquisitionConfiguration::class)->forOwner($owner->id)['concierge_enabled'];
+        });
     }
 
     /**
@@ -39,11 +71,6 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
-        $locale = $request->session()->get('locale', config('app.locale', 'en'));
-        if (in_array($locale, ['en', 'am'], true)) {
-            app()->setLocale($locale);
-        }
-
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -53,6 +80,10 @@ class HandleInertiaRequests extends Middleware
                 'navigation' => trans('navigation'),
                 'copilot' => trans('copilot'),
                 'client_acquisition' => trans('client-acquisition'),
+                'concierge' => trans('concierge'),
+            ],
+            'concierge' => [
+                'enabled' => $this->conciergeEnabled(),
             ],
             'auth' => [
                 'user' => $request->user(),

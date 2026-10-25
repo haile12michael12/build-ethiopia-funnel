@@ -525,6 +525,59 @@ export default function ClientAcquisitionSettingsPage({ settings, funnels, analy
                         </p>
                     </section>
 
+                    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+                        <div className="mb-5">
+                            <h2 className="text-lg font-semibold">EthioBiz Concierge assistant</h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Controls the public chat assistant shown on services, portfolio, marketplace, and audit pages. Answers only use your
+                                published services, products, and portfolio — never invented prices or commitments.
+                            </p>
+                        </div>
+                        <div className="space-y-4">
+                            <label className="flex items-center gap-3 text-sm font-medium">
+                                <input
+                                    type="checkbox"
+                                    checked={form.data.concierge_enabled}
+                                    onChange={(event) => form.setData('concierge_enabled', event.target.checked)}
+                                    className="h-4 w-4 accent-primary"
+                                />
+                                Enable the public concierge assistant
+                            </label>
+                            <label className="block space-y-1.5 text-sm font-medium">
+                                Telegram contact link (optional)
+                                <input
+                                    type="url"
+                                    value={form.data.telegram_url ?? ''}
+                                    onChange={(event) => form.setData('telegram_url', event.target.value || null)}
+                                    placeholder="https://t.me/yourhandle"
+                                    className="w-full rounded-md border border-border bg-background px-3 py-2"
+                                />
+                            </label>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <label className="space-y-1.5 text-sm font-medium">
+                                    Intro line (English, optional)
+                                    <textarea
+                                        maxLength={600}
+                                        value={form.data.concierge_intro_en ?? ''}
+                                        onChange={(event) => form.setData('concierge_intro_en', event.target.value || null)}
+                                        placeholder="Shown to visitors as the assistant's business introduction."
+                                        className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2"
+                                    />
+                                </label>
+                                <label className="space-y-1.5 text-sm font-medium">
+                                    Intro line (Amharic, optional)
+                                    <textarea
+                                        maxLength={600}
+                                        value={form.data.concierge_intro_am ?? ''}
+                                        onChange={(event) => form.setData('concierge_intro_am', event.target.value || null)}
+                                        placeholder="ለኢትዮጵያ መስተምኛ የሚታይ መግቢያ።"
+                                        className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+
                     {errors.length > 0 && (
                         <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
                             {errors[0]}

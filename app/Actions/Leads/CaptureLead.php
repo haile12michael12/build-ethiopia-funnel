@@ -40,12 +40,16 @@ class CaptureLead
             $email = strtolower($validated['email']);
             $contact = Contact::firstOrNew(['user_id' => $owner->id, 'email' => $email]);
             $isNewContact = ! $contact->exists;
+            $market = ($validated['market'] ?? 'ethiopia') === 'international' ? 'international' : 'ethiopia';
             $audit = [
                 'business_name' => $validated['business_name'],
                 'website' => $validated['website'] ?? null,
                 'website_status' => $validated['website_status'],
                 'service_interests' => $validated['service_interests'],
                 'budget' => $validated['budget'],
+                'budget_currency' => $market === 'international' ? 'USD' : 'ETB',
+                'market' => $market,
+                'country' => filled($validated['country'] ?? null) ? trim((string) $validated['country']) : null,
                 'timeline' => $validated['timeline'],
             ];
             $submissionCount = (int) data_get($contact->metadata, 'submission_count', 0) + 1;

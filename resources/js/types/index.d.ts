@@ -27,6 +27,29 @@ export interface TranslationDictionary {
     [key: string]: string | TranslationDictionary;
 }
 
+export interface ConciergeQuickTopic {
+    label: string;
+    question: string;
+}
+
+export interface ConciergeTranslations {
+    title: string;
+    subtitle: string;
+    open: string;
+    close: string;
+    placeholder: string;
+    send: string;
+    sending: string;
+    greeting: string;
+    ai_source: string;
+    knowledge_source: string;
+    disclaimer: string;
+    error: string;
+    unsupported: string;
+    quick_topics: ConciergeQuickTopic[];
+    language: { en: string; am: string };
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
@@ -38,8 +61,10 @@ export interface SharedData {
         navigation?: TranslationDictionary;
         copilot?: Record<string, string>;
         client_acquisition?: Record<string, string>;
+        concierge?: ConciergeTranslations;
         [key: string]: unknown;
     };
+    concierge?: { enabled: boolean };
     demo: { enabled: boolean; active: boolean; expires_at: string | null };
     [key: string]: unknown;
 }

@@ -51,4 +51,8 @@ return [
     'whatsapp_url' => null,
     'meeting_url' => null,
     'analytics_funnel_id' => null,
+    'concierge_enabled' => true,
+    'telegram_url' => null,
+    'concierge_intro_en' => null,
+    'concierge_intro_am' => null,
 ];

@@ -6,6 +6,7 @@ use App\Services\ClientAcquisitionConfiguration;
 use App\Services\LeadScoringService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -72,6 +73,10 @@ class ClientAcquisitionSettingsController extends Controller
             'whatsapp_url' => ['nullable', 'url:https', 'max:2048'],
             'meeting_url' => ['nullable', 'url:https', 'max:2048'],
             'analytics_funnel_id' => ['nullable', 'integer', 'exists:funnels,id'],
+            'concierge_enabled' => ['sometimes', 'boolean'],
+            'telegram_url' => ['sometimes', 'nullable', 'url:https', 'max:2048'],
+            'concierge_intro_en' => ['sometimes', 'nullable', 'string', 'max:600'],
+            'concierge_intro_am' => ['sometimes', 'nullable', 'string', 'max:600'],
         ]);
 
         $this->validateUniqueKeys($validated);
@@ -129,8 +134,22 @@ class ClientAcquisitionSettingsController extends Controller
                 'whatsapp_url' => $validated['whatsapp_url'] ?? null,
                 'meeting_url' => $validated['meeting_url'] ?? null,
                 'analytics_funnel_id' => $analyticsFunnelId,
+                'concierge_enabled' => array_key_exists('concierge_enabled', $validated)
+                    ? (bool) $validated['concierge_enabled']
+                    : (bool) ($previous['concierge_enabled'] ?? true),
+                'telegram_url' => array_key_exists('telegram_url', $validated)
+                    ? ($validated['telegram_url'] ?? null)
+                    : ($previous['telegram_url'] ?? null),
+                'concierge_intro_en' => array_key_exists('concierge_intro_en', $validated)
+                    ? ($validated['concierge_intro_en'] ?? null)
+                    : ($previous['concierge_intro_en'] ?? null),
+                'concierge_intro_am' => array_key_exists('concierge_intro_am', $validated)
+                    ? ($validated['concierge_intro_am'] ?? null)
+                    : ($previous['concierge_intro_am'] ?? null),
             ],
         );
+
+        Cache::forget('shared:concierge-enabled');
 
         $updated = $configuration->forOwner($request->user()->id);
         if (array_diff_assoc($updated['scoring_weights'], $previous['scoring_weights'])

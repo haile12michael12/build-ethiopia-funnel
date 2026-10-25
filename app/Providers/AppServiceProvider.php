@@ -2,15 +2,18 @@
 
 namespace App\Providers;
 
-use App\Contracts\CopilotAdvisor;
+use App\Contracts\ConciergeAdvisor;
 use App\Contracts\ContentDraftGenerator;
+use App\Contracts\CopilotAdvisor;
 use App\Contracts\FunnelGenerator;
+use App\Services\Ai\DisabledConciergeAdvisor;
 use App\Services\Ai\DisabledContentDraftGenerator;
 use App\Services\Ai\DisabledCopilotAdvisor;
 use App\Services\Ai\DisabledFunnelGenerator;
+use App\Services\Ai\OpenAICompatibleFunnelGenerator;
+use App\Services\Ai\OpenAIConciergeAdvisor;
 use App\Services\Ai\OpenAIContentDraftGenerator;
 use App\Services\Ai\OpenAICopilotAdvisor;
-use App\Services\Ai\OpenAICompatibleFunnelGenerator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -42,6 +45,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new DisabledCopilotAdvisor;
+        });
+
+        $this->app->bind(ConciergeAdvisor::class, function () {
+            if (config('funnel-ai.driver') === 'openai-compatible' && config('funnel-ai.api_key')) {
+                return new OpenAIConciergeAdvisor;
+            }
+
+            return new DisabledConciergeAdvisor;
         });
     }
 

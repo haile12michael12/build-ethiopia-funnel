@@ -43,6 +43,10 @@ export interface ClientAcquisitionSettings {
     whatsapp_url: string | null;
     meeting_url: string | null;
     analytics_funnel_id: number | null;
+    concierge_enabled: boolean;
+    telegram_url: string | null;
+    concierge_intro_en: string | null;
+    concierge_intro_am: string | null;
 }
 
 export interface ClientAcquisitionProject {

@@ -9,6 +9,7 @@ use App\Http\Controllers\ClientAcquisitionAnalyticsController;
 use App\Http\Controllers\ClientAcquisitionController;
 use App\Http\Controllers\ClientAcquisitionSettingsController;
 use App\Http\Controllers\ClientProjectController;
+use App\Http\Controllers\ConciergeAskController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactImportController;
 use App\Http\Controllers\ContactLookupController;
@@ -43,6 +44,7 @@ use App\Http\Controllers\PipelineStageController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SiteContentController;
+use App\Http\Controllers\SiteEventController;
 use App\Http\Controllers\WebsiteAssessmentController;
 use App\Http\Controllers\WorkspaceController;
 use App\Models\Contact;
@@ -74,6 +76,8 @@ Route::post('funnels/{funnel}/support-chat', FunnelSupportChatController::class)
     ->middleware('throttle:10,1')
     ->name('funnels.support-chat');
 Route::post('marketplace/chapa/webhook', ChapaWebhookController::class)->name('marketplace.chapa.webhook');
+Route::post('concierge/ask', ConciergeAskController::class)->middleware('throttle:10,1')->name('concierge.ask');
+Route::post('site-events', SiteEventController::class)->middleware('throttle:60,1')->name('site-events.store');
 
 Route::domain($appDomain)->group(function () {
     Route::get('/', [SiteContentController::class, 'home'])->name('home');

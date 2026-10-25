@@ -10,7 +10,7 @@ interface EtbBudgetSelectorProps {
 export function EtbBudgetSelector({ value, options, error, onChange }: EtbBudgetSelectorProps) {
     return (
         <label className="block space-y-2 text-sm font-semibold text-foreground">
-            Approximate project budget (ETB)
+            Approximate project budget
             <select
                 value={value}
                 onChange={(event) => onChange(event.target.value)}

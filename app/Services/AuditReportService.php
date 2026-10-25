@@ -5,11 +5,15 @@ namespace App\Services;
 class AuditReportService
 {
     /**
+     * Automated suggestions only: nothing here claims a website was inspected.
+     * Product recommendations come from live published catalog records.
+     *
      * @param  array<string, mixed>  $audit
      * @param  array<string, int>  $breakdown
-     * @return array{score: int, label: string, summary: string, breakdown: array<string, int>, recommendations: list<string>}
+     * @param  list<array<string, mixed>>  $products
+     * @return array{score: int, label: string, summary: string, breakdown: array<string, int>, recommendations: list<string>, products: list<array<string, mixed>>}
      */
-    public function create(array $audit, int $score, array $breakdown): array
+    public function create(array $audit, int $score, array $breakdown, array $products = []): array
     {
         $recommendations = [];
 
@@ -24,7 +28,12 @@ class AuditReportService
         if (empty($audit['service_interests'])) {
             $recommendations[] = 'Choose one priority growth service to focus your next improvement sprint.';
         } else {
-            $recommendations[] = 'Prioritize '.implode(', ', $audit['service_interests']).' and define a measurable outcome.';
+            $serviceLabels = collect(config('business-audit.options.services'))
+                ->filter(fn (array $service): bool => in_array($service['value'], $audit['service_interests'], true))
+                ->pluck('label')
+                ->values()
+                ->all();
+            $recommendations[] = 'Prioritize '.(empty($serviceLabels) ? implode(', ', $audit['service_interests']) : implode(', ', $serviceLabels)).' and define a measurable outcome.';
         }
 
         if (($audit['timeline'] ?? null) === 'researching') {
@@ -45,6 +54,7 @@ class AuditReportService
             'summary' => $summary,
             'breakdown' => $breakdown,
             'recommendations' => $recommendations,
+            'products' => $products,
         ];
     }
 }

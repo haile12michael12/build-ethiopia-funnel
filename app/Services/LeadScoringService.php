@@ -20,10 +20,12 @@ class LeadScoringService
             },
             'service_interest' => count($audit['service_interests'] ?? []) > 0 ? 10 : 0,
             'budget' => match ($audit['budget'] ?? null) {
-                'under_25000' => 5,
-                '25000_100000' => 15,
-                '100000_500000' => 25,
-                'over_500000' => 30,
+                // ETB bands and equivalent USD bands carry the same prioritization weight.
+                // Currencies are never converted; each band is scored only for its own market.
+                'under_25000', 'usd_under_250' => 5,
+                '25000_100000', 'usd_250_1000' => 15,
+                '100000_500000', 'usd_1000_5000' => 25,
+                'over_500000', 'usd_over_5000' => 30,
                 default => 0,
             },
             'timeline' => match ($audit['timeline'] ?? null) {

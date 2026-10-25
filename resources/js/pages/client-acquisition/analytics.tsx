@@ -19,6 +19,7 @@ interface AnalyticsProps {
         campaign_counts: Record<string, number>;
         overdue_tasks: number;
         won_revenue: Array<{ currency: string; amount_minor: number; won_count: number }>;
+        site_event_counts: Record<string, number>;
     };
 }
 
@@ -118,6 +119,7 @@ export default function ClientAcquisitionAnalytics({ filters, metrics }: Analyti
                     <Breakdown title="Lead score bands" values={metrics.score_counts} />
                     <Breakdown title="Inquiry sources" values={metrics.source_counts} />
                     <Breakdown title="Campaigns" values={metrics.campaign_counts} />
+                    <Breakdown title="Concierge & audit site events" values={metrics.site_event_counts ?? {}} />
                 </div>
                 <section className="rounded-xl border border-border bg-card p-5">
                     <h2 className="mb-3 font-semibold text-foreground">Self-reported budget ranges (separate currencies)</h2>

@@ -22,6 +22,10 @@ class ClientAcquisitionSettings extends Model
         'follow_up_templates',
         'high_priority_score',
         'medium_priority_score',
+        'concierge_enabled',
+        'telegram_url',
+        'concierge_intro_en',
+        'concierge_intro_am',
     ];
 
     protected function casts(): array
@@ -37,6 +41,7 @@ class ClientAcquisitionSettings extends Model
             'follow_up_templates' => 'array',
             'high_priority_score' => 'integer',
             'medium_priority_score' => 'integer',
+            'concierge_enabled' => 'boolean',
         ];
     }
 

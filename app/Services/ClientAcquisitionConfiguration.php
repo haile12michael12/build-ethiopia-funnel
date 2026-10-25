@@ -34,6 +34,10 @@ class ClientAcquisitionConfiguration
             'follow_up_templates',
             'high_priority_score',
             'medium_priority_score',
+            'concierge_enabled',
+            'telegram_url',
+            'concierge_intro_en',
+            'concierge_intro_am',
         ]));
 
         $weights = $configured['scoring_weights'] ?? [];

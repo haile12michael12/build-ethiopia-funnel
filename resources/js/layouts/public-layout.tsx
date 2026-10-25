@@ -1,3 +1,4 @@
+import { EthioBizConcierge } from '@/components/concierge/EthioBizConcierge';
 import { PublicNavbar } from '@/components/navbar/public-navbar';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
@@ -9,7 +10,7 @@ interface PublicLayoutProps {
 }
 
 export function PublicLayout({ children, className = '' }: PublicLayoutProps) {
-    const { locale: serverLocale } = usePage<SharedData>().props;
+    const { locale: serverLocale, concierge } = usePage<SharedData>().props;
     const isAmharic = serverLocale === 'am';
 
     return (
@@ -136,6 +137,8 @@ export function PublicLayout({ children, className = '' }: PublicLayoutProps) {
                     </div>
                 </div>
             </footer>
+
+            {concierge?.enabled ? <EthioBizConcierge /> : null}
         </div>
     );
 }

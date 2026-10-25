@@ -1,6 +1,6 @@
-name: openfunnels
+name: hailab-funnel;
 
-x-openfunnels-environment: &openfunnels-environment
+x-hailabfunnel-environment: &hailabfunnel-environment
   APP_NAME: Hailab
   APP_ENV: local
   APP_KEY: base64:b29vb29vb29vb29vb29vb29vb29vb29vb29vb29vb28=
@@ -19,11 +19,11 @@ services:
   web:
     build:
       context: .
-    environment: *openfunnels-environment
+    environment: *hailabfunnel-environment
     ports:
       - "8000:8000"
     volumes:
-      - openfunnels-data:/data
+      - hailabfunnel-data:/data
     healthcheck:
       test: ["CMD", "php", "-r", "$$s=@fsockopen('127.0.0.1',8000); exit($$s?0:1);"]
       interval: 5s
@@ -36,9 +36,9 @@ services:
     build:
       context: .
     command: ["queue"]
-    environment: *openfunnels-environment
+    environment: *hailabfunnel-environment
     volumes:
-      - openfunnels-data:/data
+      - hailabfunnel-data:/data
     depends_on:
       web:
         condition: service_healthy
@@ -48,13 +48,13 @@ services:
     build:
       context: .
     command: ["scheduler"]
-    environment: *openfunnels-environment
+    environment: *hailabfunnel-environment
     volumes:
-      - openfunnels-data:/data
+      - hailabfunnel-data:/data
     depends_on:
       web:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  openfunnels-data:
+  hailabfunnel-data:
