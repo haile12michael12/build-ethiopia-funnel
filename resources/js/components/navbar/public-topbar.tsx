@@ -14,6 +14,8 @@ export function PublicTopbar() {
     const navigationTranslations = translations?.navigation;
     const signInLabel = typeof navigationTranslations?.sign_in === 'string' ? navigationTranslations.sign_in : 'Sign In';
     const registerLabel = typeof navigationTranslations?.register === 'string' ? navigationTranslations.register : 'Register';
+    const accountLabel = typeof navigationTranslations?.account === 'string' ? navigationTranslations.account : 'My Account';
+    const dashboardLabel = typeof navigationTranslations?.dashboard === 'string' ? navigationTranslations.dashboard : 'Dashboard';
 
     const handleLocaleSwitch = (newLocale: 'en' | 'am') => {
         if (newLocale === currentLocale) return;
@@ -25,7 +27,7 @@ export function PublicTopbar() {
             <div className="mx-auto flex min-h-10 max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 lg:px-8">
                 <nav aria-label="Social media" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
                     {socialLinks.map(({ label, href }) => (
-                        <a key={label} href={href} target="_blank" rel="noreferrer" className="transition-colors hover:text-foreground">
+                        <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">
                             {label}
                         </a>
                     ))}
@@ -61,7 +63,7 @@ export function PublicTopbar() {
                                 href={auth.is_business_owner ? route('dashboard') : route('account.orders.index')}
                                 className="text-primary transition-colors hover:text-primary/80"
                             >
-                                {auth.is_business_owner ? (navigationTranslations?.dashboard as string) || 'Dashboard' : 'My Account'}
+                                {auth.is_business_owner ? dashboardLabel : accountLabel}
                             </Link>
                         ) : (
                             <>

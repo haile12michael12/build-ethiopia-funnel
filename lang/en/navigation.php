@@ -28,6 +28,7 @@ return [
     'dashboard' => 'Dashboard',
     'sign_in' => 'Sign In',
     'register' => 'Register',
+    'account' => 'My Account',
     'get_started' => 'Get Started',
     'menu' => 'Navigation Menu',
     'close_menu' => 'Close Menu',

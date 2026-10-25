@@ -28,6 +28,7 @@ return [
     'dashboard' => 'ዳሽቦርድ',
     'sign_in' => 'ግባ',
     'register' => 'ይመዝገቡ',
+    'account' => 'መለያዬ',
     'get_started' => 'ጀምር',
     'menu' => 'የማውጫ ዝርዝር',
     'close_menu' => 'ዝጋ',
