@@ -1,5 +1,5 @@
 import AppLogoIcon from '@/components/app-logo-icon';
-import { PublicNavbar } from '@/components/navbar/public-navbar';
+import { PublicTopbar } from '@/components/navbar/public-topbar';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
@@ -12,7 +12,7 @@ interface AuthLayoutProps {
 export default function AuthSimpleLayout({ children, title, description }: PropsWithChildren<AuthLayoutProps>) {
     return (
         <div className="flex min-h-svh flex-col bg-background">
-            <PublicNavbar />
+            <PublicTopbar />
             <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6 md:p-10">
                 <div className="w-full max-w-sm">
                     <div className="flex flex-col gap-8">

@@ -27,6 +27,7 @@ return [
     'search_placeholder' => 'Search projects, technologies, case studies...',
     'dashboard' => 'Dashboard',
     'sign_in' => 'Sign In',
+    'register' => 'Register',
     'get_started' => 'Get Started',
     'menu' => 'Navigation Menu',
     'close_menu' => 'Close Menu',

@@ -27,6 +27,7 @@ return [
     'search_placeholder' => 'ፕሮጀክቶችን፣ ቴክኖሎጂዎችን ይፈልጉ...',
     'dashboard' => 'ዳሽቦርድ',
     'sign_in' => 'ግባ',
+    'register' => 'ይመዝገቡ',
     'get_started' => 'ጀምር',
     'menu' => 'የማውጫ ዝርዝር',
     'close_menu' => 'ዝጋ',

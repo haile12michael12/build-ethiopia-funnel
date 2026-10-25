@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
-import { ArrowRight, Bot, Briefcase, ChevronDown, Code2, Languages, Layers, Menu, Newspaper, Sparkles, Workflow, Zap } from 'lucide-react';
+import { ArrowRight, Bot, Briefcase, ChevronDown, Code2, Layers, Menu, Newspaper, Sparkles, Workflow, Zap } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 interface PublicNavbarProps {
@@ -14,7 +14,7 @@ interface NavigationTranslationItem {
 }
 
 export function PublicNavbar({ className = '' }: PublicNavbarProps) {
-    const { auth, locale: serverLocale, translations } = usePage<SharedData>().props;
+    const { auth, translations } = usePage<SharedData>().props;
     const currentUrl = usePage().url;
 
     // Translation helper with English fallback
@@ -32,8 +32,6 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
         return typeof current === 'string' ? current : fallback;
     };
 
-    const currentLocale = (serverLocale as 'en' | 'am') || 'en';
-
     // State for interactive navigation
     const [mobileOpen, setMobileOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<'services' | 'resources' | null>(null);
@@ -41,12 +39,6 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
     const [mobileResourcesExpanded, setMobileResourcesExpanded] = useState(false);
 
     const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Switch language
-    const handleLocaleSwitch = (newLocale: 'en' | 'am') => {
-        if (newLocale === currentLocale) return;
-        router.post(route('locale.update', { locale: newLocale }), {}, { preserveScroll: true });
-    };
 
     // Dropdown hover handlers with slight delay to prevent flickering
     const handleMouseEnter = (menu: 'services' | 'resources') => {
@@ -379,34 +371,6 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
 
                     {/* Right Action Controls */}
                     <div className="flex items-center gap-3">
-                        {/* Language Switcher */}
-                        <div className="flex items-center rounded-lg border border-border bg-card p-0.5" role="group" aria-label="Language selector">
-                            <button
-                                type="button"
-                                onClick={() => handleLocaleSwitch('en')}
-                                className={`rounded px-2 py-1 text-xs font-semibold transition-colors ${
-                                    currentLocale === 'en'
-                                        ? 'bg-primary text-primary-foreground shadow-xs'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                                aria-pressed={currentLocale === 'en'}
-                            >
-                                EN
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => handleLocaleSwitch('am')}
-                                className={`font-amharic rounded px-2 py-1 text-xs font-semibold transition-colors ${
-                                    currentLocale === 'am'
-                                        ? 'bg-primary text-primary-foreground shadow-xs'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                                aria-pressed={currentLocale === 'am'}
-                            >
-                                አማርኛ
-                            </button>
-                        </div>
-
                         {/* Auth / CTA Buttons */}
                         <div className="hidden items-center gap-2 sm:flex">
                             {auth.user ? (
@@ -426,12 +390,6 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                 )
                             ) : (
                                 <>
-                                    <Button asChild size="sm" variant="ghost">
-                                        <Link href={route('login')}>{t('sign_in', 'Sign In')}</Link>
-                                    </Button>
-                                    <Button asChild size="sm" variant="ghost">
-                                        <Link href={route('register')}>Register</Link>
-                                    </Button>
                                     <Button asChild size="sm" variant="outline">
                                         <Link href={route('client-acquisition.show')}>{t('start_project', 'Start a Project')}</Link>
                                     </Button>
@@ -616,37 +574,6 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 {t('start_project', 'Start a Project')}
                                             </Link>
                                         </Button>
-                                        <div className="flex items-center justify-between">
-                                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                <Languages className="h-4 w-4" />
-                                                <span>Language:</span>
-                                            </span>
-                                            <div className="flex items-center rounded-lg border border-border bg-card p-0.5">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleLocaleSwitch('en')}
-                                                    className={`rounded px-2.5 py-1 text-xs font-semibold ${
-                                                        currentLocale === 'en'
-                                                            ? 'bg-primary text-primary-foreground'
-                                                            : 'text-muted-foreground hover:text-foreground'
-                                                    }`}
-                                                >
-                                                    English
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleLocaleSwitch('am')}
-                                                    className={`font-amharic rounded px-2.5 py-1 text-xs font-semibold ${
-                                                        currentLocale === 'am'
-                                                            ? 'bg-primary text-primary-foreground'
-                                                            : 'text-muted-foreground hover:text-foreground'
-                                                    }`}
-                                                >
-                                                    አማርኛ
-                                                </button>
-                                            </div>
-                                        </div>
-
                                         {auth.user ? (
                                             auth.is_business_owner ? (
                                                 <Button asChild className="w-full">
@@ -667,17 +594,7 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                 </div>
                                             )
                                         ) : (
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <Button asChild variant="outline" className="w-full">
-                                                    <Link href={route('login')} onClick={() => setMobileOpen(false)}>
-                                                        {t('sign_in', 'Sign In')}
-                                                    </Link>
-                                                </Button>
-                                                <Button asChild variant="outline" className="w-full">
-                                                    <Link href={route('register')} onClick={() => setMobileOpen(false)}>
-                                                        Register
-                                                    </Link>
-                                                </Button>
+                                            <div className="grid gap-2">
                                                 <Button asChild className="w-full">
                                                     <Link href={route('business-audit.show')} onClick={() => setMobileOpen(false)}>
                                                         {t('growth_audit', 'Free Audit')}

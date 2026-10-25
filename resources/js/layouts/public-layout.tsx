@@ -1,5 +1,6 @@
 import { EthioBizConcierge } from '@/components/concierge/EthioBizConcierge';
 import { PublicNavbar } from '@/components/navbar/public-navbar';
+import { PublicTopbar } from '@/components/navbar/public-topbar';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { ReactNode } from 'react';
@@ -15,7 +16,7 @@ export function PublicLayout({ children, className = '' }: PublicLayoutProps) {
 
     return (
         <div className={`flex min-h-screen flex-col justify-between bg-background text-foreground ${className}`}>
-            {/* Advanced Responsive Navbar */}
+            <PublicTopbar />
             <PublicNavbar />
 
             {/* Main Content */}
