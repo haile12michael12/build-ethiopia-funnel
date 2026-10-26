@@ -8,17 +8,24 @@ use Inertia\Testing\AssertableInertia as Assert;
 uses(RefreshDatabase::class);
 
 test('guests are redirected to the login page', function () {
-    $this->get('/dashboard')->assertRedirect('/login');
+    $this->get('/admin')->assertRedirect('/login');
 });
 
-test('authenticated users can visit the dashboard', function () {
-    $this->actingAs($user = User::factory()->create());
+test('customers can visit their dashboard', function () {
+    config(['business.owner_email' => 'admin@example.test']);
+    $this->actingAs(User::factory()->create())->get('/dashboard')->assertOk();
+});
 
-    $this->get('/dashboard')->assertOk();
+test('the configured owner can visit the admin dashboard', function () {
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $owner->email]);
+
+    $this->actingAs($owner)->get('/admin')->assertOk();
 });
 
 test('dashboard operational summaries use owner-scoped CRM and portfolio data and support segment filters', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $user->email]);
     $other = User::factory()->create();
     $contact = $user->contacts()->create([
         'email' => 'ethiopian-prospect@example.test',
@@ -61,7 +68,7 @@ test('dashboard operational summaries use owner-scoped CRM and portfolio data an
         'is_published' => true,
     ]);
 
-    $this->actingAs($user)->get('/dashboard?market=ethiopia&service=web_app&status=new')
+    $this->actingAs($user)->get('/admin?market=ethiopia&service=web_app&status=new')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboard')

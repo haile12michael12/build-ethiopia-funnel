@@ -66,6 +66,27 @@ test('customers cannot access owner management routes but can use their own acco
         ->get(route('marketplace.orders.index'))->assertForbidden();
     $this->actingAs($customer)
         ->post(route('marketplace.submissions.store'), [])->assertForbidden();
+    foreach (['services', 'products', 'projects', 'requests', 'orders', 'payments', 'content', 'settings'] as $area) {
+        $this->actingAs($customer)->get('/admin/'.$area)->assertForbidden();
+    }
+
+    $this->actingAs($customer)->get('/dashboard')->assertOk();
+    $this->actingAs($customer)->get('/dashboard/profile')->assertRedirect('/settings/profile');
+    $this->actingAs($customer)->get('/dashboard/requests')->assertRedirect('/dashboard#requests');
+    $this->actingAs($customer)->get('/dashboard/projects')->assertRedirect('/dashboard#projects');
+    $this->actingAs($customer)->get('/dashboard/services')->assertRedirect('/services');
+    $this->actingAs($customer)->get('/dashboard/products')->assertRedirect('/products');
+    $this->actingAs($customer)->get('/dashboard/contact')->assertRedirect('/contact');
+
+    $this->actingAs($customer)
+        ->get('/dashboard/orders')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('account/orders/index')
+            ->has('orders.data', 1)
+            ->where('orders.data.0.id', $ownOrder->id));
+    $this->actingAs($customer)->get('/dashboard/orders/'.$ownOrder->id)->assertOk();
+    $this->actingAs($customer)->get('/dashboard/orders/'.$otherOrder->id)->assertNotFound();
 
     $this->actingAs($customer)
         ->get(route('account.orders.index'))
@@ -93,6 +114,7 @@ test('the configured existing owner retains access to the business dashboard and
     $this->actingAs($owner)->get(route('dashboard'))->assertOk();
     $this->actingAs($owner)->get(route('marketplace.review.index'))->assertOk();
     $this->actingAs($owner)->get(route('marketplace.orders.index'))->assertOk();
+    $this->actingAs($owner)->get('/dashboard')->assertRedirect('/admin');
 });
 
 test('owner management access fails closed when the owner email is not configured', function () {

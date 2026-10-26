@@ -105,7 +105,8 @@ test('draft funnels do not accept anonymous analytics events', function () {
 });
 
 test('dashboard exposes daily and source analytics for owned funnels', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['email' => 'owner@example.test']);
+    config(['business.owner_email' => $user->email]);
     $funnel = analyticsFunnel($user);
     $funnel->events()->create([
         'event_type' => 'conversion',

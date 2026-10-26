@@ -20,7 +20,7 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('account.index', absolute: false));
+    $response->assertRedirect(route('customer.dashboard', absolute: false));
 });
 
 test('the configured owner is redirected to the administrator dashboard after login', function () {

@@ -23,6 +23,6 @@ test('new users can register', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('account.index', absolute: false));
+    $response->assertRedirect(route('customer.dashboard', absolute: false));
     expect(\App\Models\User::query()->where('email', 'test@example.com')->firstOrFail()->isBusinessOwner())->toBeFalse();
 });
