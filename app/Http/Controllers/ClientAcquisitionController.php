@@ -21,6 +21,11 @@ use Inertia\Response;
 
 class ClientAcquisitionController extends Controller
 {
+    public function contact(): Response
+    {
+        return Inertia::render('contact');
+    }
+
     public function show(Request $request, ClientAcquisitionConfiguration $configuration, FunnelVariantResolver $variantResolver): Response
     {
         $owner = $this->configuredOwner();

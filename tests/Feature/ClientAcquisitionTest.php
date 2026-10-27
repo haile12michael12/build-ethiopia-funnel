@@ -40,6 +40,13 @@ function createPublishedClientAnalyticsFunnel(User $owner, array $overrides = []
     ], $overrides));
 }
 
+test('public contact page renders', function () {
+    $this->withoutVite()
+        ->get(route('contact'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('contact'));
+});
+
 test('public project funnel renders localized choices and default settings', function () {
     $owner = User::factory()->create();
     config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
