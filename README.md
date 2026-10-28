@@ -4,7 +4,7 @@
 
 The public site reuses the existing services, portfolio, blog, contact/CRM, digital product catalog, and Chapa checkout. Customer accounts can register, update their own profile, purchase products, and view only their own orders. Owner-only pages and management actions require the account whose existing login email matches `ADMIN_EMAIL`; registration input cannot assign that identity.
 
-Before deployment, set `ADMIN_EMAIL` in the server environment to the login email of the existing business owner account. The account must already exist; no customer is promoted automatically, and leaving the value blank denies access to owner-only routes. Do not commit `.env`. After changing environment configuration, clear or rebuild Laravel's config cache. Set `BUSINESS_AUDIT_OWNER_ID` to the same account's ID so public inquiries and audit leads continue to reach the business owner's CRM.
+Before deployment, set `ADMIN_EMAIL` in the server environment to the login email of the existing business owner account. The account must already exist; no customer is promoted automatically, and leaving the value blank denies access to owner-only routes. Do not commit `.env`. After changing environment configuration, clear or rebuild Laravel's config cache. Optionally set `BUSINESS_AUDIT_OWNER_ID` to the same account's ID to direct public inquiries and audit leads to a specific CRM owner; when it is blank or stale, submissions fall back to the account matched by `ADMIN_EMAIL`. Lead forms return `503` only when neither setting resolves to an existing account.
 
 There is no role migration and no account, product, or payment data is removed. Existing published curated products remain in the public catalog; contributor/workspace listings are not offered as storefront products, while existing purchase records and entitlement checks remain available. Customers cannot create workspaces or manage content, funnels, or products. Contact and project inquiries use `/start-project`, which validates and rate-limits submissions before saving them in the existing CRM. The `/contact` page links to that form and does not report a message as sent before submission.
 
@@ -12,7 +12,7 @@ There is no role migration and no account, product, or payment data is removed. 
 
 The public business growth audit is available at `/business-growth-audit`. It stores submissions as contacts and contact submissions, normalizes Ethiopian mobile numbers, assigns a lead score, and provides a signed, temporary report URL.
 
-Set `BUSINESS_AUDIT_OWNER_ID` in `.env` to the ID of the user account that should own audit leads. The endpoint returns `503` until this value points to an existing account; public visitors cannot choose or view CRM accounts. Run `php artisan migrate` to add the audit and lead-score fields to contacts.
+Set `BUSINESS_AUDIT_OWNER_ID` in `.env` to the ID of the user account that should own audit leads. When it is blank or points to a deleted account, the app falls back to the account matched by `ADMIN_EMAIL`. The endpoint returns `503` only when neither setting resolves to an existing account; public visitors can never choose or view CRM accounts. Run `php artisan migrate` to add the audit and lead-score fields to contacts.
 
 ## B2B appointment scheduler
 

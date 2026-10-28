@@ -36,10 +36,9 @@ class AuditFunnelController extends Controller
 
     public function store(StoreBusinessAuditRequest $request, CaptureLead $captureLead, SiteEventRecorder $events): RedirectResponse
     {
-        $ownerId = config('business-audit.owner_id');
-        $owner = is_numeric($ownerId) ? User::query()->find($ownerId) : null;
+        $owner = User::configuredLeadOwner();
 
-        abort_unless($owner, 503, 'Business audit submissions are not configured. Set BUSINESS_AUDIT_OWNER_ID to an existing account id.');
+        abort_unless($owner, 503, 'Business audit submissions are not configured. Set ADMIN_EMAIL or BUSINESS_AUDIT_OWNER_ID to the business owner account.');
 
         $result = $captureLead->handle(
             $owner,

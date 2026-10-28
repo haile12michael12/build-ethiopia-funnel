@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Appointment;
+use App\Models\User;
 use App\Services\AppointmentSchedule;
 use App\Services\ClientAcquisitionConfiguration;
 use Illuminate\Foundation\Http\FormRequest;
@@ -94,9 +95,7 @@ class StoreAppointmentRequest extends FormRequest
 
     private function ownerId(): ?int
     {
-        $ownerId = config('business-audit.owner_id');
-
-        return is_numeric($ownerId) ? (int) $ownerId : null;
+        return User::configuredLeadOwner()?->id;
     }
 
     public function meetingTypes(): array
