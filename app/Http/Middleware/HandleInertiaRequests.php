@@ -60,6 +60,21 @@ class HandleInertiaRequests extends Middleware
         });
     }
 
+    private function appointmentBookingEnabled(): bool
+    {
+        return Cache::remember('shared:appointment-booking-enabled', 60, function (): bool {
+            $owner = User::configuredBusinessOwner();
+
+            if (! $owner) {
+                return false;
+            }
+
+            $settings = app(ClientAcquisitionConfiguration::class)->forOwner($owner->id);
+
+            return (bool) ($settings['appointment_enabled'] ?? true) && (bool) config('appointments.enabled', true);
+        });
+    }
+
     /**
      * Define the props that are shared by default.
      *
@@ -84,6 +99,9 @@ class HandleInertiaRequests extends Middleware
             ],
             'concierge' => [
                 'enabled' => $this->conciergeEnabled(),
+            ],
+            'appointments' => [
+                'booking_enabled' => $this->appointmentBookingEnabled(),
             ],
             'auth' => [
                 'user' => $request->user(),

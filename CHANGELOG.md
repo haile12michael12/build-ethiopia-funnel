@@ -17,6 +17,8 @@ Hailab follows a rolling development model. Notable user-facing changes are reco
 - Contact search, funnel/status/date filters, pagination, and filtered CSV export.
 - Funnel-linked opportunity pipelines with Kanban stage management, value forecasting, activity history, contact integration, and opt-in lead automation.
 - Automation Studio with durable event enrollment, immutable workflow versions, waits, conditional branches, CRM actions, consent-aware email, signed webhooks, run history, retries, and starter recipes.
+- Public B2B appointment/demo scheduler (`/book-a-demo`) with configurable business hours, slot and buffer lengths, daily capacity, and meeting types; availability API, signed confirmation page, owner appointment dashboard, and lead scoring through the existing CRM pipeline.
+- EthioBiz Concierge assistant and business growth audit (public chat assistant grounded in published content, plus a guided growth assessment).
 
 ### Changed
 

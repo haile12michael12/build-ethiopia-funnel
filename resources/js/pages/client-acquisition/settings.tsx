@@ -44,6 +44,13 @@ export default function ClientAcquisitionSettingsPage({ settings, funnels, analy
         form.setData(key, form.data[key].filter((_, optionIndex) => optionIndex !== index) as ClientAcquisitionSettings[typeof key]);
     };
 
+    const updateMeetingType = (index: number, field: 'key' | 'label_en' | 'label_am', value: string) => {
+        const updated = form.data.appointment_meeting_types.map((meeting, meetingIndex) =>
+            meetingIndex === index ? { ...meeting, [field]: value } : meeting,
+        );
+        form.setData('appointment_meeting_types', updated);
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Client Acquisition Settings" />
@@ -574,6 +581,178 @@ export default function ClientAcquisitionSettingsPage({ settings, funnels, analy
                                         className="min-h-20 w-full rounded-md border border-border bg-background px-3 py-2"
                                     />
                                 </label>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+                        <div className="mb-5">
+                            <h2 className="text-lg font-semibold">B2B appointment scheduler</h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Lets other businesses book a demo or consultation directly on the public site at{' '}
+                                <code className="rounded bg-muted px-1">/book-a-demo</code>. Slots, capacity, and business hours below are used to
+                                generate availability; bookings become owner-owned CRM leads.
+                            </p>
+                        </div>
+                        <div className="space-y-4">
+                            <label className="flex items-center gap-3 text-sm font-medium">
+                                <input
+                                    type="checkbox"
+                                    checked={form.data.appointment_enabled}
+                                    onChange={(event) => form.setData('appointment_enabled', event.target.checked)}
+                                    className="h-4 w-4 accent-primary"
+                                />
+                                Enable the public booking page
+                            </label>
+
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <label className="space-y-1.5 text-sm font-medium">
+                                    Appointment timezone
+                                    <input
+                                        type="text"
+                                        value={form.data.appointment_timezone ?? ''}
+                                        onChange={(event) => form.setData('appointment_timezone', event.target.value || null)}
+                                        placeholder="Africa/Addis_Ababa"
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2"
+                                    />
+                                </label>
+                                <label className="space-y-1.5 text-sm font-medium">
+                                    Slot length (minutes)
+                                    <input
+                                        type="number"
+                                        min={15}
+                                        max={240}
+                                        value={form.data.appointment_slot_minutes ?? ''}
+                                        onChange={(event) =>
+                                            form.setData('appointment_slot_minutes', event.target.value ? Number(event.target.value) : null)
+                                        }
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2"
+                                    />
+                                </label>
+                                <label className="space-y-1.5 text-sm font-medium">
+                                    Break between meetings (minutes)
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={120}
+                                        value={form.data.appointment_buffer_minutes ?? ''}
+                                        onChange={(event) =>
+                                            form.setData('appointment_buffer_minutes', event.target.value ? Number(event.target.value) : null)
+                                        }
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2"
+                                    />
+                                </label>
+                                <label className="space-y-1.5 text-sm font-medium">
+                                    Booking window (days ahead)
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={365}
+                                        value={form.data.appointment_advance_days ?? ''}
+                                        onChange={(event) =>
+                                            form.setData('appointment_advance_days', event.target.value ? Number(event.target.value) : null)
+                                        }
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2"
+                                    />
+                                </label>
+                                <label className="space-y-1.5 text-sm font-medium">
+                                    Daily meeting cap
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={20}
+                                        value={form.data.appointment_max_per_day ?? ''}
+                                        onChange={(event) =>
+                                            form.setData('appointment_max_per_day', event.target.value ? Number(event.target.value) : null)
+                                        }
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2"
+                                    />
+                                </label>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <label className="space-y-1.5 text-sm font-medium">
+                                    Business hours start
+                                    <input
+                                        type="time"
+                                        value={form.data.appointment_business_hours?.start ?? ''}
+                                        onChange={(event) =>
+                                            form.setData('appointment_business_hours', {
+                                                start: event.target.value,
+                                                end: form.data.appointment_business_hours?.end ?? '17:00',
+                                            })
+                                        }
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2"
+                                    />
+                                </label>
+                                <label className="space-y-1.5 text-sm font-medium">
+                                    Business hours end
+                                    <input
+                                        type="time"
+                                        value={form.data.appointment_business_hours?.end ?? ''}
+                                        onChange={(event) =>
+                                            form.setData('appointment_business_hours', {
+                                                start: form.data.appointment_business_hours?.start ?? '09:00',
+                                                end: event.target.value,
+                                            })
+                                        }
+                                        className="w-full rounded-md border border-border bg-background px-3 py-2"
+                                    />
+                                </label>
+                            </div>
+
+                            <div>
+                                <div className="mb-2 flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold text-foreground">Meeting types</h3>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            form.setData('appointment_meeting_types', [
+                                                ...form.data.appointment_meeting_types,
+                                                { key: `type_${form.data.appointment_meeting_types.length + 1}`, label_en: '', label_am: null },
+                                            ])
+                                        }
+                                        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                                    >
+                                        <Plus className="h-3.5 w-3.5" /> Add meeting type
+                                    </button>
+                                </div>
+                                <div className="space-y-2">
+                                    {form.data.appointment_meeting_types.map((meeting, index) => (
+                                        <div key={index} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
+                                            <input
+                                                aria-label="Meeting type key"
+                                                value={meeting.key}
+                                                onChange={(event) => updateMeetingType(index, 'key', event.target.value)}
+                                                className="w-32 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                                            />
+                                            <input
+                                                aria-label="English meeting type label"
+                                                value={meeting.label_en}
+                                                onChange={(event) => updateMeetingType(index, 'label_en', event.target.value)}
+                                                className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                                            />
+                                            <input
+                                                aria-label="Amharic meeting type label"
+                                                value={meeting.label_am ?? ''}
+                                                onChange={(event) => updateMeetingType(index, 'label_am', event.target.value)}
+                                                className="w-40 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    form.setData(
+                                                        'appointment_meeting_types',
+                                                        form.data.appointment_meeting_types.filter((_, optionIndex) => optionIndex !== index),
+                                                    )
+                                                }
+                                                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </section>

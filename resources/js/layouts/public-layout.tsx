@@ -11,7 +11,7 @@ interface PublicLayoutProps {
 }
 
 export function PublicLayout({ children, className = '' }: PublicLayoutProps) {
-    const { locale: serverLocale, concierge } = usePage<SharedData>().props;
+    const { locale: serverLocale, concierge, appointments } = usePage<SharedData>().props;
     const isAmharic = serverLocale === 'am';
 
     return (
@@ -114,6 +114,13 @@ export function PublicLayout({ children, className = '' }: PublicLayoutProps) {
                                         About Agency
                                     </Link>
                                 </li>
+                                {appointments?.booking_enabled && (
+                                    <li>
+                                        <Link href={route('appointments.show')} className="transition-colors hover:text-foreground">
+                                            Book a demo
+                                        </Link>
+                                    </li>
+                                )}
                                 <li>
                                     <Link href={route('contact')} className="transition-colors hover:text-foreground">
                                         Get in Touch

@@ -38,6 +38,14 @@ class ClientAcquisitionConfiguration
             'telegram_url',
             'concierge_intro_en',
             'concierge_intro_am',
+            'appointment_enabled',
+            'appointment_timezone',
+            'appointment_slot_minutes',
+            'appointment_buffer_minutes',
+            'appointment_advance_days',
+            'appointment_max_per_day',
+            'appointment_business_hours',
+            'appointment_meeting_types',
         ]));
 
         $weights = $configured['scoring_weights'] ?? [];

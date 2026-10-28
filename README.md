@@ -14,6 +14,12 @@ The public business growth audit is available at `/business-growth-audit`. It st
 
 Set `BUSINESS_AUDIT_OWNER_ID` in `.env` to the ID of the user account that should own audit leads. The endpoint returns `503` until this value points to an existing account; public visitors cannot choose or view CRM accounts. Run `php artisan migrate` to add the audit and lead-score fields to contacts.
 
+## B2B appointment scheduler
+
+The public appointment scheduler is available at `/book-a-demo`. Visitors pick a service, a meeting type, and an open time slot; bookings are stored as owner-owned contacts, contact submissions, and appointments, scored through the existing lead pipeline, and confirmed through a signed temporary page. The owner manages availability and meeting types from `/settings/client-acquisition` and tracks upcoming and past meetings at `/appointments`.
+
+Availability is deterministic and never invents capacity: it uses the configured business hours, slot length, buffer, daily cap, and timezone. `config/appointments.php` provides defaults; no new environment keys are required. See `docs/appointment-booking.md` for details.
+
 ## MERN developer starter funnel
 
 Authenticated users can install the MERN developer lead-magnet funnel from the Funnels page with **Install MERN Starter**. It creates seven published pages for the opt-in, delivery, quiz, three offer paths, and thank-you flow, plus a 50/50 headline experiment. Reinstalling is safe for pages already owned by the user; installation stops with an explicit error if one of the required slugs belongs to another account.

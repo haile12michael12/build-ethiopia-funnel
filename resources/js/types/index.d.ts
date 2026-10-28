@@ -65,6 +65,7 @@ export interface SharedData {
         [key: string]: unknown;
     };
     concierge?: { enabled: boolean };
+    appointments?: { booking_enabled: boolean };
     demo: { enabled: boolean; active: boolean; expires_at: string | null };
     [key: string]: unknown;
 }

@@ -106,6 +106,11 @@ const mainNavItems: NavItem[] = [
         icon: BarChart3,
     },
     {
+        title: 'Appointments',
+        href: '/appointments',
+        icon: CalendarClock,
+    },
+    {
         title: 'Client Acquisition',
         href: '/settings/client-acquisition',
         icon: ClipboardCheck,
