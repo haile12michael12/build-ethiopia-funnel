@@ -10,6 +10,7 @@ class FollowUpTask extends Model
     protected $fillable = [
         'user_id',
         'contact_id',
+        'booking_id',
         'title',
         'description',
         'due_at',
@@ -30,5 +31,10 @@ class FollowUpTask extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(Booking::class);
     }
 }
