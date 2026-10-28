@@ -212,8 +212,8 @@ export default function ContactDetail({ contact, statusOptions, projectOptions }
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [copyState, setCopyState] = useState('');
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Contacts', href: '/contacts' },
-        { title: contact.name || contact.email, href: `/contacts/${contact.id}` },
+        { title: 'Contacts', href: '/admin/contacts' },
+        { title: contact.name || contact.email, href: `/admin/contacts/${contact.id}` },
     ];
 
     const noteForm = useForm({
@@ -406,7 +406,7 @@ export default function ContactDetail({ contact, statusOptions, projectOptions }
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link
-                            href="/contacts"
+                            href="/admin/contacts"
                             className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         >
                             <ArrowLeft className="h-5 w-5" />

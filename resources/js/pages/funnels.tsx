@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Funnels',
-        href: '/funnels',
+        href: '/admin/funnels',
     },
 ];
 
@@ -166,7 +166,7 @@ export default function Funnels({ funnels, stats }: FunnelsPageProps) {
                             {installingStarter ? 'Installing…' : 'Install MERN Starter'}
                         </button>
                         <Link
-                            href="/funnel-editor"
+                            href="/admin/funnel-editor"
                             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                         >
                             <Plus className="h-4 w-4" />
@@ -268,7 +268,7 @@ export default function Funnels({ funnels, stats }: FunnelsPageProps) {
                                 {/* Action Buttons */}
                                 <div className="mb-2 flex items-center gap-2">
                                     <Link
-                                        href={`/funnel-editor/${funnel.id}`}
+                                        href={`/admin/funnel-editor/${funnel.id}`}
                                         className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
                                     >
                                         <Edit3 className="h-4 w-4" />
@@ -356,7 +356,7 @@ export default function Funnels({ funnels, stats }: FunnelsPageProps) {
                                 <h3 className="mb-2 text-lg font-medium text-foreground">No funnels yet</h3>
                                 <p className="mb-6 text-muted-foreground">Get started by creating your first funnel</p>
                                 <Link
-                                    href="/funnel-editor"
+                                    href="/admin/funnel-editor"
                                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                                 >
                                     <Plus className="h-4 w-4" />

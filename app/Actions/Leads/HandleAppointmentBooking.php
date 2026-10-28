@@ -87,6 +87,7 @@ class HandleAppointmentBooking
             $submissionCount = (int) data_get($contact->metadata, 'submission_count', 0) + 1;
 
             $contact->fill([
+                'customer_user_id' => $contact->customer_user_id ?? $request->user()?->id,
                 'funnel_id' => $analyticsFunnel?->id ?? $contact->funnel_id,
                 'email' => $email,
                 'name' => trim($validated['contact_name']),

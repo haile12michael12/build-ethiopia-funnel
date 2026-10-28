@@ -106,6 +106,15 @@ class User extends Authenticatable
         return $this->hasMany(Contact::class);
     }
 
+    /**
+     * Leads submitted by this registered customer account
+     * (business audit, project request, or demo booking).
+     */
+    public function customerContacts(): HasMany
+    {
+        return $this->hasMany(Contact::class, 'customer_user_id');
+    }
+
     public function followUpTasks(): HasMany
     {
         return $this->hasMany(FollowUpTask::class);

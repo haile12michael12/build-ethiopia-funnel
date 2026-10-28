@@ -54,7 +54,7 @@ export function useFunnelPersistence(funnelId?: number, initialRevision = 1, ser
 
         if (!funnelId) {
             router.post(
-                '/funnels',
+                '/admin/funnels',
                 {
                     name: funnel.name,
                     description: funnel.description || '',
@@ -77,7 +77,7 @@ export function useFunnelPersistence(funnelId?: number, initialRevision = 1, ser
 
         try {
             const token = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
-            const response = await fetch(`/funnels/${funnelId}/autosave`, {
+            const response = await fetch(`/admin/funnels/${funnelId}/autosave`, {
                 method: 'PUT',
                 credentials: 'same-origin',
                 headers: {

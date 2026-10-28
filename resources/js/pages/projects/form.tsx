@@ -35,11 +35,11 @@ export default function ProjectForm({ project, categories }: ProjectFormProps) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Projects',
-            href: '/projects',
+            href: '/admin/projects',
         },
         {
             title: isEdit ? `Edit: ${project.title_en}` : 'New Project',
-            href: isEdit ? `/projects/${project.id}/edit` : '/projects/create',
+            href: isEdit ? `/admin/projects/${project.id}/edit` : '/admin/projects/create',
         },
     ];
 

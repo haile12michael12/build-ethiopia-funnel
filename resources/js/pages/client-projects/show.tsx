@@ -48,8 +48,8 @@ interface Props {
 
 export default function ClientProjectShow({ project, statuses, currencies, milestoneStatuses }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Client Delivery', href: '/client-projects' },
+        { title: 'Dashboard', href: '/admin' },
+        { title: 'Client Delivery', href: '/admin/client-projects' },
         { title: project.title, href: route('client-projects.show', project.id) },
     ];
 

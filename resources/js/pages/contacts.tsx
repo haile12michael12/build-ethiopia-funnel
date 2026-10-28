@@ -7,7 +7,7 @@ import { type FormEvent, useState } from 'react';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Contacts',
-        href: '/contacts',
+        href: '/admin/contacts',
     },
 ];
 

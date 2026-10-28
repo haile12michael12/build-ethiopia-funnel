@@ -28,12 +28,12 @@ import AppLogo from './app-logo';
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: '/dashboard',
+        href: '/admin',
         icon: LayoutGrid,
     },
     {
         title: 'Funnels',
-        href: '/funnels',
+        href: '/admin/funnels',
         icon: Zap,
     },
     {
@@ -43,97 +43,97 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Orders',
-        href: '/manage/orders',
+        href: '/admin/manage/orders',
         icon: ShoppingCart,
     },
     {
         title: 'Developer analytics',
-        href: '/developer-analytics',
+        href: '/admin/developer-analytics',
         icon: BarChart3,
     },
     {
         title: 'Workspaces',
-        href: '/workspaces',
+        href: '/admin/workspaces',
         icon: UsersRound,
     },
     {
         title: 'Projects',
-        href: '/projects',
+        href: '/admin/projects',
         icon: FolderKanban,
     },
     {
         title: 'Client Delivery',
-        href: '/client-projects',
+        href: '/admin/client-projects',
         icon: BriefcaseBusiness,
     },
     {
         title: 'Content Studio',
-        href: '/content-studio',
+        href: '/admin/content-studio',
         icon: FileText,
     },
     {
         title: 'Services',
-        href: '/site-content/service',
+        href: '/admin/site-content/service',
         icon: Wrench,
     },
     {
         title: 'Blog Posts',
-        href: '/site-content/blog',
+        href: '/admin/site-content/blog',
         icon: BookOpen,
     },
     {
         title: 'Testimonials',
-        href: '/site-content/testimonial',
+        href: '/admin/site-content/testimonial',
         icon: MessageSquareQuote,
     },
     {
         title: 'Pages',
-        href: '/site-content/page',
+        href: '/admin/site-content/page',
         icon: FileText,
     },
     {
         title: 'Contacts',
-        href: '/contacts',
+        href: '/admin/contacts',
         icon: Users,
     },
     {
         title: 'Follow-up tasks',
-        href: '/follow-up-tasks',
+        href: '/admin/follow-up-tasks',
         icon: CalendarClock,
     },
     {
         title: 'Appointments',
-        href: '/appointments',
+        href: '/admin/appointments',
         icon: CalendarCheck2,
     },
     {
         title: 'Lead analytics',
-        href: '/client-acquisition/analytics',
+        href: '/admin/client-acquisition/analytics',
         icon: BarChart3,
     },
     {
         title: 'Demo appointments',
-        href: '/appointments/manage',
+        href: '/admin/appointments/manage',
         icon: CalendarClock,
     },
     {
         title: 'Client Acquisition',
-        href: '/settings/client-acquisition',
+        href: '/admin/settings/client-acquisition',
         icon: ClipboardCheck,
     },
     {
         title: 'Opportunities',
-        href: '/opportunities',
+        href: '/admin/opportunities',
         icon: BriefcaseBusiness,
     },
     {
         title: 'Automations',
-        href: '/automations',
+        href: '/admin/automations',
         icon: Workflow,
     },
     {
         title: 'Create Funnel',
-        href: '/funnel-editor',
+        href: '/admin/funnel-editor',
         icon: Plus,
     },
 ];
@@ -145,7 +145,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/dashboard" prefetch>
+                            <Link href="/admin" prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

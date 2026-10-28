@@ -88,7 +88,7 @@ function fieldValue(value: unknown): string {
 
 export default function FunnelResponses({ funnel, responses, stats, filters, filterOptions }: FunnelResponsesProps) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Funnels', href: '/funnels' },
+        { title: 'Funnels', href: '/admin/funnels' },
         { title: funnel.name, href: `/funnel-editor/${funnel.id}` },
         { title: 'Responses', href: route('funnels.responses', funnel.id) },
     ];
@@ -127,7 +127,7 @@ export default function FunnelResponses({ funnel, responses, stats, filters, fil
             <div className="flex h-full flex-1 flex-col gap-6 rounded-xl p-4 md:p-6">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="flex items-center gap-3">
-                        <Link href="/funnels" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                        <Link href="/admin/funnels" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
                             <ArrowLeft className="h-5 w-5" />
                         </Link>
                         <div>

@@ -41,9 +41,9 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
     const t = useMemo(() => translations?.copilot ?? ({} as Record<string, string>), [translations?.copilot]);
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Funnels', href: '/funnels' },
+        { title: 'Funnels', href: '/admin/funnels' },
         { title: funnel.name, href: `/funnel-editor/${funnel.id}` },
-        { title: t.title ?? 'Copilot', href: `/funnels/${funnel.id}/copilot` },
+        { title: t.title ?? 'Copilot', href: `/admin/funnels/${funnel.id}/copilot` },
     ];
 
     const [currentAudit, setCurrentAudit] = useState<CopilotAudit | null>(latestAudit);
@@ -96,7 +96,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
         setError(null);
         try {
             const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
-            const res = await fetch(`/funnels/${funnel.id}/copilot/audit`, {
+            const res = await fetch(`/admin/funnels/${funnel.id}/copilot/audit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
                 credentials: 'same-origin',
@@ -143,7 +143,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
         async (auditId: number) => {
             try {
                 const csrf = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
-                const res = await fetch(`/funnels/${funnel.id}/copilot/audit/${auditId}`, {
+                const res = await fetch(`/admin/funnels/${funnel.id}/copilot/audit/${auditId}`, {
                     headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
                     credentials: 'same-origin',
                 });
@@ -278,7 +278,7 @@ export default function CopilotPage({ funnel, latestAudit, auditHistory, recomme
                 <div className="copilot-card flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <div className="mb-1 flex items-center gap-2">
-                            <Link href="/funnels" className="text-muted-foreground transition hover:text-foreground">
+                            <Link href="/admin/funnels" className="text-muted-foreground transition hover:text-foreground">
                                 <ArrowLeft className="h-4 w-4" />
                             </Link>
                             <h1 className="text-2xl font-bold">{t.title ?? 'Funnel Copilot'}</h1>

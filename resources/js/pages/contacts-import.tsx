@@ -5,8 +5,8 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, CopyX, FileSpreadsheet, Upload,
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Contacts', href: '/contacts' },
-    { title: 'Import', href: '/contacts/import' },
+    { title: 'Contacts', href: '/admin/contacts' },
+    { title: 'Import', href: '/admin/contacts/import' },
 ];
 
 interface CsvHeader {

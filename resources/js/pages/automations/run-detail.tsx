@@ -51,9 +51,9 @@ function humanize(value: string): string {
 
 export default function AutomationRunDetail({ run }: { run: Run }) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Automations', href: '/automations' },
-        { title: 'Run history', href: '/automations/runs' },
-        { title: run.id.slice(-8), href: `/automations/runs/${run.id}` },
+        { title: 'Automations', href: '/admin/automations' },
+        { title: 'Run history', href: '/admin/automations/runs' },
+        { title: run.id.slice(-8), href: `/admin/automations/runs/${run.id}` },
     ];
 
     return (

@@ -21,7 +21,7 @@ interface ContentIndexProps {
 }
 
 const breadcrumbFor = (label: string, type: string): BreadcrumbItem[] => [
-    { title: 'Content', href: '/dashboard' },
+    { title: 'Content', href: '/admin' },
     { title: label, href: `/site-content/${type}` },
 ];
 
