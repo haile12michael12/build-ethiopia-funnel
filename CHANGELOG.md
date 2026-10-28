@@ -6,6 +6,7 @@ Hailab follows a rolling development model. Notable user-facing changes are reco
 
 ### Added
 
+- Redesigned public footer with layered gradient glows and pattern texture, a gradient-ring call-to-action band ("Book a Call" when a booking page is active, plus "Start a Project"), animated chevron-reveal link columns, social icon buttons, locale-aware copy (en/am), and a back-to-top control — extracted into `resources/js/components/navbar/public-footer.tsx`.
 - Header and navbar upgrades: a localized "Book a Call" CTA in the public navbar (desktop and mobile drawer, driven by the first active booking page), an owner-only global search over contacts/funnels/bookings in both app headers with debounced grouped results, and an owner-only notifications bell surfacing new bookings, today's meetings, overdue follow-ups, and failed automation runs.
 - Public calendar booking: owner-managed booking pages at `/appointments/calendars`, guest booking flow at `/book/{slug}` with availability rules, buffer-aware conflict-checked slots, visitor timezone display, CRM contact and follow-up task creation, token-guarded cancel/reschedule links, scheduled reminder emails, and owner outcome tracking (completed / no-show / cancel) with no-show re-engagement tasks.
 - Resilient autosave, local recovery, and revision conflicts.
