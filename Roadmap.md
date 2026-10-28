@@ -30,6 +30,7 @@ This roadmap is a planning aid for agents and contributors. It should guide prio
 - Native snapshot experiments with stable traffic assignment.
 - Optional provider-neutral AI funnel generation.
 - Isolated expiring guest sandbox and Docker evaluation stack.
+- Public calendar booking pages with weekly availability rules, conflict-checked time slots, CRM contact and follow-up task creation, email reminders, and invitee cancel/reschedule links; owner outcome tracking with no-show re-engagement tasks.
 
 ## Near-Term Priorities
 
@@ -84,7 +85,6 @@ This roadmap is a planning aid for agents and contributors. It should guide prio
 
 - Email campaign infrastructure with unsubscribe handling.
 - SMS provider integration, opt-in/opt-out compliance, and phone number management.
-- Calendar availability, booking pages, reminders, reschedules, and no-show follow-up.
 - Conversation inbox for email/SMS replies.
 
 ### Agency And SaaS

@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuditFunnelController;
 use App\Http\Controllers\AutomationController;
+use App\Http\Controllers\BookingPageController;
 use App\Http\Controllers\AutomationRunController;
 use App\Http\Controllers\ChapaWebhookController;
 use App\Http\Controllers\ClientAcquisitionAnalyticsController;
@@ -42,6 +43,7 @@ use App\Http\Controllers\MarketplacePurchaseController;
 use App\Http\Controllers\OpportunityController;
 use App\Http\Controllers\PipelineController;
 use App\Http\Controllers\PipelineStageController;
+use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SiteContentController;
@@ -117,6 +119,7 @@ Route::domain($appDomain)->group(function () {
         ->middleware('signed')
         ->name('client-acquisition.thank-you');
 
+    // Public B2B demo scheduler — settings-based availability; no account needed.
     Route::get('/book-a-demo', [AppointmentController::class, 'show'])->name('appointments.show');
     Route::get('/book-a-demo/availability', [AppointmentController::class, 'availability'])
         ->middleware('throttle:30,60')
@@ -127,6 +130,25 @@ Route::domain($appDomain)->group(function () {
     Route::get('/book-a-demo/thank-you/{appointment}', [AppointmentController::class, 'thankYou'])
         ->middleware('signed')
         ->name('appointments.thank-you');
+
+    // Public calendar booking — token-guarded manage links; no account needed.
+    Route::get('/book/{page:slug}', [PublicBookingController::class, 'show'])->name('booking.show');
+    Route::get('/book/{page:slug}/slots', [PublicBookingController::class, 'slots'])
+        ->middleware('throttle:60,1')
+        ->name('booking.slots');
+    Route::post('/book/{page:slug}', [PublicBookingController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('booking.store');
+    Route::get('/booking/{booking:uuid}/confirmation/{token}', [PublicBookingController::class, 'confirmation'])
+        ->name('booking.confirmation');
+    Route::get('/booking/{booking:uuid}/manage/{token}', [PublicBookingController::class, 'manage'])
+        ->name('booking.manage');
+    Route::post('/booking/{booking:uuid}/cancel/{token}', [PublicBookingController::class, 'cancel'])
+        ->middleware('throttle:10,1')
+        ->name('booking.cancel');
+    Route::post('/booking/{booking:uuid}/reschedule/{token}', [PublicBookingController::class, 'reschedule'])
+        ->middleware('throttle:10,1')
+        ->name('booking.reschedule');
 
     // Public funnel view — accessible without authentication.
     // Published funnels are open to all; unpublished funnels require ownership (enforced in controller).
@@ -201,10 +223,10 @@ Route::domain($appDomain)->group(function () {
 
         Route::get('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'edit'])->name('client-acquisition.settings.edit');
         Route::put('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'update'])->name('client-acquisition.settings.update');
-        Route::get('appointments', [AppointmentController::class, 'index'])->name('appointments.index');
-        Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus'])
+        Route::get('appointments/manage', [AppointmentController::class, 'manageIndex'])->name('appointments.manage');
+        Route::patch('appointments/manage/{appointment}/status', [AppointmentController::class, 'updateStatus'])
             ->middleware('throttle:60,60')
-            ->name('appointments.status.update');
+            ->name('appointments.manage.status.update');
         Route::get('client-acquisition/analytics', ClientAcquisitionAnalyticsController::class)->name('client-acquisition.analytics');
         Route::get('dashboard', function (Request $request, ClientAcquisitionConfiguration $configuration) {
             $user = auth()->user();
@@ -409,6 +431,16 @@ Route::domain($appDomain)->group(function () {
         Route::get('follow-up-tasks', [FollowUpTaskController::class, 'index'])->name('follow-up-tasks.index');
         Route::post('contacts/{contact}/follow-up-tasks', [FollowUpTaskController::class, 'store'])->name('follow-up-tasks.store');
         Route::patch('follow-up-tasks/{task}', [FollowUpTaskController::class, 'update'])->name('follow-up-tasks.update');
+        Route::get('appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+        Route::patch('appointments/{booking}', [AppointmentController::class, 'update'])->name('appointments.update');
+        Route::get('appointments/calendars', [BookingPageController::class, 'index'])->name('booking-pages.index');
+        Route::post('appointments/calendars', [BookingPageController::class, 'store'])
+            ->middleware('throttle:20,1')
+            ->name('booking-pages.store');
+        Route::get('appointments/calendars/{page}/edit', [BookingPageController::class, 'edit'])->name('booking-pages.edit');
+        Route::put('appointments/calendars/{page}', [BookingPageController::class, 'update'])
+            ->middleware('throttle:20,1')
+            ->name('booking-pages.update');
         Route::get('opportunities', [OpportunityController::class, 'index'])->name('opportunities.index');
         Route::post('opportunities', [OpportunityController::class, 'store'])->name('opportunities.store');
         Route::patch('opportunities/{opportunity}', [OpportunityController::class, 'update'])->name('opportunities.update');

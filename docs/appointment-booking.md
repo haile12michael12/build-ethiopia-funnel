@@ -16,8 +16,9 @@ captures a specific meeting time.
   `StoreAppointmentRequest` and handled by `AppointmentController@store`.
 - **Confirmation page** — a signed, temporary route
   `GET /book-a-demo/thank-you/{appointment}` that shows the booked details.
-- **Owner dashboard** — `GET /appointments` lists appointments with filters and
-  status actions (confirm, complete, no-show, cancel).
+- **Owner dashboard** — `GET /appointments/manage` lists demo-scheduler
+  appointments with filters and status actions (confirm, complete, no-show,
+  cancel). It complements the calendar-booking dashboard at `/appointments`.
 
 ## How a booking is stored
 

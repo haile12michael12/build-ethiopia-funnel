@@ -7,6 +7,7 @@ import {
     BarChart3,
     BookOpen,
     BriefcaseBusiness,
+    CalendarCheck2,
     CalendarClock,
     ClipboardCheck,
     FileText,
@@ -101,13 +102,18 @@ const mainNavItems: NavItem[] = [
         icon: CalendarClock,
     },
     {
+        title: 'Appointments',
+        href: '/appointments',
+        icon: CalendarCheck2,
+    },
+    {
         title: 'Lead analytics',
         href: '/client-acquisition/analytics',
         icon: BarChart3,
     },
     {
-        title: 'Appointments',
-        href: '/appointments',
+        title: 'Demo appointments',
+        href: '/appointments/manage',
         icon: CalendarClock,
     },
     {

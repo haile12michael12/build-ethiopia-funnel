@@ -6,6 +6,7 @@ Hailab follows a rolling development model. Notable user-facing changes are reco
 
 ### Added
 
+- Public calendar booking: owner-managed booking pages at `/appointments/calendars`, guest booking flow at `/book/{slug}` with availability rules, buffer-aware conflict-checked slots, visitor timezone display, CRM contact and follow-up task creation, token-guarded cancel/reschedule links, scheduled reminder emails, and owner outcome tracking (completed / no-show / cancel) with no-show re-engagement tasks.
 - Resilient autosave, local recovery, and revision conflicts.
 - Portable community templates with validated JSON import/export.
 - Multi-step conditional forms, attribution, and success actions.

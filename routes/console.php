@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Bookings\SendBookingReminders;
 use App\Jobs\DispatchAutomationEvent;
 use App\Jobs\ExecuteAutomationRun;
 use App\Models\AutomationEvent;
@@ -113,4 +114,9 @@ Schedule::call(fn () => DeveloperAuditReport::query()
     ->delete())
     ->daily()
     ->name('prune-expired-developer-audit-reports')
+    ->withoutOverlapping();
+
+Schedule::call(fn () => app(SendBookingReminders::class)->__invoke())
+    ->everyFifteenMinutes()
+    ->name('send-booking-reminders')
     ->withoutOverlapping();
