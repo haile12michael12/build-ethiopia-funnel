@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Services\ClientAcquisitionConfiguration;
 use App\Services\LeadScoringService;
 use Illuminate\Http\RedirectResponse;
@@ -219,8 +220,7 @@ class ClientAcquisitionSettingsController extends Controller
 
     private function authorizeOwner(Request $request): void
     {
-        $ownerId = config('business-audit.owner_id');
-        abort_unless(is_numeric($ownerId) && (int) $ownerId === $request->user()->id, 403);
+        abort_unless(User::configuredLeadOwner()?->id === $request->user()->id, 403);
     }
 
     /**

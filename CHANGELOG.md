@@ -4,6 +4,10 @@ Hailab follows a rolling development model. Notable user-facing changes are reco
 
 ## Unreleased
 
+### Fixed
+
+- Public lead forms (business growth audit, start project, developer code audit, demo appointment requests) no longer return `503 Service Unavailable` when `BUSINESS_AUDIT_OWNER_ID` is blank or stale: lead ownership now falls back to the account matched by `ADMIN_EMAIL` via the new `User::configuredLeadOwner()` resolver, shared by all four controllers, both form requests, and the client-acquisition settings authorization. The flows still fail closed with `503` only when neither setting resolves to an existing account.
+
 ### Added
 
 - Redesigned public footer with layered gradient glows and pattern texture, a gradient-ring call-to-action band ("Book a Call" when a booking page is active, plus "Start a Project"), animated chevron-reveal link columns, social icon buttons, locale-aware copy (en/am), and a back-to-top control — extracted into `resources/js/components/navbar/public-footer.tsx`.

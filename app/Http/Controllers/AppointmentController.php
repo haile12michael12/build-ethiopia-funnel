@@ -508,9 +508,9 @@ class AppointmentController extends Controller
 
     private function configuredOwner(): User
     {
-        $ownerId = config('business-audit.owner_id');
-        abort_unless(is_numeric($ownerId), 503, 'Appointment booking is not configured. Set BUSINESS_AUDIT_OWNER_ID to an existing account id.');
+        $owner = User::configuredLeadOwner();
+        abort_unless($owner, 503, 'Appointment booking is not configured. Set ADMIN_EMAIL or BUSINESS_AUDIT_OWNER_ID to the business owner account.');
 
-        return User::query()->findOrFail((int) $ownerId);
+        return $owner;
     }
 }

@@ -35,8 +35,8 @@ class DeveloperAuditController extends Controller
             'archive' => ['required', 'file', 'mimes:zip', 'max:10240'],
         ]);
 
-        $owner = User::query()->find(config('business-audit.owner_id'));
-        abort_unless($owner, 503, 'Developer audit submissions are not configured. Set BUSINESS_AUDIT_OWNER_ID to an existing account id.');
+        $owner = User::configuredLeadOwner();
+        abort_unless($owner, 503, 'Developer audit submissions are not configured. Set ADMIN_EMAIL or BUSINESS_AUDIT_OWNER_ID to the business owner account.');
 
         $report = $analyzer->analyzeZip($validated['archive']->getRealPath());
         $token = Str::random(64);

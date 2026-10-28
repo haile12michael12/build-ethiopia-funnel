@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
 use App\Services\ClientAcquisitionConfiguration;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -75,8 +76,6 @@ class StoreClientProjectRequest extends FormRequest
 
     private function ownerId(): ?int
     {
-        $ownerId = config('business-audit.owner_id');
-
-        return is_numeric($ownerId) ? (int) $ownerId : null;
+        return User::configuredLeadOwner()?->id;
     }
 }

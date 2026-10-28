@@ -79,6 +79,29 @@ class User extends Authenticatable
     }
 
     /**
+     * Resolve the account that owns public lead-capture submissions
+     * (audit, start-project, developer audit, appointment requests).
+     *
+     * Prefers BUSINESS_AUDIT_OWNER_ID; when it is blank or points to a
+     * missing account, falls back to the single business owner identified
+     * by ADMIN_EMAIL — the README requires both to reference the same
+     * account. Returns null only when neither resolves, so callers still
+     * fail closed with a 503 in a completely unconfigured install.
+     */
+    public static function configuredLeadOwner(): ?self
+    {
+        $ownerId = config('business-audit.owner_id');
+        if (is_numeric($ownerId)) {
+            $owner = static::query()->find((int) $ownerId);
+            if ($owner) {
+                return $owner;
+            }
+        }
+
+        return static::configuredBusinessOwner();
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
