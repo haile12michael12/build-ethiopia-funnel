@@ -60,7 +60,7 @@ export function PublicTopbar() {
                     <div className="flex items-center gap-3 border-l border-border pl-3 font-medium">
                         {auth.user ? (
                             <Link
-                                href={auth.is_business_owner ? route('dashboard') : route('account.orders.index')}
+                                href={auth.is_business_owner ? route('dashboard') : route('customer.dashboard')}
                                 className="text-primary transition-colors hover:text-primary/80"
                             >
                                 {auth.is_business_owner ? dashboardLabel : accountLabel}

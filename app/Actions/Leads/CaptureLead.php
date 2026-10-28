@@ -57,6 +57,7 @@ class CaptureLead
             $contact->fill([
                 'email' => $email,
                 'name' => $validated['name'],
+                'customer_user_id' => $contact->customer_user_id ?? $request->user()?->id,
                 'phone' => filled($validated['phone'] ?? null)
                     ? $this->phoneNormalizer->normalize($validated['phone'])
                     : $contact->phone,
@@ -161,6 +162,7 @@ class CaptureLead
             }
 
             $contact->fill([
+                'customer_user_id' => $contact->customer_user_id ?? $request->user()?->id,
                 'funnel_id' => $analyticsFunnel?->id ?? $contact->funnel_id,
                 'email' => $email,
                 'name' => trim($validated['name']),

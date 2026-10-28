@@ -184,12 +184,21 @@ Route::domain($appDomain)->group(function () {
             ->name('marketplace.checkout');
         Route::get('marketplace/checkout/return', [MarketplaceController::class, 'checkoutReturn'])
             ->name('marketplace.checkout.return');
-        Route::get('account', [AccountController::class, 'index'])->name('account.index');
-        Route::get('account/orders', [MarketplacePurchaseController::class, 'index'])->name('account.orders.index');
-        Route::get('account/orders/{purchase}', [MarketplacePurchaseController::class, 'show'])->name('account.orders.show');
+
+        // Customer dashboard for registered (non-owner) accounts.
+        Route::get('dashboard', [AccountController::class, 'index'])->name('customer.dashboard');
+        Route::get('dashboard/orders', [MarketplacePurchaseController::class, 'index'])->name('account.orders.index');
+        Route::get('dashboard/orders/{purchase}', [MarketplacePurchaseController::class, 'show'])->name('account.orders.show');
+        Route::get('dashboard/profile', fn () => to_route('profile.edit'))->name('customer.profile');
+        Route::get('dashboard/requests', fn () => redirect('/dashboard#requests'));
+        Route::get('dashboard/projects', fn () => redirect('/dashboard#projects'));
+        Route::get('dashboard/services', fn () => redirect()->route('services'));
+        Route::get('dashboard/products', fn () => redirect()->route('products.index'));
+        Route::get('dashboard/contact', fn () => redirect()->route('contact'));
     });
 
     Route::middleware(['auth', 'verified', 'business-owner'])->group(function () {
+        Route::prefix('admin')->group(function () {
         Route::get('manage/orders', [MarketplacePurchaseController::class, 'adminIndex'])->name('marketplace.orders.index');
         Route::post('marketplace/contributor-submissions', [MarketplaceController::class, 'submit'])
             ->middleware('throttle:5,60')
@@ -228,7 +237,9 @@ Route::domain($appDomain)->group(function () {
             ->middleware('throttle:60,60')
             ->name('appointments.manage.status.update');
         Route::get('client-acquisition/analytics', ClientAcquisitionAnalyticsController::class)->name('client-acquisition.analytics');
-        Route::get('dashboard', function (Request $request, ClientAcquisitionConfiguration $configuration) {
+        });
+
+        Route::get('admin', function (Request $request, ClientAcquisitionConfiguration $configuration) {
             $user = auth()->user();
             $funnels = $user->funnels();
             $filters = $request->validate([
@@ -396,6 +407,7 @@ Route::domain($appDomain)->group(function () {
             ]);
         })->name('dashboard');
 
+        Route::prefix('admin')->group(function () {
         Route::get('content-studio', [ContentStudioController::class, 'index'])->name('content-studio.index');
         Route::get('content-studio/create', [ContentStudioController::class, 'create'])->name('content-studio.create');
         Route::post('content-studio', [ContentStudioController::class, 'store'])->name('content-studio.store');
@@ -528,6 +540,11 @@ Route::domain($appDomain)->group(function () {
         Route::get('site-content/{type}/{entry}/edit', [SiteContentController::class, 'edit'])->name('site-content.edit');
         Route::put('site-content/{type}/{entry}', [SiteContentController::class, 'update'])->name('site-content.update');
         Route::delete('site-content/{type}/{entry}', [SiteContentController::class, 'destroy'])->name('site-content.destroy');
+
+        // Any other /admin path is owner-only. Non-owners are rejected by the
+        // business-owner middleware above; owners receive a 404 for unknown pages.
+        Route::get('{any?}', fn () => abort(404, 'Admin page not found.'))->where('any', '.*');
+        });
     });
 
     require __DIR__.'/settings.php';

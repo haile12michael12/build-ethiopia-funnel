@@ -52,7 +52,7 @@ const guardrails = [...metrics, ['form_validation_errors', 'Form validation erro
 
 export default function FunnelExperimentsPage({ funnel, variants, experiments }: FunnelExperimentsProps) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Funnels', href: '/funnels' },
+        { title: 'Funnels', href: '/admin/funnels' },
         { title: funnel.name, href: `/funnel-editor/${funnel.id}` },
         { title: 'Experiments', href: route('funnels.experiments.index', { funnel: funnel.id }) },
     ];
@@ -120,7 +120,7 @@ export default function FunnelExperimentsPage({ funnel, variants, experiments }:
                 <header className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <Link
-                            href={`/funnels/${funnel.id}/copilot`}
+                            href={`/admin/funnels/${funnel.id}/copilot`}
                             className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                         >
                             <ArrowLeft className="h-4 w-4" /> Back to Copilot

@@ -35,8 +35,8 @@ interface Props {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Content Studio', href: '/content-studio' },
+    { title: 'Dashboard', href: '/admin' },
+    { title: 'Content Studio', href: '/admin/content-studio' },
 ];
 
 const statusLabel: Record<string, string> = {

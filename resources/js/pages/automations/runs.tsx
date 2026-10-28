@@ -7,8 +7,8 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Automations', href: '/automations' },
-    { title: 'Run history', href: '/automations/runs' },
+    { title: 'Automations', href: '/admin/automations' },
+    { title: 'Run history', href: '/admin/automations/runs' },
 ];
 
 interface Run {

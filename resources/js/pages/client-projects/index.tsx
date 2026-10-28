@@ -9,8 +9,8 @@ import { BriefcaseBusiness, Calendar, CheckCircle2, Clock, Filter, FolderKanban,
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Client Delivery', href: '/client-projects' },
+    { title: 'Dashboard', href: '/admin' },
+    { title: 'Client Delivery', href: '/admin/client-projects' },
 ];
 
 interface ClientProjectItem {

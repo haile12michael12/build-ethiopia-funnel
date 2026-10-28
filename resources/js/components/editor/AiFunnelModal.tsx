@@ -26,7 +26,7 @@ export default function AiFunnelModal({ isOpen, onClose, onApply }: AiFunnelModa
         setError(null);
         try {
             const token = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
-            const response = await fetch('/funnels/generate', {
+            const response = await fetch('/admin/funnels/generate', {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token ?? '' },

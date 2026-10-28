@@ -1056,8 +1056,8 @@ export default function AutomationEditor({ workflow, options }: Props) {
     };
 
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Automations', href: '/automations' },
-        { title: workflow.name, href: `/automations/${workflow.id}/edit` },
+        { title: 'Automations', href: '/admin/automations' },
+        { title: workflow.name, href: `/admin/automations/${workflow.id}/edit` },
     ];
 
     return (

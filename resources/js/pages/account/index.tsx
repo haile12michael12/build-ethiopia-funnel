@@ -10,6 +10,7 @@ interface RequestSummary {
     id: number;
     name: string | null;
     email: string | null;
+    source: string;
     status: string;
     last_submitted_at: string | null;
 }
@@ -22,6 +23,19 @@ interface ProjectSummary {
     target_completion_date: string | null;
     milestones_count: number;
     milestones_completed: number;
+}
+
+interface AppointmentSummary {
+    id: number;
+    company_name: string;
+    contact_name: string;
+    service_label: string;
+    meeting_type: string;
+    start_at: string | null;
+    timezone: string;
+    duration_minutes: number;
+    status: string;
+    notes: string | null;
 }
 
 interface OrderSummary {
@@ -41,13 +55,21 @@ interface AccountPage {
         active_projects: number;
         completed_projects: number;
         pending_orders: number;
+        upcoming_appointments: number;
     };
     requests: RequestSummary[];
     projects: ProjectSummary[];
+    appointments: AppointmentSummary[];
     orders: OrderSummary[];
     order_count: number;
     paid_order_count: number;
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+    business_audit: 'Growth audit',
+    client_acquisition: 'Project request',
+    appointment_booking: 'Demo booking',
+};
 
 function formatMoney(amountMinor: number, currency: string): string {
     const formatter = new Intl.NumberFormat('en-US', {
@@ -59,7 +81,18 @@ function formatMoney(amountMinor: number, currency: string): string {
     return formatter.format(amountMinor / 100);
 }
 
-export default function AccountIndex({ profile, summary, requests, projects, orders, order_count, paid_order_count }: AccountPage) {
+function formatAppointmentDate(startAt: string | null): string {
+    if (! startAt) {
+        return 'Date pending';
+    }
+
+    return new Date(startAt).toLocaleString('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    });
+}
+
+export default function AccountIndex({ profile, summary, requests, projects, appointments, orders, order_count, paid_order_count }: AccountPage) {
     const firstName = profile.name?.trim().split(/\s+/)[0] || profile.name;
 
     return (
@@ -70,7 +103,7 @@ export default function AccountIndex({ profile, summary, requests, projects, ord
                     <div>
                         <p className="text-sm font-medium text-primary">Customer dashboard</p>
                         <h1 className="mt-1 text-3xl font-bold">Welcome, {firstName}</h1>
-                        <p className="mt-2 text-muted-foreground">Overview of your requests, projects, orders, and account details.</p>
+                        <p className="mt-2 text-muted-foreground">Overview of your requests, projects, appointments, orders, and account details.</p>
                     </div>
                     <button
                         type="button"
@@ -81,7 +114,7 @@ export default function AccountIndex({ profile, summary, requests, projects, ord
                     </button>
                 </header>
 
-                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                     <div className="rounded-xl border border-border bg-card p-5">
                         <p className="text-sm text-muted-foreground">Open requests</p>
                         <p className="mt-2 text-3xl font-bold">{summary.open_requests}</p>
@@ -98,6 +131,10 @@ export default function AccountIndex({ profile, summary, requests, projects, ord
                         <p className="text-sm text-muted-foreground">Pending orders</p>
                         <p className="mt-2 text-3xl font-bold">{summary.pending_orders}</p>
                     </div>
+                    <div className="rounded-xl border border-border bg-card p-5">
+                        <p className="text-sm text-muted-foreground">Upcoming appointments</p>
+                        <p className="mt-2 text-3xl font-bold">{summary.upcoming_appointments}</p>
+                    </div>
                 </section>
 
                 <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -112,14 +149,15 @@ export default function AccountIndex({ profile, summary, requests, projects, ord
                                     <div>
                                         <p className="font-medium">{request.name || request.email || 'Project request'}</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {request.last_submitted_at ? new Date(request.last_submitted_at).toLocaleDateString() : 'No date'}
+                                            {SOURCE_LABELS[request.source] || request.source.replaceAll('_', ' ')}
+                                            {request.last_submitted_at ? ` · ${new Date(request.last_submitted_at).toLocaleDateString()}` : ''}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium capitalize">
-                                            {request.status.replaceAll('_', ' ')}
+                                            {request.status.replaceAll('_', ' ')
+                                        }
                                         </span>
-                                        <Link href={route('account.orders.index')} className="text-sm text-primary">Details</Link>
                                     </div>
                                 </div>
                             )) : (
@@ -167,7 +205,8 @@ export default function AccountIndex({ profile, summary, requests, projects, ord
                                             </p>
                                         </div>
                                         <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium capitalize">
-                                            {project.status.replaceAll('_', ' ')}
+                                            {project.status.replaceAll('_', ' ')
+                                        }
                                         </span>
                                     </div>
                                     <p className="text-sm text-muted-foreground">{project.scope_summary || 'No project summary yet.'}</p>
@@ -196,7 +235,8 @@ export default function AccountIndex({ profile, summary, requests, projects, ord
                                     <div className="text-right">
                                         <p className="font-medium">{formatMoney(order.amount_minor, order.currency || 'USD')}</p>
                                         <span className="mt-1 inline-flex rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium capitalize">
-                                            {order.status.replaceAll('_', ' ')}
+                                            {order.status.replaceAll('_', ' ')
+                                        }
                                         </span>
                                     </div>
                                 </div>
@@ -204,6 +244,32 @@ export default function AccountIndex({ profile, summary, requests, projects, ord
                                 <div className="p-5 text-sm text-muted-foreground">You have no orders or payment records yet.</div>
                             )}
                         </div>
+                    </div>
+                </section>
+
+                <section className="overflow-hidden rounded-xl border border-border bg-card">
+                    <div className="flex items-center justify-between border-b border-border p-5">
+                        <h2 className="text-lg font-semibold">My appointments</h2>
+                        <Link href={route('appointments.show')} className="text-sm font-medium text-primary">Book a demo</Link>
+                    </div>
+                    <div className="divide-y divide-border">
+                        {appointments.length > 0 ? appointments.map((appointment) => (
+                            <div key={appointment.id} className="flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="font-medium">{appointment.company_name || appointment.contact_name || 'Appointment'}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {appointment.service_label || appointment.meeting_type}
+                                        {appointment.start_at ? ` · ${formatAppointmentDate(appointment.start_at)}` : ''}
+                                        {appointment.timezone ? ` · ${appointment.timezone}` : ''}
+                                    </p>
+                                </div>
+                                <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium capitalize">
+                                    {appointment.status.replaceAll('_', ' ')}
+                                </span>
+                            </div>
+                        )) : (
+                            <div className="p-5 text-sm text-muted-foreground">You have no demo or consultation appointments booked yet.</div>
+                        )}
                     </div>
                 </section>
 
@@ -227,6 +293,10 @@ export default function AccountIndex({ profile, summary, requests, projects, ord
                         <Link href={route('client-acquisition.show')} className="flex items-center justify-between gap-4 p-5 text-sm font-medium hover:bg-muted">
                             <span>Contact support or start a project</span>
                             <span className="text-muted-foreground">Reach out &rarr;</span>
+                        </Link>
+                        <Link href={route('business-audit.show')} className="flex items-center justify-between gap-4 p-5 text-sm font-medium hover:bg-muted">
+                            <span>Request a free growth audit</span>
+                            <span className="text-muted-foreground">Start &rarr;</span>
                         </Link>
                     </nav>
                 </section>

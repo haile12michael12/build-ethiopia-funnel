@@ -6,7 +6,7 @@ import { Archive, CheckCircle2, Clock3, Copy, FilePlus2, Pause, Play, Plus, Sear
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Automations', href: '/automations' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Automations', href: '/admin/automations' }];
 
 interface WorkflowItem {
     id: number;

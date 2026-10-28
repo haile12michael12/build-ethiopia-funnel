@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Opportunities', href: '/opportunities' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Opportunities', href: '/admin/opportunities' }];
 
 interface Stage {
     id: number;

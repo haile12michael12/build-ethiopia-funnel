@@ -8,7 +8,7 @@ import { FormEvent, useEffect, useState } from 'react';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/dashboard',
+        href: '/admin',
     },
 ];
 
@@ -146,28 +146,28 @@ export default function Dashboard({ stats, recentContacts, analytics, filters, f
                 </section>
 
                 <section aria-label="Agency metrics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    <Link href="/contacts" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                    <Link href="/admin/contacts" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
                         <p className="text-sm text-muted-foreground">New prospects in range</p><p className="mt-1 text-2xl font-semibold">{operations.new_prospects}</p>
                     </Link>
-                    <Link href="/contacts?status=qualified" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                    <Link href="/admin/contacts?status=qualified" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
                         <p className="text-sm text-muted-foreground">Qualified leads in range</p><p className="mt-1 text-2xl font-semibold">{operations.qualified_leads}</p>
                     </Link>
-                    <Link href="/opportunities" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                    <Link href="/admin/opportunities" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
                         <p className="text-sm text-muted-foreground">Open opportunities</p><p className="mt-1 text-2xl font-semibold">{operations.open_opportunities}</p>
                     </Link>
-                    <Link href="/projects" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                    <Link href="/admin/projects" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
                         <p className="text-sm text-muted-foreground">Published portfolio projects</p><p className="mt-1 text-2xl font-semibold">{operations.published_portfolio_projects}</p>
                     </Link>
-                    <Link href="/follow-up-tasks" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                    <Link href="/admin/follow-up-tasks" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
                         <p className="text-sm text-muted-foreground">Follow-ups due today / overdue</p><p className="mt-1 text-2xl font-semibold">{operations.follow_ups_today} / {operations.overdue_follow_ups}</p>
                     </Link>
-                    <Link href="/content-studio?status=in_review" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                    <Link href="/admin/content-studio?status=in_review" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
                         <p className="text-sm text-muted-foreground">Content awaiting approval</p><p className="mt-1 text-2xl font-semibold">{operations.content_awaiting_review}</p>
                     </Link>
-                    <Link href="/content-studio?status=scheduled" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                    <Link href="/admin/content-studio?status=scheduled" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
                         <p className="text-sm text-muted-foreground">Content scheduled for manual publishing</p><p className="mt-1 text-2xl font-semibold">{operations.scheduled_content}</p>
                     </Link>
-                    <Link href="/automations/runs?status=failed" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                    <Link href="/admin/automations/runs?status=failed" className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
                         <p className="text-sm text-muted-foreground">Automation failures</p><p className="mt-1 text-2xl font-semibold">{operations.automation_failures}</p>
                     </Link>
                 </section>
@@ -176,7 +176,7 @@ export default function Dashboard({ stats, recentContacts, analytics, filters, f
                     <div className="dashboard-card rounded-xl border border-border bg-card p-5">
                         <h2 className="mb-3 flex items-center gap-2 font-semibold"><CalendarClock className="h-4 w-4" />Follow-ups due</h2>
                         {followUps.length ? <div className="space-y-2">{followUps.map((task) => (
-                            <Link key={task.id} href={`/contacts/${task.contact_id}`} className="flex justify-between gap-3 rounded-lg bg-muted/50 p-3 text-sm hover:bg-muted">
+                            <Link key={task.id} href={`/admin/contacts/${task.contact_id}`} className="flex justify-between gap-3 rounded-lg bg-muted/50 p-3 text-sm hover:bg-muted">
                                 <span className="min-w-0"><span className="block truncate font-medium">{task.title}</span><span className="text-muted-foreground">{task.contact || 'Contact'}</span></span>
                                 <time className="shrink-0 text-muted-foreground">{new Date(task.due_at).toLocaleString()}</time>
                             </Link>
@@ -247,7 +247,7 @@ export default function Dashboard({ stats, recentContacts, analytics, filters, f
                         <h3 className="mb-4 text-lg font-semibold text-foreground">Quick Actions</h3>
                         <div className="space-y-3">
                             <Link
-                                href="/funnel-editor"
+                                href="/admin/funnel-editor"
                                 className="group flex items-center rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
                             >
                                 <div className="mr-3 rounded-lg bg-primary/10 p-2 transition-colors group-hover:bg-primary/20">
@@ -260,7 +260,7 @@ export default function Dashboard({ stats, recentContacts, analytics, filters, f
                             </Link>
 
                             <Link
-                                href="/funnels"
+                                href="/admin/funnels"
                                 className="group flex items-center rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
                             >
                                 <div className="mr-3 rounded-lg bg-chart-2/10 p-2 transition-colors group-hover:bg-chart-2/20">
@@ -273,7 +273,7 @@ export default function Dashboard({ stats, recentContacts, analytics, filters, f
                             </Link>
 
                             <Link
-                                href="/contacts"
+                                href="/admin/contacts"
                                 className="group flex items-center rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
                             >
                                 <div className="mr-3 rounded-lg bg-chart-3/10 p-2 transition-colors group-hover:bg-chart-3/20">
