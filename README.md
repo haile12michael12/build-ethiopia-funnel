@@ -32,6 +32,8 @@ Email-open/click tracking and trusted purchase events are not supported by the c
 
 ## Calendar booking
 
+When at least one active booking page exists, the public navbar shows a localized "Book a Call" button linking to it.
+
 The owner manages public booking pages at `/appointments/calendars` (route group requires the `ADMIN_EMAIL` business-owner account). Each page gets a public link at `/book/{slug}` where guests pick a day and time slot, enter their details, and receive a confirmation email — no account required.
 
 Availability comes from weekly per-day windows with configurable duration, buffer between meetings, minimum notice, and an advance-booking window; slot conflicts are evaluated server-side with the page row locked, so a taken time (including its buffer) cannot be double-booked. Times are stored in UTC, shown to visitors in their detected or chosen timezone, and slots outside the advance window or minimum notice are never offered.
@@ -39,6 +41,15 @@ Availability comes from weekly per-day windows with configurable duration, buffe
 Every booking upserts a CRM contact (source `booking`, status `consultation_scheduled` unless the contact is already further along), records a contact activity, and creates a follow-up task due at the meeting start. Invitees get token-guarded manage links (`/booking/{uuid}/manage/{token}`) to cancel or reschedule; tokens are compared with `hash_equals` and wrong tokens return 404. Rescheduling revalidates the slot and queues a fresh reminder. Cancelling a booking cancels its pending follow-up task.
 
 The owner marks outcomes at `/appointments`: `completed` and `no-show` close the linked task (no-show also creates a re-engagement task for the next day), and owner cancellations email the invitee. Reminder emails are sent `BOOKING_REMINDER_HOURS` (default 24) before the start by the `send-booking-reminders` scheduler entry (`SendBookingReminders` action, every 15 minutes), which claims rows before queueing mail so overlapping scheduler runs never mail twice. Email delivery requires a configured mailer and a queue worker; configure Laravel's scheduler (`* * * * * php artisan schedule:run`) in production.
+
+## App header search and notifications
+
+The business owner gets two JSON-backed tools in both app headers (sidebar and header layouts):
+
+- **Global search** (`GET /search?q=…`, requires the owner account, throttled 30/min) groups up to five matches each from contacts (name/email/phone), funnels (name/slug), and bookings (invitee name/email); the header component (`resources/js/components/app-search.tsx`) debounces input, closes on Escape/outside click, and deep-links results.
+- **Notifications** (`GET /app-notifications`, owner-only, 60/min) derives items live from CRM state — bookings created in the last 48 hours, meetings starting today, overdue follow-up tasks, and failed automation runs from the last 3 days — so no notification storage or read-state is required. The bell (`app-notifications.tsx`) polls every 60 seconds for the badge and refetches on open.
+
+Both components render only for the account whose email matches `ADMIN_EMAIL`.
 
 ## Developer template marketplace
 
