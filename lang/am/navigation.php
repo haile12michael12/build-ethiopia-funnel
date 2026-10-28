@@ -23,6 +23,7 @@ return [
     'about' => 'ስለ እኛ',
     'contact' => 'ያግኙን',
     'growth_audit' => 'ነፃ የንግድ ኦዲት',
+    'book_call' => 'ጥሪ ይያዙ',
     'search' => 'ፈልግ',
     'search_placeholder' => 'ፕሮጀክቶችን፣ ቴክኖሎጂዎችን ይፈልጉ...',
     'dashboard' => 'ዳሽቦርድ',

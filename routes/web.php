@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\AppNotificationsController;
+use App\Http\Controllers\AppSearchController;
 use App\Http\Controllers\AuditFunnelController;
 use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\BookingPageController;
@@ -431,6 +433,12 @@ Route::domain($appDomain)->group(function () {
         Route::get('follow-up-tasks', [FollowUpTaskController::class, 'index'])->name('follow-up-tasks.index');
         Route::post('contacts/{contact}/follow-up-tasks', [FollowUpTaskController::class, 'store'])->name('follow-up-tasks.store');
         Route::patch('follow-up-tasks/{task}', [FollowUpTaskController::class, 'update'])->name('follow-up-tasks.update');
+        Route::get('search', AppSearchController::class)
+            ->middleware('throttle:30,1')
+            ->name('search');
+        Route::get('app-notifications', AppNotificationsController::class)
+            ->middleware('throttle:60,1')
+            ->name('app-notifications.index');
         Route::get('appointments', [AppointmentController::class, 'index'])->name('appointments.index');
         Route::patch('appointments/{booking}', [AppointmentController::class, 'update'])->name('appointments.update');
         Route::get('appointments/calendars', [BookingPageController::class, 'index'])->name('booking-pages.index');

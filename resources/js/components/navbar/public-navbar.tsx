@@ -14,7 +14,7 @@ interface NavigationTranslationItem {
 }
 
 export function PublicNavbar({ className = '' }: PublicNavbarProps) {
-    const { auth, translations } = usePage<SharedData>().props;
+    const { auth, translations, bookingCtaUrl } = usePage<SharedData>().props;
     const currentUrl = usePage().url;
 
     // Translation helper with English fallback
@@ -371,6 +371,21 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
 
                     {/* Right Action Controls */}
                     <div className="flex items-center gap-3">
+                        {/* Booking CTA — shown publicly whenever a booking page is active */}
+                        {bookingCtaUrl && (
+                            <Button
+                                asChild
+                                size="sm"
+                                variant="secondary"
+                                className="hidden border border-primary/30 text-primary hover:bg-primary/10 md:flex"
+                            >
+                                <Link href={bookingCtaUrl}>
+                                    <Sparkles className="h-4 w-4" />
+                                    {t('book_call', 'Book a Call')}
+                                </Link>
+                            </Button>
+                        )}
+
                         {/* Auth / CTA Buttons */}
                         <div className="hidden items-center gap-2 sm:flex">
                             {auth.user ? (
@@ -569,6 +584,13 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
 
                                     {/* Mobile Bottom Actions */}
                                     <div className="space-y-3 border-t border-border pt-4">
+                                        {bookingCtaUrl && (
+                                            <Button asChild className="w-full" variant="secondary">
+                                                <Link href={bookingCtaUrl} onClick={() => setMobileOpen(false)}>
+                                                    {t('book_call', 'Book a Call')}
+                                                </Link>
+                                            </Button>
+                                        )}
                                         <Button asChild className="w-full">
                                             <Link href={route('client-acquisition.show')} onClick={() => setMobileOpen(false)}>
                                                 {t('start_project', 'Start a Project')}

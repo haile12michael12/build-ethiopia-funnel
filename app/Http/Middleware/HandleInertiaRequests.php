@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\BookingPage;
 use App\Models\User;
 use App\Services\ClientAcquisitionConfiguration;
 use Closure;
@@ -75,6 +76,15 @@ class HandleInertiaRequests extends Middleware
         });
     }
 
+    private function bookingCtaUrl(): ?string
+    {
+        return Cache::remember('shared:booking-cta-url', 60, function (): ?string {
+            $slug = BookingPage::query()->where('is_active', true)->orderBy('id')->value('slug');
+
+            return is_string($slug) ? route('booking.show', ['page' => $slug]) : null;
+        });
+    }
+
     /**
      * Define the props that are shared by default.
      *
@@ -103,6 +113,7 @@ class HandleInertiaRequests extends Middleware
             'appointments' => [
                 'booking_enabled' => $this->appointmentBookingEnabled(),
             ],
+            'bookingCtaUrl' => fn () => $this->bookingCtaUrl(),
             'auth' => [
                 'user' => $request->user(),
                 'is_business_owner' => $request->user()?->isBusinessOwner() ?? false,

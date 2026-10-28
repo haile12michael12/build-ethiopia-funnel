@@ -23,6 +23,7 @@ return [
     'about' => 'About Us',
     'contact' => 'Contact',
     'growth_audit' => 'Free Growth Audit',
+    'book_call' => 'Book a Call',
     'search' => 'Search',
     'search_placeholder' => 'Search projects, technologies, case studies...',
     'dashboard' => 'Dashboard',

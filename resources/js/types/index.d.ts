@@ -57,6 +57,8 @@ export interface SharedData {
     ziggy: Config & { location: string };
     sidebarOpen: boolean;
     locale: string;
+    /** Public "Book a Call" destination, present when an active booking page exists. */
+    bookingCtaUrl?: string | null;
     translations?: {
         navigation?: TranslationDictionary;
         copilot?: Record<string, string>;
