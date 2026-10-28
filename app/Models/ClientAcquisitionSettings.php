@@ -26,6 +26,14 @@ class ClientAcquisitionSettings extends Model
         'telegram_url',
         'concierge_intro_en',
         'concierge_intro_am',
+        'appointment_enabled',
+        'appointment_timezone',
+        'appointment_slot_minutes',
+        'appointment_buffer_minutes',
+        'appointment_advance_days',
+        'appointment_max_per_day',
+        'appointment_business_hours',
+        'appointment_meeting_types',
     ];
 
     protected function casts(): array
@@ -42,6 +50,13 @@ class ClientAcquisitionSettings extends Model
             'high_priority_score' => 'integer',
             'medium_priority_score' => 'integer',
             'concierge_enabled' => 'boolean',
+            'appointment_enabled' => 'boolean',
+            'appointment_slot_minutes' => 'integer',
+            'appointment_buffer_minutes' => 'integer',
+            'appointment_advance_days' => 'integer',
+            'appointment_max_per_day' => 'integer',
+            'appointment_business_hours' => 'array',
+            'appointment_meeting_types' => 'array',
         ];
     }
 

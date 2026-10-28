@@ -119,6 +119,18 @@ Route::domain($appDomain)->group(function () {
         ->middleware('signed')
         ->name('client-acquisition.thank-you');
 
+    // Public B2B demo scheduler — settings-based availability; no account needed.
+    Route::get('/book-a-demo', [AppointmentController::class, 'show'])->name('appointments.show');
+    Route::get('/book-a-demo/availability', [AppointmentController::class, 'availability'])
+        ->middleware('throttle:30,60')
+        ->name('appointments.availability');
+    Route::post('/book-a-demo', [AppointmentController::class, 'store'])
+        ->middleware('throttle:6,10')
+        ->name('appointments.store');
+    Route::get('/book-a-demo/thank-you/{appointment}', [AppointmentController::class, 'thankYou'])
+        ->middleware('signed')
+        ->name('appointments.thank-you');
+
     // Public calendar booking — token-guarded manage links; no account needed.
     Route::get('/book/{page:slug}', [PublicBookingController::class, 'show'])->name('booking.show');
     Route::get('/book/{page:slug}/slots', [PublicBookingController::class, 'slots'])
@@ -211,6 +223,10 @@ Route::domain($appDomain)->group(function () {
 
         Route::get('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'edit'])->name('client-acquisition.settings.edit');
         Route::put('settings/client-acquisition', [ClientAcquisitionSettingsController::class, 'update'])->name('client-acquisition.settings.update');
+        Route::get('appointments/manage', [AppointmentController::class, 'manageIndex'])->name('appointments.manage');
+        Route::patch('appointments/manage/{appointment}/status', [AppointmentController::class, 'updateStatus'])
+            ->middleware('throttle:60,60')
+            ->name('appointments.manage.status.update');
         Route::get('client-acquisition/analytics', ClientAcquisitionAnalyticsController::class)->name('client-acquisition.analytics');
         Route::get('dashboard', function (Request $request, ClientAcquisitionConfiguration $configuration) {
             $user = auth()->user();

@@ -77,6 +77,19 @@ class ClientAcquisitionSettingsController extends Controller
             'telegram_url' => ['sometimes', 'nullable', 'url:https', 'max:2048'],
             'concierge_intro_en' => ['sometimes', 'nullable', 'string', 'max:600'],
             'concierge_intro_am' => ['sometimes', 'nullable', 'string', 'max:600'],
+            'appointment_enabled' => ['sometimes', 'boolean'],
+            'appointment_timezone' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'appointment_slot_minutes' => ['sometimes', 'nullable', 'integer', 'min:15', 'max:240'],
+            'appointment_buffer_minutes' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:120'],
+            'appointment_advance_days' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:365'],
+            'appointment_max_per_day' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:20'],
+            'appointment_business_hours' => ['sometimes', 'nullable', 'array'],
+            'appointment_business_hours.start' => ['sometimes', 'nullable', 'date_format:H:i'],
+            'appointment_business_hours.end' => ['sometimes', 'nullable', 'date_format:H:i'],
+            'appointment_meeting_types' => ['sometimes', 'nullable', 'array', 'min:1', 'max:10'],
+            'appointment_meeting_types.*.key' => ['required', 'string', 'alpha_dash', 'max:40'],
+            'appointment_meeting_types.*.label_en' => ['required', 'string', 'max:120'],
+            'appointment_meeting_types.*.label_am' => ['nullable', 'string', 'max:120'],
         ]);
 
         $this->validateUniqueKeys($validated);
@@ -146,6 +159,30 @@ class ClientAcquisitionSettingsController extends Controller
                 'concierge_intro_am' => array_key_exists('concierge_intro_am', $validated)
                     ? ($validated['concierge_intro_am'] ?? null)
                     : ($previous['concierge_intro_am'] ?? null),
+                'appointment_enabled' => array_key_exists('appointment_enabled', $validated)
+                    ? (bool) $validated['appointment_enabled']
+                    : (bool) ($previous['appointment_enabled'] ?? true),
+                'appointment_timezone' => array_key_exists('appointment_timezone', $validated)
+                    ? ($validated['appointment_timezone'] ?? null)
+                    : ($previous['appointment_timezone'] ?? null),
+                'appointment_slot_minutes' => array_key_exists('appointment_slot_minutes', $validated)
+                    ? ($validated['appointment_slot_minutes'] ?? null)
+                    : ($previous['appointment_slot_minutes'] ?? null),
+                'appointment_buffer_minutes' => array_key_exists('appointment_buffer_minutes', $validated)
+                    ? ($validated['appointment_buffer_minutes'] ?? null)
+                    : ($previous['appointment_buffer_minutes'] ?? null),
+                'appointment_advance_days' => array_key_exists('appointment_advance_days', $validated)
+                    ? ($validated['appointment_advance_days'] ?? null)
+                    : ($previous['appointment_advance_days'] ?? null),
+                'appointment_max_per_day' => array_key_exists('appointment_max_per_day', $validated)
+                    ? ($validated['appointment_max_per_day'] ?? null)
+                    : ($previous['appointment_max_per_day'] ?? null),
+                'appointment_business_hours' => array_key_exists('appointment_business_hours', $validated)
+                    ? ($validated['appointment_business_hours'] ?? null)
+                    : ($previous['appointment_business_hours'] ?? null),
+                'appointment_meeting_types' => array_key_exists('appointment_meeting_types', $validated)
+                    ? ($validated['appointment_meeting_types'] ?? null)
+                    : ($previous['appointment_meeting_types'] ?? null),
             ],
         );
 
@@ -191,8 +228,8 @@ class ClientAcquisitionSettingsController extends Controller
      */
     private function validateUniqueKeys(array $validated): void
     {
-        foreach (['services', 'budgets', 'timelines'] as $group) {
-            $keys = collect($validated[$group])->pluck('key');
+        foreach (['services', 'budgets', 'timelines', 'appointment_meeting_types'] as $group) {
+            $keys = collect($validated[$group] ?? [])->pluck('key');
             if ($keys->unique()->count() !== $keys->count()) {
                 throw ValidationException::withMessages([
                     $group => 'Each option must have a unique key.',

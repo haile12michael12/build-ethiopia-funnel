@@ -47,6 +47,14 @@ export interface ClientAcquisitionSettings {
     telegram_url: string | null;
     concierge_intro_en: string | null;
     concierge_intro_am: string | null;
+    appointment_enabled: boolean;
+    appointment_timezone: string | null;
+    appointment_slot_minutes: number | null;
+    appointment_buffer_minutes: number | null;
+    appointment_advance_days: number | null;
+    appointment_max_per_day: number | null;
+    appointment_business_hours: { start: string; end: string } | null;
+    appointment_meeting_types: Array<{ key: string; label_en: string; label_am: string | null }>;
 }
 
 export interface ClientAcquisitionProject {

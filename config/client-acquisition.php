@@ -55,4 +55,18 @@ return [
     'telegram_url' => null,
     'concierge_intro_en' => null,
     'concierge_intro_am' => null,
+
+    // Public B2B appointment / demo scheduler.
+    'appointment_enabled' => true,
+    'appointment_timezone' => 'Africa/Addis_Ababa',
+    'appointment_slot_minutes' => 60,
+    'appointment_buffer_minutes' => 15,
+    'appointment_advance_days' => 60,
+    'appointment_max_per_day' => 4,
+    'appointment_business_hours' => ['start' => '09:00', 'end' => '17:00'],
+    'appointment_meeting_types' => [
+        ['key' => 'demo', 'label_en' => 'Live product demo', 'label_am' => 'ትክክለኛ የፕሮድክቶ መሞከሪያ'],
+        ['key' => 'consultation', 'label_en' => 'Strategy consultation', 'label_am' => 'የስትራቴጂ ምክክር'],
+        ['key' => 'call', 'label_en' => 'Quick discovery call', 'label_am' => 'ፈጥነ የመግለጫ ጥሪ'],
+    ],
 ];
