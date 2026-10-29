@@ -39,6 +39,26 @@ class MarketplaceCatalogSeeder extends Seeder
             );
         }
 
+        MarketplaceTemplate::query()->firstOrCreate(
+            ['slug' => 'buildflow-construction-management-platform'],
+            [
+                'type' => 'template',
+                'name' => 'BuildFlow Construction Management Platform',
+                'description' => 'An open-source distributed construction management and contractor marketplace platform. BuildFlow connects construction companies, contractors, engineers, architects, technicians, and construction workers, with project management, contractor matching, payment and invoicing, and real-time project monitoring.',
+                'category' => 'construction_technology',
+                'preview_images' => ['/images/marketplace/placeholder.svg'],
+                'tech_stack' => ['PHP', 'Laravel', 'gRPC', 'Protocol Buffers', 'PostgreSQL', 'Redis', 'RabbitMQ', 'Docker', 'Kubernetes'],
+                'included_modules' => ['construction-project-management', 'contractor-marketplace', 'contractor-matching', 'payment-and-invoicing', 'real-time-project-monitoring'],
+                'version' => 'See repository',
+                'license' => 'MIT License',
+                'license_terms' => 'This listing links to the public source repository; review its LICENSE file for the applicable terms.',
+                'documentation_url' => 'https://github.com/haile12michael12/BuildFlow',
+                'currency' => 'ETB',
+                'status' => 'published',
+                'owner_id' => null,
+            ],
+        );
+
         $bundle = MarketplaceTemplate::query()->firstOrCreate(
             ['slug' => 'mern-developer-bundle'],
             [
