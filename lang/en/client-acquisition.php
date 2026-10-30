@@ -60,6 +60,7 @@ return [
     'back' => 'Back',
     'submit' => 'Send project request',
     'submitting' => 'Sending request…',
+    'submissions_unavailable' => 'Project inquiries are temporarily unavailable while this site finishes setup. Please check back shortly.',
     'form_error' => 'Please review the highlighted fields and try again.',
     'request_received' => 'Your project request was received',
     'thanks' => 'Thank you, :name. The details below are a copy of the request you sent.',

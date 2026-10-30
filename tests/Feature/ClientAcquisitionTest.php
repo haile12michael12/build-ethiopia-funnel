@@ -58,7 +58,29 @@ test('public project funnel renders localized choices and default settings', fun
             ->component('client-acquisition/index')
             ->has('services')
             ->where('settings.budgets.0.currency', 'ETB')
-            ->where('experiment.variant_id', null));
+            ->where('experiment.variant_id', null)
+            ->where('submissionsConfigured', true));
+});
+
+test('public project funnel renders without 503 when no owner is configured while submissions fail closed', function () {
+    config(['business-audit.owner_id' => null, 'business.owner_email' => null]);
+
+    $this->withoutVite()
+        ->get(route('client-acquisition.show'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('client-acquisition/index')
+            ->where('services', [])
+            ->where('projects', [])
+            ->where('testimonials', [])
+            ->where('settings.budgets.0.currency', 'ETB')
+            ->where('experiment.variant_id', null)
+            ->where('submissionsConfigured', false));
+
+    $this->post(route('client-acquisition.store'), validClientProjectPayload())
+        ->assertStatus(503);
+
+    $this->assertDatabaseMissing('contacts', ['email' => 'selam@example.com']);
 });
 
 test('project submission persists explainable scoring, preferences and signed confirmation', function () {

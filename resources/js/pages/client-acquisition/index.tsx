@@ -55,6 +55,7 @@ interface ClientAcquisitionPageProps {
         'services' | 'budgets' | 'timelines' | 'response_time_hours' | 'response_email' | 'whatsapp_url' | 'meeting_url' | 'analytics_funnel_id'
     >;
     experiment: { variant_id: number | null; headline: string | null; call_to_action: string | null };
+    submissionsConfigured?: boolean;
 }
 
 const serviceIcons = [Code2, Sparkles, Layers3, Globe2];
@@ -63,7 +64,14 @@ function localized(text: string | null | undefined): string {
     return text?.trim() || '';
 }
 
-export default function ClientAcquisitionPage({ services, projects, testimonials, settings, experiment }: ClientAcquisitionPageProps) {
+export default function ClientAcquisitionPage({
+    services,
+    projects,
+    testimonials,
+    settings,
+    experiment,
+    submissionsConfigured = true,
+}: ClientAcquisitionPageProps) {
     const { locale, translations } = usePage<SharedData>().props;
     const isAmharic = locale === 'am';
     const copy = translations?.client_acquisition;
@@ -185,6 +193,7 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (!submissionsConfigured) return;
         form.transform((data) => ({
             ...data,
             session_id: funnelSessionId(),
@@ -435,6 +444,11 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
                             </div>
                         </div>
                         <div className="rounded-2xl border border-white/10 bg-white p-5 text-foreground shadow-2xl sm:p-8">
+                            {!submissionsConfigured && (
+                                <div role="status" className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-3.5 text-sm text-amber-950">
+                                    {t('submissions_unavailable')}
+                                </div>
+                            )}
                             <div className="mb-7">
                                 <div className="mb-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                                     <span>
@@ -724,7 +738,7 @@ export default function ClientAcquisitionPage({ services, projects, testimonials
                                             {t('next')} <ArrowRight className="h-4 w-4" />
                                         </Button>
                                     ) : (
-                                        <Button type="submit" disabled={form.processing}>
+                                        <Button type="submit" disabled={form.processing || !submissionsConfigured}>
                                             {form.processing ? t('submitting') : t('submit')} {!form.processing && <ArrowRight className="h-4 w-4" />}
                                         </Button>
                                     )}

@@ -6,6 +6,8 @@ x-hailabfunnel-environment: &hailabfunnel-environment
   APP_KEY: base64:b29vb29vb29vb29vb29vb29vb29vb29vb29vb29vb28=
   APP_DEBUG: "false"
   APP_URL: http://localhost:8000
+  ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+  BUSINESS_AUDIT_OWNER_ID: ${BUSINESS_AUDIT_OWNER_ID:-}
   DB_CONNECTION: sqlite
   DB_DATABASE: /data/database.sqlite
   CACHE_STORE: database
