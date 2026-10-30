@@ -36,7 +36,7 @@ class AppointmentController extends Controller
         ]);
         $view = $validated['view'] ?? 'upcoming';
 
-        $baseQuery = fn (): Builder => $request->user()->bookings();
+        $baseQuery = fn (): Builder => $request->user()->bookings()->getQuery();
 
         $bookings = $baseQuery()
             ->with(['page:id,title,timezone,location,duration_minutes', 'contact:id,name,email'])
