@@ -28,10 +28,11 @@ class ClientAcquisitionController extends Controller
 
     public function show(Request $request, ClientAcquisitionConfiguration $configuration, FunnelVariantResolver $variantResolver): Response
     {
-        $owner = $this->configuredOwner();
-        $settings = $configuration->forOwner($owner->id);
+        $owner = User::configuredLeadOwner();
+        $ownerId = $owner?->id ?? 0;
+        $settings = $configuration->forOwner($owner?->id);
         $variant = null;
-        $analyticsFunnel = $this->publishedAnalyticsFunnel($owner, $settings['analytics_funnel_id']);
+        $analyticsFunnel = $owner ? $this->publishedAnalyticsFunnel($owner, $settings['analytics_funnel_id']) : null;
 
         if ($analyticsFunnel) {
             $assignment = $variantResolver->resolve($analyticsFunnel, $request);
@@ -54,19 +55,20 @@ class ClientAcquisitionController extends Controller
 
         return Inertia::render('client-acquisition/index', [
             'services' => SiteContent::query()
-                ->where('user_id', $owner->id)
+                ->where('user_id', $ownerId)
                 ->where('type', 'service')
                 ->published()
                 ->ordered()
                 ->get(['id', 'title_en', 'title_am', 'summary_en', 'summary_am', 'image', 'slug']),
             'projects' => Project::query()
-                ->where('user_id', $owner->id)
+                ->where('user_id', $ownerId)
                 ->published()
                 ->featured()
                 ->ordered()
                 ->take(3)
                 ->get(['id', 'title_en', 'title_am', 'slug', 'summary_en', 'summary_am', 'cover_image', 'technologies']),
             'testimonials' => SiteContent::query()
+                ->where('user_id', $ownerId)
                 ->where('type', 'testimonial')
                 ->published()
                 ->ordered()
@@ -86,6 +88,7 @@ class ClientAcquisitionController extends Controller
                 'variant_id' => $variant?->id,
                 ...$this->variantCopy($variant?->content ?? []),
             ],
+            'submissionsConfigured' => $owner !== null,
         ]);
     }
 
