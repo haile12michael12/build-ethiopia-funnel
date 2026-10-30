@@ -214,6 +214,21 @@ test('appointment list requires the configured business owner', function () {
     $this->withoutVite()->actingAs($owner)->get(route('appointments.index'))->assertOk();
 });
 
+test('appointment manager renders with default filters', function () {
+    $owner = User::factory()->create();
+    config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);
+
+    $this->withoutVite()
+        ->actingAs($owner)
+        ->get(route('appointments.manage'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('appointments/manage')
+            ->where('filters.status', '')
+            ->where('filters.view', 'upcoming')
+            ->has('appointments', 0));
+});
+
 test('owner can update appointment status and it records an activity', function () {
     $owner = User::factory()->create();
     config(['business-audit.owner_id' => $owner->id, 'business.owner_email' => $owner->email]);

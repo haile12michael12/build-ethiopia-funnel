@@ -342,13 +342,19 @@ class AppointmentController extends Controller
         $user = $request->user();
         abort_unless($user?->isBusinessOwner(), 403);
 
-        $filters = $request->validate([
+        $filters = array_merge([
+            'status' => null,
+            'date_from' => null,
+            'date_to' => null,
+            'service_key' => null,
+            'view' => 'upcoming',
+        ], $request->validate([
             'status' => ['nullable', 'in:'.implode(',', Appointment::STATUSES)],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'service_key' => ['nullable', 'string', 'max:40'],
             'view' => ['nullable', 'in:upcoming,past,all'],
-        ]);
+        ]));
 
         $query = Appointment::query()
             ->forUser((int) $user->id)
