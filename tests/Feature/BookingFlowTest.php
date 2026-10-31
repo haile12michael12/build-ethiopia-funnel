@@ -11,6 +11,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -239,8 +240,8 @@ test('reminder action mails invitees inside the lead window only once', function
     $owner = User::factory()->create();
     $page = bookingPageFor($owner);
     $soon = Booking::query()->create([
-        'uuid' => (string) Illuminate\Support\Str::uuid(),
-        'manage_token' => Illuminate\Support\Str::random(48),
+        'uuid' => (string) Str::uuid(),
+        'manage_token' => Str::random(48),
         'booking_page_id' => $page->id,
         'invitee_name' => 'Soon Guest',
         'invitee_email' => 'soon@example.com',
@@ -249,8 +250,8 @@ test('reminder action mails invitees inside the lead window only once', function
         'status' => 'confirmed',
     ]);
     Booking::query()->create([
-        'uuid' => (string) Illuminate\Support\Str::uuid(),
-        'manage_token' => Illuminate\Support\Str::random(48),
+        'uuid' => (string) Str::uuid(),
+        'manage_token' => Str::random(48),
         'booking_page_id' => $page->id,
         'invitee_name' => 'Later Guest',
         'invitee_email' => 'later@example.com',
@@ -267,16 +268,18 @@ test('reminder action mails invitees inside the lead window only once', function
     expect($soon->refresh()->reminder_sent_at)->not->toBeNull();
 });
 
-test('owner can mark outcomes and invitees are notified of owner cancellations', function () {
+test('dashboard users can mark appointment outcomes and invitees are notified of owner cancellations', function () {
     Mail::fake();
     config(['business.owner_email' => 'owner@example.test']);
 
     $owner = User::factory()->create(['email' => 'owner@example.test']);
     $page = bookingPageFor($owner);
+    $contact = $owner->contacts()->create(['name' => 'Outcome Guest', 'email' => 'outcome@example.com']);
     $booking = Booking::query()->create([
-        'uuid' => (string) Illuminate\Support\Str::uuid(),
-        'manage_token' => Illuminate\Support\Str::random(48),
+        'uuid' => (string) Str::uuid(),
+        'manage_token' => Str::random(48),
         'booking_page_id' => $page->id,
+        'contact_id' => $contact->id,
         'invitee_name' => 'Outcome Guest',
         'invitee_email' => 'outcome@example.com',
         'starts_at' => now()->subHours(2),
@@ -284,17 +287,16 @@ test('owner can mark outcomes and invitees are notified of owner cancellations',
         'status' => 'confirmed',
     ]);
     $owner->followUpTasks()->create([
+        'contact_id' => $contact->id,
         'booking_id' => $booking->id,
         'title' => 'Appointment task',
         'due_at' => $booking->starts_at,
         'status' => 'pending',
     ]);
 
-    // Outcomes require the business-owner account.
+    // Signed-in dashboard users can manage configured-owner appointments.
     $customer = User::factory()->create();
-    $this->actingAs($customer)->patch(route('appointments.update', $booking), ['action' => 'completed'])->assertForbidden();
-
-    $this->actingAs($owner)->patch(route('appointments.update', $booking), ['action' => 'no_show'])->assertRedirect();
+    $this->actingAs($customer)->patch(route('appointments.update', $booking), ['action' => 'no_show'])->assertRedirect();
 
     $booking->refresh();
     expect($booking->status)->toBe('no_show')
@@ -304,8 +306,8 @@ test('owner can mark outcomes and invitees are notified of owner cancellations',
 
     // Owner cancellations email the invitee.
     $future = Booking::query()->create([
-        'uuid' => (string) Illuminate\Support\Str::uuid(),
-        'manage_token' => Illuminate\Support\Str::random(48),
+        'uuid' => (string) Str::uuid(),
+        'manage_token' => Str::random(48),
         'booking_page_id' => $page->id,
         'invitee_name' => 'Future Guest',
         'invitee_email' => 'future@example.com',

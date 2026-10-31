@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contact;
+use App\Models\User;
 use App\Models\WebsiteAssessment;
 use App\Services\ProspectWebsiteInspector;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +15,8 @@ class WebsiteAssessmentController extends Controller
 {
     public function store(Request $request, Contact $contact): RedirectResponse
     {
-        abort_unless($contact->user_id === $request->user()->id, 404);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($contact->user_id === $owner->id, 404);
 
         $validated = $request->validate([
             'website_url' => ['required', 'string', 'max:500'],
@@ -30,7 +32,7 @@ class WebsiteAssessmentController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $validated['user_id'] = $request->user()->id;
+        $validated['user_id'] = $owner->id;
         $validated['assessed_at'] = now();
 
         $contact->websiteAssessments()->create($validated);
@@ -52,7 +54,8 @@ class WebsiteAssessmentController extends Controller
 
     public function inspect(Request $request, Contact $contact, ProspectWebsiteInspector $inspector): JsonResponse
     {
-        abort_unless($contact->user_id === $request->user()->id, 404);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($contact->user_id === $owner->id, 404);
 
         $validated = $request->validate([
             'url' => ['required', 'string', 'max:500'],
@@ -65,11 +68,11 @@ class WebsiteAssessmentController extends Controller
 
     public function destroy(Request $request, Contact $contact, WebsiteAssessment $assessment): RedirectResponse
     {
-        abort_unless($contact->user_id === $request->user()->id && $assessment->contact_id === $contact->id, 404);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($contact->user_id === $owner->id && $assessment->contact_id === $contact->id, 404);
 
         $assessment->delete();
 
         return back()->with('success', 'Assessment removed.');
     }
 }
-

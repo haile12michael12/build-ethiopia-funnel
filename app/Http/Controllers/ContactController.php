@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Contact;
 use App\Models\ContactActivity;
+use App\Models\User;
 use App\Services\Automation\AutomationEventRecorder;
 use App\Services\ClientAcquisitionConfiguration;
 use App\Services\LeadScoringService;
@@ -19,9 +20,10 @@ class ContactController extends Controller
 {
     public function index(Request $request, ClientAcquisitionConfiguration $configuration)
     {
-        $settings = $configuration->forOwner($request->user()->id);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        $settings = $configuration->forOwner($owner->id);
         $filters = $this->validatedFilters($request);
-        $contacts = $this->filteredContacts($request, $filters)
+        $contacts = $this->filteredContacts($owner, $filters)
             ->with('funnel:id,name,slug')
             ->withMin(['followUpTasks as next_follow_up_at' => fn (Builder $query) => $query->where('status', 'pending')], 'due_at')
             ->when(($filters['sort'] ?? 'created_at') === 'score', fn (Builder $query) => $query->orderByDesc('lead_score'))
@@ -57,9 +59,9 @@ class ContactController extends Controller
         return Inertia::render('contacts', [
             'contacts' => $contacts,
             'stats' => [
-                'total_contacts' => $request->user()->contacts()->count(),
-                'new_contacts' => $request->user()->contacts()->where('status', 'new')->count(),
-                'captured_today' => $request->user()->contacts()->whereDate('created_at', today())->count(),
+                'total_contacts' => $owner->contacts()->count(),
+                'new_contacts' => $owner->contacts()->where('status', 'new')->count(),
+                'captured_today' => $owner->contacts()->whereDate('created_at', today())->count(),
             ],
             'filters' => [
                 'search' => $filters['search'] ?? '',
@@ -78,13 +80,13 @@ class ContactController extends Controller
             ],
             'filterOptions' => [
                 'statuses' => Contact::STATUSES,
-                'services' => collect($configuration->forOwner($request->user()->id)['services'])
+                'services' => collect($configuration->forOwner($owner->id)['services'])
                     ->map(fn (array $service) => ['key' => $service['key'], 'label' => $service['label_en']])
                     ->values(),
-                'budgets' => collect($configuration->forOwner($request->user()->id)['budgets'])
+                'budgets' => collect($configuration->forOwner($owner->id)['budgets'])
                     ->map(fn (array $budget) => ['key' => $budget['key'], 'label' => $budget['label_en'], 'currency' => $budget['currency']])
                     ->values(),
-                'funnels' => $request->user()
+                'funnels' => $owner
                     ->funnels()
                     ->orderBy('name')
                     ->get(['id', 'name']),
@@ -94,8 +96,9 @@ class ContactController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
+        $owner = User::configuredBusinessOwner() ?? $request->user();
         $filters = $this->validatedFilters($request);
-        $contacts = $this->filteredContacts($request, $filters)
+        $contacts = $this->filteredContacts($owner, $filters)
             ->with('funnel:id,name')
             ->latest('last_submitted_at')
             ->latest();
@@ -150,7 +153,8 @@ class ContactController extends Controller
 
     public function show(Request $request, Contact $contact)
     {
-        abort_unless($contact->user_id === $request->user()->id, 403);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($contact->user_id === $owner->id, 403);
 
         $contact->load([
             'funnel:id,name,slug',
@@ -318,7 +322,8 @@ class ContactController extends Controller
         ClientAcquisitionConfiguration $configuration,
         LeadScoringService $scoring,
     ) {
-        abort_unless($contact->user_id === $request->user()->id, 403);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($contact->user_id === $owner->id, 403);
         abort_unless(is_array($contact->client_project), 404);
 
         $settings = $configuration->forOwner($contact->user_id);
@@ -396,14 +401,15 @@ class ContactController extends Controller
 
     public function update(Request $request, Contact $contact, AutomationEventRecorder $automationEvents)
     {
-        abort_unless($contact->user_id === $request->user()->id, 403);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($contact->user_id === $owner->id, 403);
 
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:'.implode(',', Contact::STATUSES)],
             'lost_reason' => ['nullable', 'string', 'in:budget_mismatch,timing,scope_mismatch,no_response,other'],
         ]);
 
-        DB::transaction(function () use ($request, $contact, $validated, $automationEvents): void {
+        DB::transaction(function () use ($request, $owner, $contact, $validated, $automationEvents): void {
             $previousStatus = $contact->status;
             $contact->update([
                 'status' => $validated['status'],
@@ -421,7 +427,7 @@ class ContactController extends Controller
                     ],
                 ]);
                 $automationEvents->record(
-                    $request->user(),
+                    $owner,
                     'contact.status_changed',
                     contact: $contact,
                     funnel: $contact->funnel,
@@ -435,7 +441,8 @@ class ContactController extends Controller
 
     public function storeNote(Request $request, Contact $contact)
     {
-        abort_unless($contact->user_id === $request->user()->id, 403);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($contact->user_id === $owner->id, 403);
 
         $validated = $request->validate([
             'note' => ['required', 'string', 'max:2000'],
@@ -464,7 +471,8 @@ class ContactController extends Controller
 
     public function storeContactAttempt(Request $request, Contact $contact)
     {
-        abort_unless($contact->user_id === $request->user()->id, 403);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($contact->user_id === $owner->id, 403);
 
         $validated = $request->validate([
             'channel' => ['required', 'string', 'in:email,phone,whatsapp,meeting,proposal'],
@@ -514,9 +522,9 @@ class ContactController extends Controller
     /**
      * @param  array<string, mixed>  $filters
      */
-    private function filteredContacts(Request $request, array $filters): Builder
+    private function filteredContacts(User $owner, array $filters): Builder
     {
-        return $request->user()
+        return $owner
             ->contacts()
             ->getQuery()
             ->when($filters['search'] ?? null, function (Builder $query, string $search): void {

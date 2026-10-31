@@ -1,4 +1,4 @@
-import PublicLayout from '@/layouts/public-layout';
+import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
 import { Head, Link, router } from '@inertiajs/react';
 
 interface Profile {
@@ -120,7 +120,7 @@ export default function AccountIndex({ profile, summary, requests, projects, app
     const firstName = profile.name?.trim().split(/\s+/)[0] || profile.name;
 
     return (
-        <PublicLayout>
+        <AppSidebarLayout>
             <Head title="My Account" />
             <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6">
                 <header className="flex flex-wrap items-end justify-between gap-4">
@@ -391,6 +391,6 @@ export default function AccountIndex({ profile, summary, requests, projects, app
                     </div>
                 </section>
             </main>
-        </PublicLayout>
+        </AppSidebarLayout>
     );
 }

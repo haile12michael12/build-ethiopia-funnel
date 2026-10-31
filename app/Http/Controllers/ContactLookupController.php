@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ class ContactLookupController extends Controller
         ]);
         $search = trim($validated['search'] ?? '');
 
-        $contacts = $request->user()
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        $contacts = $owner
             ->contacts()
             ->when($search, function (Builder $query) use ($search): void {
                 $query->where(function (Builder $searchQuery) use ($search): void {

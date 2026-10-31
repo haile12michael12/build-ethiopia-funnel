@@ -145,9 +145,12 @@ const mainNavItems: NavItem[] = [
 ];
 
 const customerNavItems: NavItem[] = [
-    { title: 'My dashboard', href: '/dashboard', icon: LayoutGrid },
-    { title: 'My orders', href: '/dashboard/orders', icon: ShoppingCart },
-    { title: 'My activity', href: '/dashboard/activity', icon: FileText },
+    { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+    { title: 'Marketplace', href: '/marketplace', icon: ShoppingBag },
+    { title: 'Services', href: '/services', icon: Wrench },
+    { title: 'Contacts', href: '/admin/contacts', icon: Users },
+    { title: 'Follow-up tasks', href: '/admin/follow-up-tasks', icon: CalendarClock },
+    { title: 'Appointments', href: '/admin/appointments', icon: CalendarCheck2 },
 ];
 
 export function AppSidebar() {
@@ -169,7 +172,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={isOwner ? mainNavItems : customerNavItems} />
+                <NavMain items={isOwner ? mainNavItems : customerNavItems} title={isOwner ? 'Platform' : 'Platform project'} />
             </SidebarContent>
 
             <SidebarFooter>

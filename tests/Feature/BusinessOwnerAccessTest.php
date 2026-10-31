@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\BookingPage;
 use App\Models\MarketplacePurchase;
 use App\Models\MarketplaceTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -48,14 +50,75 @@ beforeEach(function () {
 test('customers cannot access owner management routes but can use their own account', function () {
     $customer = User::factory()->create();
     $otherCustomer = User::factory()->create();
+    $owner = User::factory()->create(['email' => 'owner@example.test']);
     $product = businessStoreProduct();
     $ownOrder = businessPurchase($customer, $product, 'MKT-CUSTOMER-OWN');
     $otherOrder = businessPurchase($otherCustomer, $product, 'MKT-CUSTOMER-OTHER');
+    $ownerContact = $owner->contacts()->create(['name' => 'Business Contact', 'email' => 'business-contact@example.test']);
+    $customer->contacts()->create(['name' => 'Customer Contact', 'email' => 'customer-contact@example.test']);
+    $otherCustomer->contacts()->create(['name' => 'Other Contact', 'email' => 'other-contact@example.test']);
+    $ownerTask = $owner->followUpTasks()->create([
+        'contact_id' => $ownerContact->id,
+        'title' => 'Business follow-up',
+        'due_at' => today()->setTime(12, 0),
+    ]);
+    $ownerBookingPage = BookingPage::query()->create([
+        'user_id' => $owner->id,
+        'title' => 'Business appointment',
+        'slug' => 'business-appointment',
+        'description' => 'Business appointment page.',
+        'location' => 'Online',
+        'duration_minutes' => 30,
+        'buffer_minutes' => 0,
+        'min_notice_minutes' => 0,
+        'advance_days' => 14,
+        'timezone' => 'Africa/Addis_Ababa',
+        'availability' => [],
+        'is_active' => true,
+    ]);
+    $ownerBooking = $ownerBookingPage->bookings()->create([
+        'uuid' => (string) Str::uuid(),
+        'manage_token' => Str::random(48),
+        'invitee_name' => 'Business Guest',
+        'invitee_email' => 'business-guest@example.test',
+        'starts_at' => now()->subHours(2),
+        'ends_at' => now()->subHours(2)->addMinutes(30),
+        'status' => 'confirmed',
+    ]);
 
     $this->actingAs($customer)
         ->get(route('dashboard'))->assertForbidden();
     $this->actingAs($customer)
-        ->get(route('contacts.index'))->assertForbidden();
+        ->get(route('contacts.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('contacts.data', 1)
+            ->where('contacts.data.0.id', $ownerContact->id));
+    $this->actingAs($customer)
+        ->patch(route('contacts.update', $ownerContact), ['status' => 'contacted'])
+        ->assertRedirect();
+    expect($ownerContact->fresh()->status)->toBe('contacted');
+    $this->actingAs($customer)
+        ->get(route('follow-up-tasks.index', ['view' => 'all']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('tasks.data', 1)
+            ->where('tasks.data.0.id', $ownerTask->id));
+    $this->actingAs($customer)
+        ->patch(route('follow-up-tasks.update', $ownerTask), ['status' => 'completed'])
+        ->assertRedirect();
+    expect($ownerTask->fresh()->status)->toBe('completed');
+    $this->actingAs($customer)
+        ->get(route('appointments.index', ['view' => 'past']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('bookings.data', 1)
+            ->where('bookings.data.0.id', $ownerBooking->id));
+    $this->actingAs($customer)
+        ->patch(route('appointments.update', $ownerBooking), ['action' => 'completed'])
+        ->assertRedirect();
+    expect($ownerBooking->fresh()->status)->toBe('completed');
+    $this->actingAs($customer)->get(route('booking-pages.index'))->assertForbidden();
     $this->actingAs($customer)
         ->get(route('site-content.index', 'service'))->assertForbidden();
     $this->actingAs($customer)

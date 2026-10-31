@@ -32,12 +32,13 @@ class AppointmentController extends Controller
 {
     public function index(Request $request): Response
     {
+        $owner = User::configuredBusinessOwner() ?? $request->user();
         $validated = $request->validate([
             'view' => ['nullable', Rule::in(['upcoming', 'past', 'cancelled'])],
         ]);
         $view = $validated['view'] ?? 'upcoming';
 
-        $baseQuery = fn (): Builder => $request->user()->bookings()->getQuery();
+        $baseQuery = fn (): Builder => $owner->bookings()->getQuery();
 
         $bookings = $baseQuery()
             ->with(['page:id,title,timezone,location,duration_minutes', 'contact:id,name,email'])
@@ -74,7 +75,8 @@ class AppointmentController extends Controller
 
     public function update(Request $request, Booking $booking, CancelBooking $cancelBooking): RedirectResponse
     {
-        abort_unless($booking->page->user_id === $request->user()->id, 403);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($booking->page->user_id === $owner->id, 403);
 
         $validated = $request->validate([
             'action' => ['required', Rule::in(['completed', 'no_show', 'cancelled'])],
@@ -83,19 +85,19 @@ class AppointmentController extends Controller
         abort_unless($booking->status === 'confirmed', 422, 'This booking is not active anymore.');
 
         match ($validated['action']) {
-            'completed' => $this->markOutcome($request, $booking, 'completed'),
-            'no_show' => $this->markOutcome($request, $booking, 'no_show'),
+            'completed' => $this->markOutcome($request, $booking, $owner, 'completed'),
+            'no_show' => $this->markOutcome($request, $booking, $owner, 'no_show'),
             'cancelled' => $cancelBooking->handle($booking, 'owner'),
         };
 
         return back()->with('success', 'Booking updated.');
     }
 
-    private function markOutcome(Request $request, Booking $booking, string $outcome): void
+    private function markOutcome(Request $request, Booking $booking, User $owner, string $outcome): void
     {
         abort_if($booking->starts_at->isFuture(), 422, 'You can mark an outcome only after the booking starts.');
 
-        DB::transaction(function () use ($request, $booking, $outcome): void {
+        DB::transaction(function () use ($request, $booking, $owner, $outcome): void {
             $booking->forceFill([
                 'status' => $outcome,
                 'completed_at' => now(),
@@ -107,7 +109,7 @@ class AppointmentController extends Controller
             ]);
 
             if ($outcome === 'no_show') {
-                $request->user()->followUpTasks()->create([
+                $owner->followUpTasks()->create([
                     'contact_id' => $booking->contact_id,
                     'booking_id' => $booking->id,
                     'title' => "Re-engage {$booking->invitee_name} after missed appointment",

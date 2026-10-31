@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contact;
+use App\Models\User;
 use App\Services\ContactImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -20,7 +21,7 @@ class ContactImportController extends Controller
     public function create(Request $request)
     {
         return Inertia::render('contacts-import', [
-            ...$this->pageContext($request),
+            ...$this->pageContext(User::configuredBusinessOwner() ?? $request->user()),
             'preview' => null,
             'summary' => null,
         ]);
@@ -55,10 +56,11 @@ class ContactImportController extends Controller
         }
 
         $mapping = $service->detectMapping($parsed['headers']);
-        $analysis = $service->analyze($request->user(), $parsed['rows'], $mapping);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        $analysis = $service->analyze($owner, $parsed['rows'], $mapping);
 
         return Inertia::render('contacts-import', [
-            ...$this->pageContext($request),
+            ...$this->pageContext($owner),
             'preview' => [
                 'token' => $token,
                 'file_name' => $file->getClientOriginalName(),
@@ -92,6 +94,7 @@ class ContactImportController extends Controller
 
         $token = $validated['token'];
         $path = $this->path($token);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
 
         if (! Storage::disk('local')->exists($path)) {
             throw ValidationException::withMessages([
@@ -102,7 +105,7 @@ class ContactImportController extends Controller
         $defaultFunnelId = null;
 
         if (! empty($validated['default_funnel_id'])) {
-            $defaultFunnelId = $request->user()
+            $defaultFunnelId = $owner
                 ->funnels()
                 ->whereKey($validated['default_funnel_id'])
                 ->value('id');
@@ -128,7 +131,7 @@ class ContactImportController extends Controller
         }
 
         $summary = $service->import(
-            $request->user(),
+            $owner,
             $parsed['rows'],
             $mapping,
             $validated['duplicate_strategy'],
@@ -140,7 +143,7 @@ class ContactImportController extends Controller
         $this->forget($token);
 
         return Inertia::render('contacts-import', [
-            ...$this->pageContext($request),
+            ...$this->pageContext($owner),
             'preview' => null,
             'summary' => [
                 ...$summary,
@@ -152,10 +155,10 @@ class ContactImportController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function pageContext(Request $request): array
+    private function pageContext(User $owner): array
     {
         return [
-            'funnels' => $request->user()
+            'funnels' => $owner
                 ->funnels()
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug']),

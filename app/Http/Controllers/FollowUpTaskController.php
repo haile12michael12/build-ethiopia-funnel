@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FollowUpTask;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,11 +15,12 @@ class FollowUpTaskController extends Controller
 {
     public function index(Request $request)
     {
+        $owner = User::configuredBusinessOwner() ?? $request->user();
         $validated = $request->validate([
             'view' => ['nullable', Rule::in(['overdue', 'today', 'upcoming', 'all'])],
         ]);
         $view = $validated['view'] ?? 'today';
-        $tasks = $request->user()->followUpTasks()
+        $tasks = $owner->followUpTasks()
             ->with('contact:id,name,email,status')
             ->when($view !== 'all', function (Builder $query) use ($view): void {
                 $query->where('status', 'pending')
@@ -49,24 +51,25 @@ class FollowUpTaskController extends Controller
             'tasks' => $tasks,
             'view' => $view,
             'counts' => [
-                'overdue' => $request->user()->followUpTasks()->where('status', 'pending')->where('due_at', '<', now())->count(),
-                'today' => $request->user()->followUpTasks()->where('status', 'pending')->whereDate('due_at', today())->count(),
-                'upcoming' => $request->user()->followUpTasks()->where('status', 'pending')->where('due_at', '>', now()->endOfDay())->count(),
+                'overdue' => $owner->followUpTasks()->where('status', 'pending')->where('due_at', '<', now())->count(),
+                'today' => $owner->followUpTasks()->where('status', 'pending')->whereDate('due_at', today())->count(),
+                'upcoming' => $owner->followUpTasks()->where('status', 'pending')->where('due_at', '>', now()->endOfDay())->count(),
             ],
         ]);
     }
 
     public function store(Request $request, int $contactId): RedirectResponse
     {
-        $contact = $request->user()->contacts()->findOrFail($contactId);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        $contact = $owner->contacts()->findOrFail($contactId);
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:160'],
             'description' => ['nullable', 'string', 'max:2000'],
             'due_at' => ['required', 'date'],
         ]);
 
-        DB::transaction(function () use ($request, $contact, $validated): void {
-            $task = $request->user()->followUpTasks()->create([
+        DB::transaction(function () use ($request, $owner, $contact, $validated): void {
+            $task = $owner->followUpTasks()->create([
                 ...$validated,
                 'contact_id' => $contact->id,
             ]);
@@ -82,7 +85,8 @@ class FollowUpTaskController extends Controller
 
     public function update(Request $request, FollowUpTask $task): RedirectResponse
     {
-        abort_unless($task->user_id === $request->user()->id, 403);
+        $owner = User::configuredBusinessOwner() ?? $request->user();
+        abort_unless($task->user_id === $owner->id, 403);
         $validated = $request->validate([
             'title' => ['sometimes', 'required', 'string', 'max:160'],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
