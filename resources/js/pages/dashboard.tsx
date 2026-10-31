@@ -13,6 +13,18 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface DashboardProps {
+    platformStats: {
+        users: number;
+        leads: number;
+        bookings_last_7_days: number;
+        verified_revenue: Record<string, number>;
+    };
+    platformActivity: Array<{
+        id: number;
+        action: string;
+        user: { id: number; name: string; email: string } | null;
+        created_at: string | null;
+    }>;
     stats: {
         total_funnels: number;
         total_views: number;
@@ -69,7 +81,7 @@ function formatNumber(value: number): string {
     return value.toString();
 }
 
-export default function Dashboard({ stats, recentContacts, analytics, filters, filterOptions, operations, followUps, recentActivities }: DashboardProps) {
+export default function Dashboard({ platformStats, platformActivity, stats, recentContacts, analytics, filters, filterOptions, operations, followUps, recentActivities }: DashboardProps) {
     const [dateFrom, setDateFrom] = useState(filters.date_from);
     const [dateTo, setDateTo] = useState(filters.date_to);
     const [market, setMarket] = useState(filters.market);
@@ -110,6 +122,51 @@ export default function Dashboard({ stats, recentContacts, analytics, filters, f
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
+                <section aria-label="Platform overview" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-xl border border-border bg-card p-4">
+                        <p className="text-sm text-muted-foreground">Registered users</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums">{platformStats.users}</p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-card p-4">
+                        <p className="text-sm text-muted-foreground">Leads / contacts</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums">{platformStats.leads}</p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-card p-4">
+                        <p className="text-sm text-muted-foreground">Bookings · last 7 days</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums">{platformStats.bookings_last_7_days}</p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-card p-4">
+                        <p className="text-sm text-muted-foreground">Verified Chapa revenue</p>
+                        {Object.entries(platformStats.verified_revenue).length ? (
+                            Object.entries(platformStats.verified_revenue).map(([currency, amount]) => (
+                                <p key={currency} className="mt-1 text-lg font-semibold tabular-nums">
+                                    {currency} {(amount / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                            ))
+                        ) : <p className="mt-1 text-lg font-semibold">No verified purchases</p>}
+                    </div>
+                </section>
+                <section className="rounded-xl border border-border bg-card p-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <h2 className="font-semibold">Recent account activity</h2>
+                        <Link href={route('activity.index')} className="text-sm font-medium text-primary">View all activity</Link>
+                    </div>
+                    {platformActivity.length ? (
+                        <ul className="divide-y divide-border">
+                            {platformActivity.slice(0, 6).map((activity) => (
+                                <li key={activity.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+                                    <span>
+                                        <span className="font-medium">{activity.user?.name || 'Guest'}</span>
+                                        {' · '}{activity.action.replaceAll('_', ' ')}
+                                    </span>
+                                    <time className="text-muted-foreground">
+                                        {activity.created_at ? new Date(activity.created_at).toLocaleString() : ''}
+                                    </time>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : <p className="text-sm text-muted-foreground">No activity has been recorded yet.</p>}
+                </section>
                 <section className="dashboard-card rounded-xl border border-border bg-card p-5">
                     <div className="mb-4">
                         <h2 className="text-lg font-semibold">Agency operations</h2>

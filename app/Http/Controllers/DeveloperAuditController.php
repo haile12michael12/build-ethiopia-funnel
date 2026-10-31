@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\DeveloperAuditUnlockMail;
+use App\Models\Activity;
 use App\Models\Contact;
 use App\Models\DeveloperAuditReport;
 use App\Models\User;
@@ -70,6 +71,7 @@ class DeveloperAuditController extends Controller
         });
 
         $signals->record($audit->contact, 'code_audit_completed', $audit->id);
+        Activity::record('developer_audit_completed', $audit->contact?->customer_user_id, $audit, ['score' => $audit->score]);
         $unlockUrl = URL::temporarySignedRoute(
             'developer-audit.unlock',
             $audit->expires_at,

@@ -398,6 +398,9 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                         <Button asChild size="sm" variant="outline">
                                             <Link href={route('account.orders.index')}>My Account / Orders</Link>
                                         </Button>
+                                        <Button asChild size="sm" variant="ghost">
+                                            <Link href={route('customer.activity')}>My Activity</Link>
+                                        </Button>
                                         <Button size="sm" variant="ghost" onClick={() => router.post(route('logout'))}>
                                             Log out
                                         </Button>
@@ -608,6 +611,11 @@ export function PublicNavbar({ className = '' }: PublicNavbarProps) {
                                                     <Button asChild className="w-full">
                                                         <Link href={route('account.orders.index')} onClick={() => setMobileOpen(false)}>
                                                             My Account / Orders
+                                                        </Link>
+                                                    </Button>
+                                                    <Button asChild variant="outline" className="w-full">
+                                                        <Link href={route('customer.activity')} onClick={() => setMobileOpen(false)}>
+                                                            My Activity
                                                         </Link>
                                                     </Button>
                                                     <Button variant="outline" className="w-full" onClick={() => router.post(route('logout'))}>

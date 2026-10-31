@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
 use App\Models\MarketplacePurchase;
 use App\Models\MarketplaceTemplate;
 use App\Models\User;
@@ -435,6 +436,7 @@ class MarketplaceController extends Controller
         );
         abort_unless($template->type === 'template' && $template->file_path, 404);
         abort_unless(Storage::disk('local')->exists($template->file_path), 404);
+        Activity::record('template_downloaded', (int) $request->user()->id, $template, ['template_id' => $template->id]);
 
         return Storage::disk('local')->download($template->file_path, "{$template->slug}.zip");
     }

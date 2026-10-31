@@ -2,7 +2,8 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
 import {
     BarChart3,
     BookOpen,
@@ -35,6 +36,11 @@ const mainNavItems: NavItem[] = [
         title: 'Funnels',
         href: '/admin/funnels',
         icon: Zap,
+    },
+    {
+        title: 'Activity',
+        href: '/admin/activity',
+        icon: FileText,
     },
     {
         title: 'Marketplace',
@@ -138,14 +144,23 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
+const customerNavItems: NavItem[] = [
+    { title: 'My dashboard', href: '/dashboard', icon: LayoutGrid },
+    { title: 'My orders', href: '/dashboard/orders', icon: ShoppingCart },
+    { title: 'My activity', href: '/dashboard/activity', icon: FileText },
+];
+
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+    const isOwner = auth?.is_business_owner === true;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/admin" prefetch>
+                            <Link href={isOwner ? '/admin' : '/dashboard'} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -154,7 +169,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={isOwner ? mainNavItems : customerNavItems} />
             </SidebarContent>
 
             <SidebarFooter>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Leads\CaptureLead;
 use App\Http\Requests\StoreClientProjectRequest;
+use App\Models\Activity;
 use App\Models\ClientAcquisitionSettings;
 use App\Models\Contact;
 use App\Models\Funnel;
@@ -126,6 +127,7 @@ class ClientAcquisitionController extends Controller
             $analyticsFunnel,
             $variantId,
         );
+        Activity::record('lead_submitted', $result['contact']->customer_user_id, $result['contact'], ['source' => 'start-project']);
 
         return redirect()->to(URL::temporarySignedRoute(
             'client-acquisition.thank-you',

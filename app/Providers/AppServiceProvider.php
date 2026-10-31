@@ -6,6 +6,7 @@ use App\Contracts\ConciergeAdvisor;
 use App\Contracts\ContentDraftGenerator;
 use App\Contracts\CopilotAdvisor;
 use App\Contracts\FunnelGenerator;
+use App\Listeners\ActivityEventSubscriber;
 use App\Services\Ai\DisabledConciergeAdvisor;
 use App\Services\Ai\DisabledContentDraftGenerator;
 use App\Services\Ai\DisabledCopilotAdvisor;
@@ -61,6 +62,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $this->app['events']->subscribe(ActivityEventSubscriber::class);
     }
 }

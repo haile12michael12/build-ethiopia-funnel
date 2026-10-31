@@ -2,6 +2,7 @@
 
 namespace App\Services\Marketplace;
 
+use App\Models\Activity;
 use App\Models\MarketplacePurchase;
 use App\Models\MarketplaceWebhookEvent;
 use Illuminate\Support\Facades\DB;
@@ -44,6 +45,7 @@ class MarketplacePurchaseService
                 'status' => 'paid',
                 'paid_at' => now(),
             ]);
+            Activity::record('purchase_paid', (int) $locked->buyer_id, $locked, ['provider' => 'chapa']);
         });
 
         return true;

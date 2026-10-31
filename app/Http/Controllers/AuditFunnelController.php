@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Leads\CaptureLead;
 use App\Http\Requests\StoreBusinessAuditRequest;
 use App\Http\Resources\BusinessAuditResource;
+use App\Models\Activity;
 use App\Models\Contact;
 use App\Models\User;
 use App\Services\SiteEventRecorder;
@@ -45,6 +46,7 @@ class AuditFunnelController extends Controller
             $request->validated(),
             $request,
         );
+        Activity::record('lead_submitted', $result['contact']->customer_user_id, $result['contact'], ['source' => 'business-growth-audit']);
 
         $events->record(
             'audit_completed',

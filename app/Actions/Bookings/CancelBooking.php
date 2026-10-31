@@ -4,6 +4,7 @@ namespace App\Actions\Bookings;
 
 use App\Mail\BookingCancelledMail;
 use App\Mail\BookingOwnerNotificationMail;
+use App\Models\Activity;
 use App\Models\Booking;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -47,6 +48,7 @@ class CancelBooking
                     'reason' => $locked->cancellation_reason,
                 ],
             ]);
+            Activity::record('booking_cancelled', $locked->contact?->customer_user_id, $locked, ['booking_page_id' => $locked->booking_page_id]);
 
             return $locked->loadMissing('page.user', 'contact');
         });

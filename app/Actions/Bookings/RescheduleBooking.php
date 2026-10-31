@@ -4,6 +4,7 @@ namespace App\Actions\Bookings;
 
 use App\Mail\BookingConfirmationMail;
 use App\Mail\BookingOwnerNotificationMail;
+use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingPage;
 use App\Services\Bookings\BookingAvailability;
@@ -70,6 +71,7 @@ class RescheduleBooking
                     'to' => $locked->starts_at->toIso8601String(),
                 ],
             ]);
+            Activity::record('booking_rescheduled', $locked->contact?->customer_user_id, $locked, ['booking_page_id' => $locked->booking_page_id]);
 
             return $locked->loadMissing('page.user', 'contact');
         });

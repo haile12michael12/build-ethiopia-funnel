@@ -48,6 +48,27 @@ interface OrderSummary {
     product_name: string | null;
 }
 
+interface DownloadSummary {
+    id: number;
+    name: string;
+    url: string;
+}
+
+interface BookingSummary {
+    uuid: string;
+    name: string | null;
+    starts_at: string | null;
+    timezone: string | null;
+    status: string;
+}
+
+interface ActivitySummary {
+    id: number;
+    action: string;
+    meta: Record<string, unknown>;
+    created_at: string | null;
+}
+
 interface AccountPage {
     profile: Profile;
     summary: {
@@ -61,6 +82,9 @@ interface AccountPage {
     projects: ProjectSummary[];
     appointments: AppointmentSummary[];
     orders: OrderSummary[];
+    downloads: DownloadSummary[];
+    upcomingBookings: BookingSummary[];
+    activities: ActivitySummary[];
     order_count: number;
     paid_order_count: number;
 }
@@ -92,7 +116,7 @@ function formatAppointmentDate(startAt: string | null): string {
     });
 }
 
-export default function AccountIndex({ profile, summary, requests, projects, appointments, orders, order_count, paid_order_count }: AccountPage) {
+export default function AccountIndex({ profile, summary, requests, projects, appointments, orders, downloads, upcomingBookings, activities, order_count, paid_order_count }: AccountPage) {
     const firstName = profile.name?.trim().split(/\s+/)[0] || profile.name;
 
     return (
@@ -273,6 +297,57 @@ export default function AccountIndex({ profile, summary, requests, projects, app
                     </div>
                 </section>
 
+                <section className="grid gap-6 lg:grid-cols-2">
+                    <div className="overflow-hidden rounded-xl border border-border bg-card">
+                        <div className="flex items-center justify-between border-b border-border p-5">
+                            <h2 className="text-lg font-semibold">Purchased downloads</h2>
+                            <Link href={route('account.orders.index')} className="text-sm font-medium text-primary">Orders</Link>
+                        </div>
+                        <div className="divide-y divide-border">
+                            {downloads.length ? downloads.map((download) => (
+                                <div key={download.id} className="flex items-center justify-between gap-4 p-5">
+                                    <span className="font-medium">{download.name}</span>
+                                    <Link href={download.url} className="shrink-0 rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-muted">Download</Link>
+                                </div>
+                            )) : <p className="p-5 text-sm text-muted-foreground">Paid template downloads will appear here.</p>}
+                        </div>
+                    </div>
+                    <div className="overflow-hidden rounded-xl border border-border bg-card">
+                        <div className="flex items-center justify-between border-b border-border p-5">
+                            <h2 className="text-lg font-semibold">Upcoming bookings</h2>
+                            <Link href={route('appointments.show')} className="text-sm font-medium text-primary">Book a demo</Link>
+                        </div>
+                        <div className="divide-y divide-border">
+                            {upcomingBookings.length ? upcomingBookings.map((booking) => (
+                                <div key={booking.uuid} className="flex flex-col gap-1 p-5">
+                                    <span className="font-medium">{booking.name || 'Booking'}</span>
+                                    <span className="text-sm text-muted-foreground">
+                                        {booking.starts_at ? new Date(booking.starts_at).toLocaleString() : 'Date pending'}
+                                        {booking.timezone ? ` · ${booking.timezone}` : ''}
+                                    </span>
+                                </div>
+                            )) : <p className="p-5 text-sm text-muted-foreground">You have no upcoming calendar bookings.</p>}
+                        </div>
+                    </div>
+                </section>
+
+                <section className="overflow-hidden rounded-xl border border-border bg-card">
+                    <div className="flex items-center justify-between border-b border-border p-5">
+                        <h2 className="text-lg font-semibold">Recent activity</h2>
+                        <Link href={route('customer.activity')} className="text-sm font-medium text-primary">View all</Link>
+                    </div>
+                    <div className="divide-y divide-border">
+                        {activities.length ? activities.map((activity) => (
+                            <div key={activity.id} className="flex flex-wrap items-center justify-between gap-2 p-4 text-sm">
+                                <span className="font-medium capitalize">{activity.action.replaceAll('_', ' ')}</span>
+                                <time className="text-muted-foreground">
+                                    {activity.created_at ? new Date(activity.created_at).toLocaleString() : ''}
+                                </time>
+                            </div>
+                        )) : <p className="p-5 text-sm text-muted-foreground">Your account activity will appear here.</p>}
+                    </div>
+                </section>
+
                 <section className="overflow-hidden rounded-xl border border-border bg-card">
                     <div className="border-b border-border p-5">
                         <h2 className="text-lg font-semibold">Account shortcuts</h2>
@@ -280,6 +355,10 @@ export default function AccountIndex({ profile, summary, requests, projects, app
                     <nav aria-label="Account actions" className="divide-y divide-border">
                         <Link href={route('account.orders.index')} className="flex items-center justify-between gap-4 p-5 text-sm font-medium hover:bg-muted">
                             <span>My orders and downloads</span>
+                            <span className="text-muted-foreground">View &rarr;</span>
+                        </Link>
+                        <Link href={route('customer.activity')} className="flex items-center justify-between gap-4 p-5 text-sm font-medium hover:bg-muted">
+                            <span>My activity</span>
                             <span className="text-muted-foreground">View &rarr;</span>
                         </Link>
                         <Link href={route('products.index')} className="flex items-center justify-between gap-4 p-5 text-sm font-medium hover:bg-muted">

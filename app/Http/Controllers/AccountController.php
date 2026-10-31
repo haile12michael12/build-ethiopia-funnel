@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
 use App\Models\Appointment;
+use App\Models\Booking;
 use App\Models\ClientProject;
 use App\Models\Contact;
+use App\Services\Marketplace\MarketplaceAccessService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AccountController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, MarketplaceAccessService $access): Response|RedirectResponse
     {
         $user = $request->user();
 
@@ -73,6 +77,23 @@ class AccountController extends Controller
             ])
             ->values();
 
+        $upcomingBookings = Booking::query()
+            ->whereHas('contact', fn ($query) => $query->where('customer_user_id', $user->id))
+            ->with('page:id,title,timezone')
+            ->where('status', 'confirmed')
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at')
+            ->take(5)
+            ->get()
+            ->map(fn (Booking $booking): array => [
+                'uuid' => $booking->uuid,
+                'name' => $booking->page?->title,
+                'starts_at' => $booking->starts_at?->toIso8601String(),
+                'timezone' => $booking->invitee_timezone ?: $booking->page?->timezone,
+                'status' => $booking->status,
+            ])
+            ->values();
+
         $orders = $user->marketplacePurchases()
             ->with('template:id,name')
             ->latest('created_at')
@@ -87,6 +108,28 @@ class AccountController extends Controller
                 'currency' => $purchase->currency,
                 'product_name' => $purchase->template?->name,
             ])
+            ->values();
+
+        $downloads = $user->marketplacePurchases()
+            ->where('status', 'paid')
+            ->with('template.bundleItems')
+            ->latest('paid_at')
+            ->get()
+            ->flatMap(function ($purchase) use ($access, $user) {
+                $templates = $purchase->template?->type === 'bundle'
+                    ? $purchase->template->bundleItems->where('type', 'template')
+                    : collect([$purchase->template])->filter();
+
+                return $templates
+                    ->filter(fn ($template) => $template->file_path && $access->hasPaidPurchase($user, $template))
+                    ->map(fn ($template): array => [
+                        'id' => $template->id,
+                        'name' => $template->name,
+                        'url' => route('marketplace.download', $template->slug),
+                    ]);
+            })
+            ->unique('id')
+            ->take(10)
             ->values();
 
         return Inertia::render('account/index', [
@@ -112,6 +155,20 @@ class AccountController extends Controller
             'projects' => $projects,
             'appointments' => $appointments,
             'orders' => $orders,
+            'downloads' => $downloads,
+            'activities' => Activity::query()
+                ->where('user_id', $user->id)
+                ->latest()
+                ->limit(10)
+                ->get()
+                ->map(fn (Activity $activity): array => [
+                    'id' => $activity->id,
+                    'action' => $activity->action,
+                    'meta' => $activity->meta ?? [],
+                    'created_at' => $activity->created_at?->toIso8601String(),
+                ])
+                ->values(),
+            'upcomingBookings' => $upcomingBookings,
             'order_count' => $user->marketplacePurchases()->count(),
             'paid_order_count' => $user->marketplacePurchases()->where('status', 'paid')->count(),
         ]);

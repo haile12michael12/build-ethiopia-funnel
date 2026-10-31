@@ -4,6 +4,7 @@ namespace App\Actions\Bookings;
 
 use App\Mail\BookingConfirmationMail;
 use App\Mail\BookingOwnerNotificationMail;
+use App\Models\Activity;
 use App\Models\Booking;
 use App\Models\BookingPage;
 use App\Models\Contact;
@@ -95,6 +96,7 @@ class CreateBooking
             return $booking->loadMissing('page.user');
         });
 
+        Activity::record('booking_created', $booking->contact?->customer_user_id, $booking, ['booking_page_id' => $booking->booking_page_id]);
         $this->sendNotifications($booking);
 
         return $booking;
@@ -116,6 +118,7 @@ class CreateBooking
         }
 
         $contact->fill([
+                'customer_user_id' => $contact->customer_user_id ?? $request->user()?->id,
             'name' => $contact->name ?: $booking->invitee_name,
             'phone' => $contact->phone ?: $booking->invitee_phone,
             'source' => $isNew ? 'booking' : $contact->source,

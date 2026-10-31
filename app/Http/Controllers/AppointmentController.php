@@ -7,6 +7,7 @@ use App\Actions\Leads\HandleAppointmentBooking;
 use App\Http\Requests\StoreAppointmentRequest;
 use App\Http\Requests\UpdateAppointmentRequest;
 use App\Jobs\SendAppointmentNotifications;
+use App\Models\Activity;
 use App\Models\Appointment;
 use App\Models\Booking;
 use App\Models\Contact;
@@ -291,6 +292,8 @@ class AppointmentController extends Controller
             ]);
         });
 
+        Activity::record('lead_submitted', $contact?->customer_user_id, $contact, ['source' => 'book-a-demo']);
+        Activity::record('booking_created', $contact?->customer_user_id, $appointment, ['meeting_type' => $appointment->meeting_type]);
         $this->dispatchNotifications($appointment, $contact);
 
         return redirect()->to(URL::temporarySignedRoute(
@@ -436,6 +439,9 @@ class AppointmentController extends Controller
 
         $previousStatus = $appointment->status;
         $appointment->forceFill(['status' => $status])->save();
+        if ($status === 'cancelled') {
+            Activity::record('booking_cancelled', $appointment->contact?->customer_user_id, $appointment, ['source' => 'book-a-demo']);
+        }
 
         if ($status === 'cancelled' || $status === 'completed' || $status === 'no_show') {
             $appointment->contact?->activities()->create([

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AppNotificationsController;
 use App\Http\Controllers\AppSearchController;
@@ -57,6 +58,7 @@ use App\Models\ContactActivity;
 use App\Models\Domain;
 use App\Models\FunnelEvent;
 use App\Services\ClientAcquisitionConfiguration;
+use App\Services\OwnerDashboardSummary;
 use App\Services\FunnelPublicUrlResolver;
 use App\Services\FunnelVariantResolver;
 use Illuminate\Http\Request;
@@ -189,6 +191,7 @@ Route::domain($appDomain)->group(function () {
 
         // Customer dashboard for registered (non-owner) accounts.
         Route::get('dashboard', [AccountController::class, 'index'])->name('customer.dashboard');
+        Route::get('dashboard/activity', [ActivityController::class, 'customerIndex'])->name('customer.activity');
         Route::get('dashboard/orders', [MarketplacePurchaseController::class, 'index'])->name('account.orders.index');
         Route::get('dashboard/orders/{purchase}', [MarketplacePurchaseController::class, 'show'])->name('account.orders.show');
         Route::get('dashboard/profile', fn () => to_route('profile.edit'))->name('customer.profile');
@@ -201,6 +204,7 @@ Route::domain($appDomain)->group(function () {
 
     Route::middleware(['auth', 'verified', 'business-owner'])->group(function () {
         Route::prefix('admin')->group(function () {
+        Route::get('activity', [ActivityController::class, 'ownerIndex'])->name('activity.index');
         Route::get('manage/orders', [MarketplacePurchaseController::class, 'adminIndex'])->name('marketplace.orders.index');
         Route::post('marketplace/contributor-submissions', [MarketplaceController::class, 'submit'])
             ->middleware('throttle:5,60')
@@ -241,8 +245,9 @@ Route::domain($appDomain)->group(function () {
         Route::get('client-acquisition/analytics', ClientAcquisitionAnalyticsController::class)->name('client-acquisition.analytics');
         });
 
-        Route::get('admin', function (Request $request, ClientAcquisitionConfiguration $configuration) {
+        Route::get('admin', function (Request $request, ClientAcquisitionConfiguration $configuration, OwnerDashboardSummary $dashboardSummary) {
             $user = auth()->user();
+            $platform = $dashboardSummary->for($user);
             $funnels = $user->funnels();
             $filters = $request->validate([
                 'date_from' => ['nullable', 'date_format:Y-m-d'],
@@ -326,6 +331,13 @@ Route::domain($appDomain)->group(function () {
                     'total_conversions' => (clone $funnels)->sum('conversions'),
                     'total_contacts' => $user->contacts()->count(),
                 ],
+                'platformStats' => [
+                    'users' => $platform['users'],
+                    'leads' => $platform['leads'],
+                    'bookings_last_7_days' => $platform['bookings_last_7_days'],
+                    'verified_revenue' => $platform['verified_revenue'],
+                ],
+                'platformActivity' => $platform['recent_activity'],
                 'filters' => [
                     'date_from' => $from,
                     'date_to' => $to,

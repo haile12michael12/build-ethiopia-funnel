@@ -37,3 +37,20 @@ test('activity recording failures do not escape into the request', function () {
 
     expect(fn () => Activity::record('login'))->not->toThrow(\Throwable::class);
 });
+
+test('activity prune command deletes only records older than twelve months', function () {
+    $old = Activity::query()->create([
+        'action' => 'old',
+        'meta' => [],
+    ]);
+    $old->forceFill(['created_at' => now()->subMonths(13)])->saveQuietly();
+    $recent = Activity::query()->create([
+        'action' => 'recent',
+        'meta' => [],
+    ]);
+
+    $this->artisan('activities:prune')->assertSuccessful();
+
+    expect(Activity::query()->find($old->id))->toBeNull()
+        ->and(Activity::query()->find($recent->id))->not->toBeNull();
+});
